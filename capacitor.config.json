@@ -1,6 +1,6 @@
 {
-  "appId": "com.example.xliffeditor",
-  "appName": "XLIFF Editor",
+  "appId": "com.hoangdexiong01.localization",
+  "appName": "Android Localization",
   "webDir": "www",
   "plugins": {
     "CapacitorHttp": { "enabled": true }
