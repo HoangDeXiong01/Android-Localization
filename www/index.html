@@ -1,82 +1,137 @@
 <!DOCTYPE html>
-<html lang="vi"><head><meta charset="utf-8">
+<html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>XLIFF Editor</title>
 <style>
 :root{--bg:#fff;--fg:#1c1b1f;--card:#f3f1f6;--ac:#5b4bd5;--mut:#6b6874}
 @media(prefers-color-scheme:dark){:root{--bg:#141318;--fg:#e6e1e9;--card:#211f26;--ac:#a99cff;--mut:#9a95a3}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,sans-serif;padding-top:env(safe-area-inset-top)}
-header{position:sticky;top:0;background:var(--bg);padding:10px;border-bottom:1px solid var(--card);z-index:2}
-.row{display:flex;gap:8px;margin-bottom:8px}
-button{background:var(--ac);color:var(--bg);border:0;border-radius:10px;padding:10px 14px;font-size:15px}
-button.s{background:var(--card);color:var(--fg)}
-input[type=search]{flex:1;min-width:0;padding:10px;border-radius:10px;border:1px solid var(--card);background:var(--card);color:var(--fg)}
-#info{font-size:13px;color:var(--mut)}
-.u{background:var(--card);margin:10px;padding:12px;border-radius:12px}
-.id{font-size:12px;color:var(--mut);word-break:break-all}
-.src{margin:6px 0;white-space:pre-wrap}
+header{position:sticky;top:0;background:var(--bg);padding:8px 10px;border-bottom:1px solid var(--card);z-index:2}
+.row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.row:last-child{margin-bottom:0}
+button,select{background:var(--card);color:var(--fg);border:0;border-radius:10px;height:40px;min-width:40px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;padding:0 8px}
+button.p{background:var(--ac);color:var(--bg)}
+button:disabled{opacity:.35}
+svg{width:22px;height:22px;fill:currentColor}
+input[type=search]{flex:1;min-width:0;height:40px;padding:0 10px;border-radius:10px;border:1px solid var(--card);background:var(--card);color:var(--fg);font-size:16px}
+#info{flex:1;min-width:0;font-size:13px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pg{font-size:14px;min-width:48px;text-align:center}
+.u{background:var(--card);margin:10px;padding:10px 12px;border-radius:12px;border:2px solid transparent}
+.u.ch{border-color:var(--ac)}
+.h{display:flex;align-items:center;gap:6px}
+.id{flex:1;font-size:12px;color:var(--mut);word-break:break-all}
+.u button{height:34px;min-width:34px;background:var(--bg)}
+.u svg{width:18px;height:18px}
+.src{margin:6px 0;white-space:pre-wrap;word-break:break-word}
 textarea{width:100%;min-height:70px;padding:8px;border-radius:8px;border:1px solid var(--mut);background:var(--bg);color:var(--fg);font:inherit}
-.ch textarea{border-color:var(--ac)}
 #empty{padding:30px;text-align:center;color:var(--mut)}
 </style></head><body>
 <header>
-<div class="row"><button id="open">Mở tệp</button><button id="save" class="s">Lưu / Chia sẻ</button>
+<div class="row">
+<button id="open" class="p" title="Open file" aria-label="Open file"></button>
+<button id="save" title="Save / Share" aria-label="Save / Share"></button>
+<button id="close" title="Close file" aria-label="Close file"></button>
+<input id="q" type="search" placeholder="Search">
 <input id="f" type="file" accept="*/*" hidden></div>
-<div class="row"><input id="q" type="search" placeholder="Tìm trong nguồn / bản dịch"></div>
-<div id="info">Chưa mở tệp</div></header>
-<div id="list"><div id="empty">Bấm "Mở tệp" để chọn tệp .xlf / .xliff</div></div>
+<div class="row">
+<select id="sz" title="Units per page"><option>10</option><option selected>20</option><option>50</option><option>100</option><option value="0">∞</option></select>
+<button id="prev" title="Previous page" aria-label="Previous page"></button>
+<span id="pg">–</span>
+<button id="next" title="Next page" aria-label="Next page"></button>
+<span id="info">No file</span></div>
+</header>
+<div id="list"></div>
 <script>
-let doc=null,raw='',name='file.xlf',units=[];
 const $=id=>document.getElementById(id);
+const IC={
+open:'M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8z',
+save:'M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7zm-5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm3-10H5V5h10z',
+close:'M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
+copy:'M16 1H4a2 2 0 0 0-2 2v14h2V3h12zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11z',
+undo:'M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62A7.96 7.96 0 0 1 12.5 10c3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z',
+prev:'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z',
+next:'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z'};
+const ic=k=>'<svg viewBox="0 0 24 24"><path d="'+IC[k]+'"/></svg>';
+['open','save','close','prev','next'].forEach(k=>$(k).innerHTML=ic(k));
+
+let doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1;
 const byLocal=(p,n)=>[...p.children].find(c=>c.localName===n);
-$('open').onclick=()=>$('f').click();
+const cur=u=>u.val!==undefined?u.val:u.rt;
+const edited=()=>units.filter(u=>u.val!==undefined).length;
+const setVal=(u,v)=>{if(v===u.rt)delete u.val;else u.val=v};
+
+$('open').onclick=()=>{
+  if(doc&&edited()&&!confirm('Open another file? Unsaved changes will be lost.'))return;
+  $('f').click();
+};
 $('f').onchange=async e=>{
   const file=e.target.files[0];if(!file)return;
-  name=file.name;const txt=await file.text();raw=txt;
+  const txt=await file.text();
   const d=new DOMParser().parseFromString(txt,'application/xml');
-  if(d.querySelector('parsererror')){alert('Tệp XML không hợp lệ');return}
-  doc=d;units=[];let k=0;
+  if(d.querySelector('parsererror')){alert('Invalid XML file');e.target.value='';return}
+  name=file.name;raw=txt;doc=d;units=[];page=0;$('q').value='';
+  let k=0;
   doc.querySelectorAll('*').forEach(el=>{
     if(el.localName==='trans-unit'||el.localName==='unit'){
       const idx=k++;let host=el;
       if(el.localName==='unit'){host=byLocal(el,'segment')||el}
-      const s=byLocal(host,'source');if(!s)return;
-      units.push({el,host,src:s,idx,id:el.getAttribute('id')||''});
+      if(!byLocal(host,'source'))return;
+      units.push({host,idx,id:el.getAttribute('id')||''});
     }});
   const st=[];const re=/<(trans-unit|unit)\b/g;let m;
   while((m=re.exec(raw)))st.push([m.index,m[1]]);
   const grab=(b,n)=>{const r=new RegExp('<'+n+'\\b[^>]*?(?:\\/>|>([\\s\\S]*?)<\\/'+n+'>)').exec(b);return r?(r[1]||''):''};
-  units.forEach(u=>{const[a,tag]=st[u.idx];const e=raw.indexOf('</'+tag+'>',a);const b=raw.slice(a,e<0?undefined:e);u.rs=grab(b,'source');u.rt=grab(b,'target')});
+  units.forEach(u=>{const[a,tag]=st[u.idx];const e2=raw.indexOf('</'+tag+'>',a);
+    const b=raw.slice(a,e2<0?undefined:e2);u.rs=grab(b,'source');u.rt=grab(b,'target')});
   render();e.target.value='';
 };
+$('close').onclick=()=>{
+  if(!doc)return;
+  if(edited()&&!confirm('Close this file? Unsaved changes will not be saved.'))return;
+  doc=null;raw='';units=[];page=0;$('q').value='';render();
+};
+$('q').oninput=()=>{page=0;render()};
+$('sz').onchange=()=>{size=+$('sz').value;page=0;render()};
+$('prev').onclick=()=>{if(page>0){page--;render();scrollTo(0,0)}};
+$('next').onclick=()=>{if(page<pages-1){page++;render();scrollTo(0,0)}};
+
+function card(u){
+  const d=document.createElement('div');d.className='u';
+  d.innerHTML='<div class="h"><div class="id"></div><button class="cp" title="Copy source" aria-label="Copy source"></button><button class="un" title="Undo changes" aria-label="Undo changes"></button></div><div class="src"></div><textarea></textarea>';
+  const [idEl,srcEl,ta]=[d.querySelector('.id'),d.querySelector('.src'),d.querySelector('textarea')];
+  const cp=d.querySelector('.cp'),un=d.querySelector('.un');
+  cp.innerHTML=ic('copy');un.innerHTML=ic('undo');
+  idEl.textContent=u.id;srcEl.textContent=u.rs;ta.value=cur(u);
+  const sync=()=>{d.classList.toggle('ch',u.val!==undefined);un.disabled=u.val===undefined;upd()};
+  ta.oninput=()=>{setVal(u,ta.value);sync()};
+  cp.onclick=()=>{ta.value=u.rs;setVal(u,u.rs);sync()};
+  un.onclick=()=>{ta.value=u.rt;delete u.val;sync()};
+  d.classList.toggle('ch',u.val!==undefined);un.disabled=u.val===undefined;
+  return d;
+}
 function render(){
-  const q=$('q').value.toLowerCase(),L=$('list');L.innerHTML='';let n=0;
-  units.forEach(u=>{
-    const cur=u.val!==undefined?u.val:u.rt;
-    const sx=u.rs;
-    if(q&&!(sx.toLowerCase().includes(q)||cur.toLowerCase().includes(q)))return;
-    n++;
-    const d=document.createElement('div');d.className='u'+(u.val!==undefined?' ch':'');
-    d.innerHTML='<div class="id"></div><div class="src"></div><textarea></textarea>';
-    d.children[0].textContent=u.id;
-    d.children[1].textContent=sx;
-    const ta=d.children[2];ta.value=cur;
-    ta.oninput=()=>{u.val=ta.value;d.classList.add('ch');upd()};
-    L.appendChild(d);
-  });
-  if(!n)L.innerHTML='<div id="empty">Không có mục nào</div>';
+  const L=$('list');L.innerHTML='';
+  if(!doc){L.innerHTML='<div id="empty">Tap the folder icon to open an .xlf / .xliff file</div>';pages=1;page=0;upd();return}
+  const q=$('q').value.toLowerCase();
+  const f=units.filter(u=>!q||u.rs.toLowerCase().includes(q)||cur(u).toLowerCase().includes(q));
+  pages=size>0?Math.max(1,Math.ceil(f.length/size)):1;
+  if(page>=pages)page=pages-1;
+  const part=size>0?f.slice(page*size,page*size+size):f;
+  if(!part.length)L.innerHTML='<div id="empty">No matches</div>';
+  part.forEach(u=>L.appendChild(card(u)));
   upd();
 }
 function upd(){
-  const c=units.filter(u=>u.val!==undefined).length;
-  $('info').textContent=doc?`${name} · ${units.length} mục · ${c} đã sửa`:'Chưa mở tệp';
+  $('info').textContent=doc?`${name} · ${edited()} edited / ${units.length}`:'No file';
+  $('pg').textContent=doc&&size>0?`${page+1}/${pages}`:'–';
+  $('prev').disabled=!doc||size===0||page<=0;
+  $('next').disabled=!doc||size===0||page>=pages-1;
 }
-$('q').oninput=render;
+
 $('save').onclick=async()=>{
-  if(!doc){alert('Chưa mở tệp');return}
+  if(!doc){alert('No file open');return}
   const starts=[];const re=/<(trans-unit|unit)\b/g;let m;
   while((m=re.exec(raw)))starts.push([m.index,m[1]]);
-  const esc=v=>v;
   let out=raw;
   const ed=units.filter(u=>u.val!==undefined).sort((x,y)=>y.idx-x.idx);
   for(const u of ed){
@@ -85,24 +140,25 @@ $('save').onclick=async()=>{
     let blk=out.slice(st,en);
     const tre=/<target\b([^>]*?)\s*(?:\/>|>[\s\S]*?<\/target>)/;
     if(tre.test(blk)){
-      blk=blk.replace(tre,(_,at)=>'<target'+at+'>'+esc(u.val)+'</target>');
+      blk=blk.replace(tre,(_,at)=>'<target'+at+'>'+u.val+'</target>');
     }else{
       blk=blk.replace(/([ \t]*)<source\b[^>]*?(?:\/>|>[\s\S]*?<\/source>)/,
-        (x,ind)=>x+'\n'+ind+'<target>'+esc(u.val)+'</target>');
+        (x,ind)=>x+'\n'+ind+'<target>'+u.val+'</target>');
     }
     out=out.slice(0,st)+blk+out.slice(en);
   }
   const chk=new DOMParser().parseFromString(out,'application/xml');
-  if(chk.querySelector('parsererror')){alert('Nội dung vừa sửa làm XML không hợp lệ (có thể do & hoặc < chưa viết đúng dạng &amp; / &lt;). Chưa lưu.');return}
+  if(chk.querySelector('parsererror')){alert('Your edits make the XML invalid (e.g. a bare & or < instead of &amp; / &lt;). Not saved.');return}
   try{
     const P=window.Capacitor&&window.Capacitor.Plugins;
     if(P&&P.Filesystem&&P.Share){
       const r=await P.Filesystem.writeFile({path:name,data:out,directory:'CACHE',encoding:'utf8'});
-      await P.Share.share({title:name,url:r.uri,dialogTitle:'Lưu tệp XLIFF'});
+      await P.Share.share({title:name,url:r.uri,dialogTitle:'Save XLIFF file'});
     }else{
       const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([out],{type:'application/xml'}));
       a.download=name;a.click();
     }
-  }catch(e){if(!String(e).includes('cancel'))alert('Lỗi khi lưu: '+e)}
+  }catch(e){if(!String(e).includes('cancel'))alert('Save failed: '+e)}
 };
+render();
 </script></body></html>
