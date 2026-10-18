@@ -43,21 +43,23 @@ $('f').onchange=async e=>{
       const s=byLocal(host,'source');if(!s)return;
       units.push({el,host,src:s,idx,id:el.getAttribute('id')||''});
     }});
+  const st=[];const re=/<(trans-unit|unit)\b/g;let m;
+  while((m=re.exec(raw)))st.push([m.index,m[1]]);
+  const grab=(b,n)=>{const r=new RegExp('<'+n+'\\b[^>]*?(?:\\/>|>([\\s\\S]*?)<\\/'+n+'>)').exec(b);return r?(r[1]||''):''};
+  units.forEach(u=>{const[a,tag]=st[u.idx];const e=raw.indexOf('</'+tag+'>',a);const b=raw.slice(a,e<0?undefined:e);u.rs=grab(b,'source');u.rt=grab(b,'target')});
   render();e.target.value='';
 };
 function render(){
   const q=$('q').value.toLowerCase(),L=$('list');L.innerHTML='';let n=0;
   units.forEach(u=>{
-    const t=byLocal(u.host,'target');
-    const cur=u.val!==undefined?u.val:(t?t.textContent:'');
-    const s=u.src.textContent;
-    if(q&&!(s.toLowerCase().includes(q)||cur.toLowerCase().includes(q)))return;
+    const cur=u.val!==undefined?u.val:u.rt;
+    const sx=u.rs;
+    if(q&&!(sx.toLowerCase().includes(q)||cur.toLowerCase().includes(q)))return;
     n++;
     const d=document.createElement('div');d.className='u'+(u.val!==undefined?' ch':'');
-    const hasTags=t&&t.children.length>0;
     d.innerHTML='<div class="id"></div><div class="src"></div><textarea></textarea>';
-    d.children[0].textContent=u.id+(hasTags?' ⚠ có thẻ nội tuyến (sửa sẽ thay bằng văn bản thuần)':'');
-    d.children[1].textContent=s;
+    d.children[0].textContent=u.id;
+    d.children[1].textContent=sx;
     const ta=d.children[2];ta.value=cur;
     ta.oninput=()=>{u.val=ta.value;d.classList.add('ch');upd()};
     L.appendChild(d);
@@ -74,7 +76,7 @@ $('save').onclick=async()=>{
   if(!doc){alert('Chưa mở tệp');return}
   const starts=[];const re=/<(trans-unit|unit)\b/g;let m;
   while((m=re.exec(raw)))starts.push([m.index,m[1]]);
-  const esc=v=>v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const esc=v=>v;
   let out=raw;
   const ed=units.filter(u=>u.val!==undefined).sort((x,y)=>y.idx-x.idx);
   for(const u of ed){
@@ -90,6 +92,8 @@ $('save').onclick=async()=>{
     }
     out=out.slice(0,st)+blk+out.slice(en);
   }
+  const chk=new DOMParser().parseFromString(out,'application/xml');
+  if(chk.querySelector('parsererror')){alert('Nội dung vừa sửa làm XML không hợp lệ (có thể do & hoặc < chưa viết đúng dạng &amp; / &lt;). Chưa lưu.');return}
   try{
     const P=window.Capacitor&&window.Capacitor.Plugins;
     if(P&&P.Filesystem&&P.Share){
