@@ -36,6 +36,7 @@ body.sm #fl [data-f=rn],body.sm #fl [data-f=ctx]{display:none}
 #fl{display:none;flex-wrap:wrap}
 #fl.show{display:flex}
 #fl button{height:32px;font-size:13px}
+#so{flex:1 1 100%;height:36px;font-size:14px}
 .src{margin:6px 0;white-space:pre-wrap;word-break:break-word}
 textarea{width:100%;min-height:70px;padding:8px;border-radius:8px;border:1px solid var(--mut);background:var(--bg);color:var(--fg);font:inherit}
 #empty{padding:30px;text-align:center;color:var(--mut)}
@@ -83,7 +84,7 @@ body.sm .mi.x{display:none}
 <button id="close" title="Close file" aria-label="Close file"></button>
 <input id="q" type="search" placeholder="Search"><button id="flt" title="Search in…" aria-label="Search in"></button>
 <input id="f" type="file" accept="*/*" hidden><input id="f2" type="file" accept="*/*" hidden></div>
-<div class="row" id="fl"><button data-f="id">ID</button><button data-f="rn">Name</button><button data-f="src">Source</button><button data-f="ctx">Context</button><button data-f="tgt">Target</button></div>
+<div class="row" id="fl"><button data-f="id">ID</button><button data-f="rn">Name</button><button data-f="src">Source</button><button data-f="ctx">Context</button><button data-f="tgt">Target</button><select id="so" title="Show first"></select></div>
 <div class="row">
 <label id="sw" title="Select all shown"><input id="sa" type="checkbox"></label><button id="bulk" title="Actions for selected units" aria-label="Actions for selected units" disabled></button>
 <select id="sz" title="Units per page"><option>10</option><option selected>20</option><option>50</option><option>100</option><option value="0">∞</option></select>
@@ -156,6 +157,7 @@ function setMode(m){
   mode=m;document.body.classList.toggle('sm',m==='strings');
   $('tl').hidden=m!=='strings';
   document.querySelector('#fl [data-f=id]').textContent=m==='strings'?'Key':'ID';
+  fillSort();fchips();
 }
 function parseStrings(txt){
   const t=txt.replace(/<!--[\s\S]*?-->/g,'');
@@ -247,7 +249,7 @@ $('c-test').onclick=async()=>{
   catch(e){alert('Failed: '+e.message)}
   b.disabled=false;
 };
-const BM=[['mt','Machine translate selected','mt',0],['check','Approve selected','ap',1],['close','Unapprove selected','un',1],['eyeoff','Hide selected','hd',1],['eye','Unhide selected','sh',1],['copy','Copy source to selected','cs',0],['close','Clear selection','cl',0]];
+const BM=[['mt','Machine translate selected','mt',0],['check','Approve selected','ap',1],['close','Unapprove selected','un',1],['eyeoff','Hide selected','hd',1],['eye','Unhide selected','sh',1],['copy','Copy source to selected','cs',0],['undo','Undo changes in selected','ud',0],['close','Clear selection','cl',0]];
 $('bl').innerHTML=BM.map(([i,t,a,x])=>'<button class="mi'+(x?' x':'')+'" data-a="'+a+'" type="button">'+ic(i)+'<span>'+t+'</span></button>').join('');
 $('bl').querySelectorAll('.mi').forEach(b=>b.onclick=()=>{$('bm').hidden=true;bulk(b.dataset.a)});
 $('bulk').onclick=()=>{$('bm').hidden=false};
@@ -277,6 +279,12 @@ async function bulk(a){
   const sel=units.filter(u=>u.sel);
   if(!sel.length)return;
   if(a==='cl'){sel.forEach(u=>delete u.sel);render();return}
+  if(a==='ud'){
+    const n=sel.filter(changed).length;
+    if(!n){alert('No changes in the selected units');return}
+    if(!confirm('Discard the changes in '+n+' selected units?'))return;
+    sel.forEach(u=>{delete u.val;delete u.ap;delete u.tr});render();return;
+  }
   if(a==='mt'){await bulkMT(sel);return}
   if(a==='cs'){
     const diff=sel.filter(u=>cur(u).trim()&&cur(u)!==u.rs).length;
@@ -334,8 +342,30 @@ $('q').oninput=()=>{page=0;render()};
 $('flt').onclick=()=>$('fl').classList.toggle('show');
 document.querySelectorAll('#fl button').forEach(b=>b.onclick=()=>{F[b.dataset.f]=F[b.dataset.f]?0:1;fchips();page=0;render()});
 function fchips(){document.querySelectorAll('#fl button').forEach(b=>b.classList.toggle('on',!!F[b.dataset.f]));
-  $('flt').classList.toggle('on',Object.values(F).some(v=>!v))}
-fchips();
+  $('flt').classList.toggle('on',Object.values(F).some(v=>!v)||$('so').value!=='none')}
+const SORTS=[['none','Original order',0],['mod','Edited first',0],['unap','Unapproved first',1],['hid','Hidden first',1],['untr','Untranslated first',0],['same','Same as source first',0],['lsrc','Longest source first',0],['ssrc','Shortest source first',0],['ltgt','Longest target first',0],['stgt','Shortest target first',0]];
+function fillSort(){
+  const so=$('so'),v=so.value||'none';
+  so.innerHTML=SORTS.filter(x=>!x[2]||mode==='xliff').map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');
+  so.value=[...so.options].some(o=>o.value===v)?v:'none';
+}
+$('so').onchange=()=>{page=0;fchips();render()};
+const sortKey=(k,u)=>{
+  const ap=u.ap!==undefined?u.ap:u.oAp,tr=u.tr!==undefined?u.tr:u.oTr,c=cur(u);
+  switch(k){
+    case 'mod':return changed(u)?0:1;
+    case 'unap':return u.is12&&!ap?0:1;
+    case 'hid':return u.is12&&tr==='no'?0:1;
+    case 'untr':return c.trim()===''?0:1;
+    case 'same':return c!==''&&c===u.rs?0:1;
+    case 'lsrc':return -clen(u.rs);
+    case 'ssrc':return clen(u.rs);
+    case 'ltgt':return -clen(c);
+    case 'stgt':return clen(c);
+  }
+  return 0;
+};
+fillSort();fchips();
 $('sz').onchange=()=>{size=+$('sz').value;page=0;render()};
 $('prev').onclick=()=>{if(page>0){page--;render();scrollTo(0,0)}};
 $('next').onclick=()=>{if(page<pages-1){page++;render();scrollTo(0,0)}};
@@ -397,7 +427,9 @@ function render(){
   if(!doc){shown=[];L.innerHTML='<div id="empty">Tap the folder icon to open a .xlf / .xliff or strings.xml file</div>';pages=1;page=0;upd();return}
   const q=$('q').value.toLowerCase();
   const hit=(v)=>(v||'').toLowerCase().includes(q);
-  const f=units.filter(u=>!q||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(F.ctx&&hit(u.ct))||(F.tgt&&hit(cur(u))));
+  let f=units.filter(u=>!q||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(F.ctx&&hit(u.ct))||(F.tgt&&hit(cur(u))));
+  const sk=$('so').value;
+  if(sk!=='none')f=f.map((u,i)=>[u,i,sortKey(sk,u)]).sort((a,b)=>a[2]-b[2]||a[1]-b[1]).map(x=>x[0]);
   pages=size>0?Math.max(1,Math.ceil(f.length/size)):1;
   if(page>=pages)page=pages-1;
   const part=size>0?f.slice(page*size,page*size+size):f;
