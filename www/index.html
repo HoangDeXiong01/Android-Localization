@@ -65,7 +65,7 @@ mark.es{background:rgba(102,187,106,.42)}
 .dr{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 .dr button{padding:0 16px}
 #fnw{flex:1;min-width:0}
-#bm,#prog{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
+#bm,#prog,#ip{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
 .sp{flex:1}
 #sw{width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex:none}
 .sel,#sa{width:20px;height:20px;accent-color:var(--ac);margin:2px 0 0;flex:none}
@@ -75,6 +75,13 @@ mark.es{background:rgba(102,187,106,.42)}
 .mi{display:flex;align-items:center;justify-content:flex-start;gap:12px;width:100%;height:46px;margin-bottom:4px;background:transparent;font-size:15px;padding:0 8px}
 body.sm .mi.x{display:none}
 #pt{padding:8px 0;font-size:16px}
+#ipl{max-height:45vh;overflow:auto;margin-top:8px}
+.pi{padding:8px 0;border-top:1px solid var(--card);font-size:13px;word-break:break-word}
+.pk{font-size:12px;color:var(--mut);margin-bottom:2px}
+.po{color:var(--mut);text-decoration:line-through}
+.tag{display:inline-block;font-size:11px;border-radius:6px;padding:0 6px;margin-left:6px;color:var(--bg)}
+.tag.n{background:#43a047}.tag.o{background:#f57c00}
+.dr{flex-wrap:wrap}
 </style></head><body>
 <header>
 <div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div><div id="selc" hidden></div></div><select id="tl" title="Target language" hidden></select><button id="cfgb" title="Auto-translate settings" aria-label="Auto-translate settings"></button><button id="imp" title="Import translations (XLIFF or strings.xml)" aria-label="Import translations" hidden></button></div>
@@ -106,6 +113,7 @@ body.sm .mi.x{display:none}
 <div class="dr"><button id="c-test" type="button">Test</button><button id="c-cancel" type="button">Close</button><button id="c-save" type="button" class="p">Save</button></div>
 </div></div>
 <div id="bm" hidden><div class="dlg"><h3>Selected units</h3><div id="bl"></div><div class="dr"><button id="bclose" type="button">Close</button></div></div></div>
+<div id="ip" hidden><div class="dlg"><h3>Import preview</h3><div id="ips" class="hint"></div><div id="ipl"></div><div class="dr"><button id="ip-c" type="button">Cancel</button><button id="ip-fill" type="button"></button><button id="ip-all" type="button" class="p"></button></div></div></div>
 <div id="prog" hidden><div class="dlg"><div id="pt"></div><div class="dr"><button id="pstop" type="button">Stop</button></div></div></div>
 <div id="list"></div>
 <script>
@@ -217,14 +225,42 @@ $('f2').onchange=async e=>{
   const kOf=u=>mode==='strings'?ckey(u):(mp.has(u.rn)?u.rn:u.id);
   const hits=[],matched=new Set();
   units.forEach(u=>{const k=kOf(u);if(mp.has(k)){hits.push([u,mp.get(k)]);matched.add(k)}});
-  const conflicts=hits.filter(([u,v])=>cur(u).trim()&&cur(u)!==v).length;
-  const over=conflicts>0&&confirm(conflicts+' units already have a different translation. OK = overwrite them, Cancel = fill empty ones only.');
-  let n=0;
-  hits.forEach(([u,v])=>{if(cur(u)===v)return;if(cur(u).trim()&&!over)return;setVal(u,v);n++});
   const skipped=mp.size-matched.size;
-  alert('Imported '+n+(skipped?', skipped '+skipped+(mode==='strings'?' not in source':' with no match'):''));
-  render();
+  const plan=hits.map(([u,v])=>({u,v,k:cur(u)===v?'same':cur(u).trim()?'over':'fill'}));
+  const nf=plan.filter(p=>p.k==='fill').length,no=plan.filter(p=>p.k==='over').length,same=plan.length-nf-no;
+  const nm=skipped?', '+skipped+(mode==='strings'?' not in source':' with no match'):'';
+  if(!nf&&!no){alert('Nothing to import: '+same+' already identical'+nm);return}
+  const choice=await previewImport(plan,nf,no,same,skipped);
+  if(!choice)return;
+  const todo=plan.filter(p=>p.k==='fill'||(choice==='all'&&p.k==='over'));
+  todo.forEach(p=>setVal(p.u,p.v));
+  units.forEach(u=>delete u.sel);todo.forEach(p=>p.u.sel=true);
+  $('q').value='';$('so').value='mod';page=0;fchips();render();
 };
+function previewImport(plan,nf,no,same,skipped){
+  return new Promise(res=>{
+    $('ips').textContent='New: '+nf+' · Overwrite: '+no+' · Same: '+same+' · No match: '+skipped;
+    const L=$('ipl');L.innerHTML='';
+    const clip=t=>{t=t.replace(/\s+/g,' ').trim();return t.length>90?t.slice(0,90)+'…':t};
+    const items=plan.filter(p=>p.k!=='same');
+    items.slice(0,150).forEach(p=>{
+      const d=document.createElement('div');d.className='pi';
+      const k=document.createElement('div');k.className='pk';k.textContent=(p.u.rn?p.u.id+' · '+p.u.rn:p.u.id);
+      const tg=document.createElement('span');tg.className='tag '+(p.k==='over'?'o':'n');tg.textContent=p.k==='over'?'overwrite':'new';k.appendChild(tg);
+      d.appendChild(k);
+      if(p.k==='over'){const o=document.createElement('div');o.className='po';o.textContent=clip(cur(p.u));d.appendChild(o)}
+      const n=document.createElement('div');n.textContent=clip(p.v);d.appendChild(n);
+      L.appendChild(d);
+    });
+    if(items.length>150){const m=document.createElement('div');m.className='pi';m.textContent='… and '+(items.length-150)+' more';L.appendChild(m)}
+    const fill=$('ip-fill'),all=$('ip-all');
+    fill.hidden=!(nf&&no);fill.textContent='Fill empty only ('+nf+')';
+    all.textContent=no?(nf?'Apply all ('+(nf+no)+')':'Overwrite ('+no+')'):'Apply ('+nf+')';
+    const done=v=>{$('ip').hidden=true;res(v)};
+    $('ip-c').onclick=()=>done(null);fill.onclick=()=>done('fill');all.onclick=()=>done('all');
+    $('ip').hidden=false;
+  });
+}
 const gfShow=()=>{$('gf').hidden=$('c-eng').value!=='gemini'};
 function openCfg(){
   $('c-eng').value=CFG.eng;$('c-key').value=CFG.gkey;$('c-model').value=CFG.gmodel||DEFMODEL;$('c-notes').value=CFG.gnotes;
