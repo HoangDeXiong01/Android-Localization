@@ -20,8 +20,14 @@ input[type=search]{flex:1;min-width:0;height:40px;padding:0 10px;border-radius:1
 .u.ch{border-color:var(--ac)}
 .h{display:flex;align-items:center;gap:6px}
 .id{flex:1;font-size:12px;color:var(--mut);word-break:break-all}
-.u button{height:34px;min-width:34px;background:var(--bg)}
+.u button{height:32px;min-width:32px;padding:0;background:var(--bg)}
 .u svg{width:18px;height:18px}
+button.on{background:var(--ac)!important;color:var(--bg)!important}
+.h{gap:4px}
+.cxt{font-size:13px;color:var(--mut);white-space:pre-wrap;word-break:break-word;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--bg)}
+#fl{display:none;flex-wrap:wrap}
+#fl.show{display:flex}
+#fl button{height:32px;font-size:13px}
 .src{margin:6px 0;white-space:pre-wrap;word-break:break-word}
 textarea{width:100%;min-height:70px;padding:8px;border-radius:8px;border:1px solid var(--mut);background:var(--bg);color:var(--fg);font:inherit}
 #empty{padding:30px;text-align:center;color:var(--mut)}
@@ -31,8 +37,9 @@ textarea{width:100%;min-height:70px;padding:8px;border-radius:8px;border:1px sol
 <button id="open" class="p" title="Open file" aria-label="Open file"></button>
 <button id="save" title="Save / Share" aria-label="Save / Share"></button>
 <button id="close" title="Close file" aria-label="Close file"></button>
-<input id="q" type="search" placeholder="Search">
+<input id="q" type="search" placeholder="Search"><button id="flt" title="Search in…" aria-label="Search in"></button>
 <input id="f" type="file" accept="*/*" hidden></div>
+<div class="row" id="fl"><button data-f="id">ID</button><button data-f="rn">Name</button><button data-f="src">Source</button><button data-f="ctx">Context</button><button data-f="tgt">Target</button></div>
 <div class="row">
 <select id="sz" title="Units per page"><option>10</option><option selected>20</option><option>50</option><option>100</option><option value="0">∞</option></select>
 <button id="prev" title="Previous page" aria-label="Previous page"></button>
@@ -49,15 +56,26 @@ save:'M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7zm-5 16a3 3 0 1 1
 close:'M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
 copy:'M16 1H4a2 2 0 0 0-2 2v14h2V3h12zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11z',
 undo:'M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62A7.96 7.96 0 0 1 12.5 10c3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z',
+flt:'M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z',
+check:'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
+help:'M11 18h2v-2h-2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z',
+eye:'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
+eyeoff:'M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3z',
 prev:'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z',
 next:'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z'};
 const ic=k=>'<svg viewBox="0 0 24 24"><path d="'+IC[k]+'"/></svg>';
-['open','save','close','prev','next'].forEach(k=>$(k).innerHTML=ic(k));
+['open','save','close','prev','next','flt'].forEach(k=>$(k).innerHTML=ic(k));
 
-let doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1;
+let doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,crowdin=false;
+const F={id:1,rn:1,src:1,ctx:1,tgt:1};
+const ga=(t,n)=>{const r=new RegExp('\\s'+n+'=(?:"([^"]*)"|\'([^\']*)\')').exec(t);return r?(r[1]!==undefined?r[1]:r[2]):null};
+const setAttr=(t,n,v)=>{const re=new RegExp('(\\s'+n+'=)(?:"[^"]*"|\'[^\']*\')');
+  return re.test(t)?t.replace(re,'$1"'+v+'"'):t.replace(/\s*(\/?>)$/,' '+n+'="'+v+'"$1')};
+const START=/^<(?:trans-unit|unit)\b(?:"[^"]*"|'[^']*'|[^>"'])*>/;
+const changed=u=>u.val!==undefined||u.ap!==undefined||u.tr!==undefined;
 const byLocal=(p,n)=>[...p.children].find(c=>c.localName===n);
 const cur=u=>u.val!==undefined?u.val:u.rt;
-const edited=()=>units.filter(u=>u.val!==undefined).length;
+const edited=()=>units.filter(changed).length;
 const setVal=(u,v)=>{if(v===u.rt)delete u.val;else u.val=v};
 
 $('open').onclick=()=>{
@@ -78,11 +96,18 @@ $('f').onchange=async e=>{
       if(!byLocal(host,'source'))return;
       units.push({host,idx,id:el.getAttribute('id')||''});
     }});
+  crowdin=/tool-id="crowdin"|tool-name="crowdin"/i.test(raw);
   const st=[];const re=/<(trans-unit|unit)\b/g;let m;
   while((m=re.exec(raw)))st.push([m.index,m[1]]);
   const grab=(b,n)=>{const r=new RegExp('<'+n+'\\b[^>]*?(?:\\/>|>([\\s\\S]*?)<\\/'+n+'>)').exec(b);return r?(r[1]||''):''};
   units.forEach(u=>{const[a,tag]=st[u.idx];const e2=raw.indexOf('</'+tag+'>',a);
-    const b=raw.slice(a,e2<0?undefined:e2);u.rs=grab(b,'source');u.rt=grab(b,'target')});
+    const b=raw.slice(a,e2<0?undefined:e2);u.rs=grab(b,'source');u.rt=grab(b,'target');
+    const sm=START.exec(b);const stg=sm?sm[0]:'';
+    u.is12=tag==='trans-unit';u.rn=ga(stg,'resname')||ga(stg,'name')||'';
+    u.oAp=ga(stg,'approved')==='yes';u.oTr=ga(stg,'translate')==='no'?'no':'yes';
+    u.ctx=[];const cr=/<context(?=[\s>])([^>]*)>([\s\S]*?)<\/context>/g;let cm;
+    while((cm=cr.exec(b)))u.ctx.push((ga(cm[1],'context-type')||'context')+': '+cm[2]);
+    u.ct=crowdin?u.ctx.join('\n'):''});
   render();e.target.value='';
 };
 $('close').onclick=()=>{
@@ -91,29 +116,49 @@ $('close').onclick=()=>{
   doc=null;raw='';units=[];page=0;$('q').value='';render();
 };
 $('q').oninput=()=>{page=0;render()};
+$('flt').onclick=()=>$('fl').classList.toggle('show');
+document.querySelectorAll('#fl button').forEach(b=>b.onclick=()=>{F[b.dataset.f]=F[b.dataset.f]?0:1;fchips();page=0;render()});
+function fchips(){document.querySelectorAll('#fl button').forEach(b=>b.classList.toggle('on',!!F[b.dataset.f]));
+  $('flt').classList.toggle('on',Object.values(F).some(v=>!v))}
+fchips();
 $('sz').onchange=()=>{size=+$('sz').value;page=0;render()};
 $('prev').onclick=()=>{if(page>0){page--;render();scrollTo(0,0)}};
 $('next').onclick=()=>{if(page<pages-1){page++;render();scrollTo(0,0)}};
 
 function card(u){
   const d=document.createElement('div');d.className='u';
-  d.innerHTML='<div class="h"><div class="id"></div><button class="cp" title="Copy source" aria-label="Copy source"></button><button class="un" title="Undo changes" aria-label="Undo changes"></button></div><div class="src"></div><textarea></textarea>';
-  const [idEl,srcEl,ta]=[d.querySelector('.id'),d.querySelector('.src'),d.querySelector('textarea')];
-  const cp=d.querySelector('.cp'),un=d.querySelector('.un');
-  cp.innerHTML=ic('copy');un.innerHTML=ic('undo');
-  idEl.textContent=u.id;srcEl.textContent=u.rs;ta.value=cur(u);
-  const sync=()=>{d.classList.toggle('ch',u.val!==undefined);un.disabled=u.val===undefined;upd()};
+  d.innerHTML='<div class="h"><div class="id"></div><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="cp"></button><button class="un"></button></div><div class="cxt" hidden></div><div class="src"></div><textarea></textarea>';
+  const q=s=>d.querySelector(s);
+  const ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea');
+  ap.innerHTML=ic('check');cx.innerHTML=ic('help');cp.innerHTML=ic('copy');un.innerHTML=ic('undo');
+  [[ap,'Approve'],[hd,'Visible'],[cx,'Context'],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
+  q('.id').textContent=u.id+(u.rn?' · '+u.rn:'');q('.src').textContent=u.rs;ta.value=cur(u);
+  cxt.textContent=crowdin?(u.ctx.join('\n')||'No context'):'For Crowdin Only';
+  const refresh=()=>{
+    const a=u.ap!==undefined?u.ap:u.oAp,t=u.tr!==undefined?u.tr:u.oTr;
+    d.classList.toggle('ch',changed(u));un.disabled=!changed(u);
+    ap.classList.toggle('on',a);ap.title=a?'Approved':'Not approved';
+    hd.innerHTML=ic(t==='yes'?'eye':'eyeoff');hd.classList.toggle('on',t==='yes');
+    hd.title=t==='yes'?'translate=yes (tap to hide)':'translate=no (tap to unhide)';
+    ap.disabled=hd.disabled=!u.is12;
+    cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;
+  };
+  const sync=()=>{refresh();upd()};
   ta.oninput=()=>{setVal(u,ta.value);sync()};
   cp.onclick=()=>{ta.value=u.rs;setVal(u,u.rs);sync()};
-  un.onclick=()=>{ta.value=u.rt;delete u.val;sync()};
-  d.classList.toggle('ch',u.val!==undefined);un.disabled=u.val===undefined;
+  un.onclick=()=>{ta.value=u.rt;delete u.val;delete u.ap;delete u.tr;sync()};
+  ap.onclick=()=>{const n=!(u.ap!==undefined?u.ap:u.oAp);if(n===u.oAp)delete u.ap;else u.ap=n;sync()};
+  hd.onclick=()=>{const n=(u.tr!==undefined?u.tr:u.oTr)==='yes'?'no':'yes';if(n===u.oTr)delete u.tr;else u.tr=n;sync()};
+  cx.onclick=()=>{u.showCtx=!u.showCtx;refresh()};
+  refresh();
   return d;
 }
 function render(){
   const L=$('list');L.innerHTML='';
   if(!doc){L.innerHTML='<div id="empty">Tap the folder icon to open an .xlf / .xliff file</div>';pages=1;page=0;upd();return}
   const q=$('q').value.toLowerCase();
-  const f=units.filter(u=>!q||u.rs.toLowerCase().includes(q)||cur(u).toLowerCase().includes(q));
+  const hit=(v)=>(v||'').toLowerCase().includes(q);
+  const f=units.filter(u=>!q||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(F.ctx&&hit(u.ct))||(F.tgt&&hit(cur(u))));
   pages=size>0?Math.max(1,Math.ceil(f.length/size)):1;
   if(page>=pages)page=pages-1;
   const part=size>0?f.slice(page*size,page*size+size):f;
@@ -133,18 +178,23 @@ $('save').onclick=async()=>{
   const starts=[];const re=/<(trans-unit|unit)\b/g;let m;
   while((m=re.exec(raw)))starts.push([m.index,m[1]]);
   let out=raw;
-  const ed=units.filter(u=>u.val!==undefined).sort((x,y)=>y.idx-x.idx);
+  const ed=units.filter(changed).sort((x,y)=>y.idx-x.idx);
   for(const u of ed){
     const [st,tag]=starts[u.idx];
     let en=out.indexOf('</'+tag+'>',st);if(en<0)continue;
     let blk=out.slice(st,en);
+    if(u.val!==undefined){
     const tre=/<target\b([^>]*?)\s*(?:\/>|>[\s\S]*?<\/target>)/;
     if(tre.test(blk)){
       blk=blk.replace(tre,(_,at)=>'<target'+at+'>'+u.val+'</target>');
     }else{
       blk=blk.replace(/([ \t]*)<source\b[^>]*?(?:\/>|>[\s\S]*?<\/source>)/,
         (x,ind)=>x+'\n'+ind+'<target>'+u.val+'</target>');
-    }
+    }}
+    blk=blk.replace(START,t=>{
+      if(u.ap!==undefined)t=setAttr(t,'approved',u.ap?'yes':'no');
+      if(u.tr!==undefined)t=setAttr(t,'translate',u.tr);
+      return t});
     out=out.slice(0,st)+blk+out.slice(en);
   }
   const chk=new DOMParser().parseFromString(out,'application/xml');
