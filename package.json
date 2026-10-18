@@ -1,5 +1,5 @@
 {
-  "name": "xliff-editor",
+  "name": "android-localization",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
@@ -8,5 +8,8 @@
     "@capacitor/core": "^6.1.0",
     "@capacitor/filesystem": "^6.0.0",
     "@capacitor/share": "^6.0.0"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.5"
   }
 }
