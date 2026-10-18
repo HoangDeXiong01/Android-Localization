@@ -19,11 +19,14 @@ input[type=search]{flex:1;min-width:0;height:40px;padding:0 10px;border-radius:1
 .u{background:var(--card);margin:10px;padding:10px 12px;border-radius:12px;border:2px solid transparent}
 .u.ch{border-color:var(--ac)}
 .h{display:flex;align-items:center;gap:6px}
-.id{flex:1;font-size:12px;color:var(--mut);word-break:break-all}
+.id{font-size:12px;color:var(--mut);word-break:break-all}
 .u button{height:32px;min-width:32px;padding:0;background:var(--bg)}
 .u svg{width:18px;height:18px}
 button.on{background:var(--ac)!important;color:var(--bg)!important}
-.h{gap:4px}
+.h{gap:4px;flex-wrap:wrap}
+.idw{flex:1 1 90px;min-width:0}
+.bt{display:flex;gap:4px;flex:none}
+#fn{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
 .cxt{font-size:13px;color:var(--mut);white-space:pre-wrap;word-break:break-word;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--bg)}
 #fl{display:none;flex-wrap:wrap}
 #fl.show{display:flex}
@@ -33,6 +36,7 @@ textarea{width:100%;min-height:70px;padding:8px;border-radius:8px;border:1px sol
 #empty{padding:30px;text-align:center;color:var(--mut)}
 </style></head><body>
 <header>
+<div id="fn">No file</div>
 <div class="row">
 <button id="open" class="p" title="Open file" aria-label="Open file"></button>
 <button id="save" title="Save / Share" aria-label="Save / Share"></button>
@@ -61,6 +65,7 @@ check:'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
 help:'M11 18h2v-2h-2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z',
 eye:'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
 eyeoff:'M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3z',
+mt:'M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0 0 14.07 6H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z',
 prev:'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z',
 next:'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z'};
 const ic=k=>'<svg viewBox="0 0 24 24"><path d="'+IC[k]+'"/></svg>';
@@ -127,12 +132,12 @@ $('next').onclick=()=>{if(page<pages-1){page++;render();scrollTo(0,0)}};
 
 function card(u){
   const d=document.createElement('div');d.className='u';
-  d.innerHTML='<div class="h"><div class="id"></div><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="cp"></button><button class="un"></button></div><div class="cxt" hidden></div><div class="src"></div><textarea></textarea>';
+  d.innerHTML='<div class="h"><div class="idw"><div class="id"></div><div class="id rn"></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="mt"></button><button class="cp"></button><button class="un"></button></div></div><div class="cxt" hidden></div><div class="src"></div><textarea></textarea>';
   const q=s=>d.querySelector(s);
-  const ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea');
-  ap.innerHTML=ic('check');cx.innerHTML=ic('help');cp.innerHTML=ic('copy');un.innerHTML=ic('undo');
-  [[ap,'Approve'],[hd,'Visible'],[cx,'Context'],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
-  q('.id').textContent=u.id+(u.rn?' · '+u.rn:'');q('.src').textContent=u.rs;ta.value=cur(u);
+  const mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea');
+  mtb.innerHTML=ic('mt');ap.innerHTML=ic('check');cx.innerHTML=ic('help');cp.innerHTML=ic('copy');un.innerHTML=ic('undo');
+  [[ap,'Approve'],[hd,'Visible'],[cx,'Context'],[mtb,'Machine translate'],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
+  q('.id').textContent=u.id;q('.rn').textContent=u.rn;q('.rn').hidden=!u.rn;q('.src').textContent=u.rs;ta.value=cur(u);
   cxt.textContent=crowdin?(u.ctx.join('\n')||'No context'):'For Crowdin Only';
   const refresh=()=>{
     const a=u.ap!==undefined?u.ap:u.oAp,t=u.tr!==undefined?u.tr:u.oTr;
@@ -149,6 +154,14 @@ function card(u){
   un.onclick=()=>{ta.value=u.rt;delete u.val;delete u.ap;delete u.tr;sync()};
   ap.onclick=()=>{const n=!(u.ap!==undefined?u.ap:u.oAp);if(n===u.oAp)delete u.ap;else u.ap=n;sync()};
   hd.onclick=()=>{const n=(u.tr!==undefined?u.tr:u.oTr)==='yes'?'no':'yes';if(n===u.oTr)delete u.tr;else u.tr=n;sync()};
+  mtb.onclick=async()=>{
+    if(!u.rs.trim())return;
+    if(u.val!==undefined&&!confirm('Replace your edit with machine translation?'))return;
+    mtb.disabled=true;mtb.classList.add('on');
+    try{const r=await machine(u.rs);ta.value=r.text;setVal(u,r.text);
+      if(r.warn)alert('Some placeholders may be missing from the translation. Please review it.')}
+    catch(e){alert('Translation failed: '+e.message)}
+    mtb.classList.remove('on');mtb.disabled=false;sync()};
   cx.onclick=()=>{u.showCtx=!u.showCtx;refresh()};
   refresh();
   return d;
@@ -167,10 +180,46 @@ function render(){
   upd();
 }
 function upd(){
-  $('info').textContent=doc?`${name} · ${edited()} edited / ${units.length}`:'No file';
+  $('fn').textContent=doc?name:'No file';
+  $('info').textContent=doc?`${edited()} edited / ${units.length}`:'';
   $('pg').textContent=doc&&size>0?`${page+1}/${pages}`:'–';
   $('prev').disabled=!doc||size===0||page<=0;
   $('next').disabled=!doc||size===0||page>=pages-1;
+}
+
+const lc=c=>{if(!c||c==='auto')return c;const l=c.toLowerCase();
+  if(l.startsWith('zh'))return /tw|hk|hant/.test(l)?'zh-TW':'zh-CN';return l.split(/[-_]/)[0]};
+function langs(){
+  const ft=/<file\b[^>]*>/.exec(raw),xt=/<xliff\b[^>]*>/.exec(raw);
+  const g=(t,n)=>t?ga(t[0],n):null;
+  return {sl:lc(g(ft,'source-language')||g(xt,'srcLang')||'auto'),tl:lc(g(ft,'target-language')||g(xt,'trgLang'))};
+}
+const TOK=/%(?:\d+\$)?[-#+ 0,(]*\d*(?:\.\d+)?[a-zA-Z%]|\\u[0-9a-fA-F]{4}|\\[nrt'"@?\\]|&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);|<[^>]+>|\{[^}]*\}/g;
+async function gtx(q,sl,tl){
+  const r=await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl='+sl+'&tl='+tl+'&q='+encodeURIComponent(q));
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  const j=await r.json();return j[0].map(x=>x[0]).join('');
+}
+async function mym(q,sl,tl){
+  if(q.length>480)throw new Error('Text too long for the fallback service');
+  const r=await fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(q)+'&langpair='+(sl==='auto'?'en':sl)+'|'+tl);
+  const j=await r.json();
+  if(!j.responseData||String(j.responseStatus)!=='200')throw new Error(j.responseDetails||'Service error');
+  const t=document.createElement('textarea');t.innerHTML=j.responseData.translatedText;return t.value;
+}
+async function machine(src){
+  const {sl,tl}=langs();
+  if(!tl)throw new Error('Target language not found in file');
+  if(src.length>1500)throw new Error('Source too long');
+  const toks=[];
+  const p=src.replace(TOK,t=>{toks.push(t);return '[['+(toks.length-1)+']]'});
+  let out;
+  try{out=await gtx(p,sl,tl)}catch(e1){
+    try{out=await mym(p,sl,tl)}catch(e2){throw new Error(e1.message+' / '+e2.message)}}
+  out=out.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const used=new Set();
+  out=out.replace(/\[\s*\[\s*(\d+)\s*\]\s*\]/g,(m,i)=>{if(toks[i]===undefined)return m;used.add(i);return toks[i]});
+  return {text:out,warn:used.size<toks.length};
 }
 
 $('save').onclick=async()=>{
