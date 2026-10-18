@@ -39,9 +39,23 @@ body.sm #fl [data-f=rn],body.sm #fl [data-f=ctx]{display:none}
 .src{margin:6px 0;white-space:pre-wrap;word-break:break-word}
 textarea{width:100%;min-height:70px;padding:8px;border-radius:8px;border:1px solid var(--mut);background:var(--bg);color:var(--fg);font:inherit}
 #empty{padding:30px;text-align:center;color:var(--mut)}
+
+.idw{margin-bottom:2px}
+.bt{margin:6px 0 4px}
+.u button{height:34px;min-width:34px}
+.src{margin:6px 0 0}
+.cnt{font-size:11px;color:var(--mut);text-align:right;margin:2px 2px 4px}
+.tw{position:relative;background:var(--bg);border-radius:8px}
+.tw textarea{position:relative;display:block;background:transparent;resize:none;overflow:hidden;line-height:1.4;white-space:pre-wrap;overflow-wrap:break-word}
+.hl{position:absolute;inset:0;padding:8px;border:1px solid transparent;border-radius:8px;font:inherit;line-height:1.4;white-space:pre-wrap;overflow-wrap:break-word;color:transparent;pointer-events:none;overflow:hidden}
+mark{background:none;color:inherit;border-radius:3px}
+mark.ph{background:rgba(255,167,38,.38)}
+mark.tg{background:rgba(66,165,245,.38)}
+mark.es{background:rgba(102,187,106,.42)}
+.hl mark{color:transparent}
 </style></head><body>
 <header>
-<div class="row" id="top"><div id="fn">No file</div><select id="tl" title="Target language" hidden></select><button id="imp" title="Import existing translation (strings.xml)" aria-label="Import existing translation" hidden></button></div>
+<div class="row" id="top"><div id="fn">No file</div><select id="tl" title="Target language" hidden></select><button id="imp" title="Import translations (XLIFF or strings.xml)" aria-label="Import translations" hidden></button></div>
 <div class="row">
 <button id="open" class="p" title="Open file" aria-label="Open file"></button>
 <button id="save" title="Save / Share" aria-label="Save / Share"></button>
@@ -95,7 +109,7 @@ try{const v=localStorage.getItem('tl');if(v&&LANGS.some(l=>l[0]===v))$('tl').val
 $('tl').onchange=()=>{try{localStorage.setItem('tl',$('tl').value)}catch(e){}};
 function setMode(m){
   mode=m;document.body.classList.toggle('sm',m==='strings');
-  $('tl').hidden=$('imp').hidden=m!=='strings';
+  $('tl').hidden=m!=='strings';
   document.querySelector('#fl [data-f=id]').textContent=m==='strings'?'Key':'ID';
 }
 function parseStrings(txt){
@@ -130,16 +144,39 @@ function buildStrings(){
   }
   L.push('</resources>','');return L.join('\n');
 }
+const ckey=u=>u.kind==='s'?u.name:u.kind==='p'?u.name+':'+u.sub:u.name+'['+u.sub+']';
+const grabTag=(b,n)=>{const r=new RegExp('<'+n+'\\b[^>]*?(?:\\/>|>([\\s\\S]*?)<\\/'+n+'>)').exec(b);return r?(r[1]||''):''};
+function readTranslations(txt){
+  const d=new DOMParser().parseFromString(txt,'application/xml');
+  if(d.querySelector('parsererror'))return null;
+  const mp=new Map();
+  if(d.documentElement.localName==='resources'){
+    parseStrings(txt).forEach(x=>{if(x.rs.trim())mp.set(ckey(x),x.rs)});
+  }else{
+    const re=/<(trans-unit|unit)\b[\s\S]*?<\/\1>/g;let m;
+    while((m=re.exec(txt))){
+      const b=m[0],st=START.exec(b),tg=st?st[0]:'';
+      const k=ga(tg,'resname')||ga(tg,'name')||ga(tg,'id'),v=grabTag(b,'target');
+      if(k&&v.trim()&&!mp.has(k))mp.set(k,v);
+    }
+  }
+  return mp;
+}
 $('imp').onclick=()=>$('f2').click();
 $('f2').onchange=async e=>{
-  const file=e.target.files[0];e.target.value='';if(!file||mode!=='strings')return;
-  const txt=await file.text();
-  const d=new DOMParser().parseFromString(txt,'application/xml');
-  if(d.querySelector('parsererror')||d.documentElement.localName!=='resources'){alert('Not a valid strings.xml file');return}
-  const mp=new Map(parseStrings(txt).map(x=>[skey(x),x.rs]));let n=0;
-  units.forEach(u=>{const v=mp.get(skey(u));if(v===undefined||!v.trim())return;n++;
-    u.rt=v;if(u.val===v)delete u.val});
-  alert('Imported '+n+' translations');render();
+  const file=e.target.files[0];e.target.value='';if(!file||!doc)return;
+  const mp=readTranslations(await file.text());
+  if(!mp){alert('Not a valid XLIFF or strings.xml file');return}
+  const kOf=u=>mode==='strings'?ckey(u):(mp.has(u.rn)?u.rn:u.id);
+  const hits=[],matched=new Set();
+  units.forEach(u=>{const k=kOf(u);if(mp.has(k)){hits.push([u,mp.get(k)]);matched.add(k)}});
+  const conflicts=hits.filter(([u,v])=>cur(u).trim()&&cur(u)!==v).length;
+  const over=conflicts>0&&confirm(conflicts+' units already have a different translation. OK = overwrite them, Cancel = fill empty ones only.');
+  let n=0;
+  hits.forEach(([u,v])=>{if(cur(u)===v)return;if(cur(u).trim()&&!over)return;setVal(u,v);n++});
+  const skipped=mp.size-matched.size;
+  alert('Imported '+n+(skipped?', skipped '+skipped+(mode==='strings'?' not in source':' with no match'):''));
+  render();
 };
 $('open').onclick=()=>{
   if(doc&&edited()&&!confirm('Open another file? Unsaved changes will be lost.'))return;
@@ -192,15 +229,29 @@ $('sz').onchange=()=>{size=+$('sz').value;page=0;render()};
 $('prev').onclick=()=>{if(page>0){page--;render();scrollTo(0,0)}};
 $('next').onclick=()=>{if(page<pages-1){page++;render();scrollTo(0,0)}};
 
+const hesc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const pcls=m=>m[0]==='%'||m[0]==='{'?'ph':(m[0]==='<'||m[0]==='&')?'tg':'es';
+function hlight(t){
+  let out='',last=0;
+  t.replace(TOK,(m,off)=>{out+=hesc(t.slice(last,off))+'<mark class="'+pcls(m)+'">'+hesc(m)+'</mark>';last=off+m.length;return m});
+  return out+hesc(t.slice(last));
+}
+const clen=t=>[...t].length;
 function card(u){
   const d=document.createElement('div');d.className='u';
-  d.innerHTML='<div class="h"><div class="idw"><div class="id"></div><div class="id rn"></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="mt"></button><button class="cp"></button><button class="un"></button></div></div><div class="cxt" hidden></div><div class="src"></div><textarea></textarea>';
+  d.innerHTML='<div class="idw"><div class="id"></div><div class="id rn"></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="mt"></button><button class="cp"></button><button class="un"></button></div><div class="cxt" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="cnt tc"></div>';
   const q=s=>d.querySelector(s);
-  const mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea');
+  const mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
   mtb.innerHTML=ic('mt');ap.innerHTML=ic('check');cx.innerHTML=ic('help');cp.innerHTML=ic('copy');un.innerHTML=ic('undo');
   [[ap,'Approve'],[hd,'Visible'],[cx,'Context'],[mtb,'Machine translate'],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
-  q('.id').textContent=u.id;q('.rn').textContent=u.rn;q('.rn').hidden=!u.rn;q('.src').textContent=u.rs;ta.value=cur(u);
+  q('.id').textContent=u.id;q('.rn').textContent=u.rn;q('.rn').hidden=!u.rn;
+  q('.src').innerHTML=hlight(u.rs);
+  q('.sc').textContent=clen(u.rs)+' chars';
   cxt.textContent=crowdin?(u.ctx.join('\n')||'No context'):'For Crowdin Only';
+  const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
+  const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';q('.tc').textContent=clen(ta.value)+' chars'};
+  const setText=v=>{ta.value=v;paint();fit()};
+  ta.value=cur(u);paint();
   const refresh=()=>{
     const a=u.ap!==undefined?u.ap:u.oAp,t=u.tr!==undefined?u.tr:u.oTr;
     d.classList.toggle('ch',changed(u));un.disabled=!changed(u);
@@ -211,21 +262,21 @@ function card(u){
     cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;
   };
   const sync=()=>{refresh();upd()};
-  ta.oninput=()=>{setVal(u,ta.value);sync()};
-  cp.onclick=()=>{ta.value=u.rs;setVal(u,u.rs);sync()};
-  un.onclick=()=>{ta.value=u.rt;delete u.val;delete u.ap;delete u.tr;sync()};
+  ta.oninput=()=>{setVal(u,ta.value);paint();fit();sync()};
+  cp.onclick=()=>{setText(u.rs);setVal(u,u.rs);sync()};
+  un.onclick=()=>{setText(u.rt);delete u.val;delete u.ap;delete u.tr;sync()};
   ap.onclick=()=>{const n=!(u.ap!==undefined?u.ap:u.oAp);if(n===u.oAp)delete u.ap;else u.ap=n;sync()};
   hd.onclick=()=>{const n=(u.tr!==undefined?u.tr:u.oTr)==='yes'?'no':'yes';if(n===u.oTr)delete u.tr;else u.tr=n;sync()};
   mtb.onclick=async()=>{
     if(!u.rs.trim())return;
     if(u.val!==undefined&&!confirm('Replace your edit with machine translation?'))return;
     mtb.disabled=true;mtb.classList.add('on');
-    try{const r=await machine(u.rs);ta.value=r.text;setVal(u,r.text);
+    try{const r=await machine(u.rs);setText(r.text);setVal(u,r.text);
       if(r.warn)alert('Some placeholders may be missing from the translation. Please review it.')}
     catch(e){alert('Translation failed: '+e.message)}
     mtb.classList.remove('on');mtb.disabled=false;sync()};
   cx.onclick=()=>{u.showCtx=!u.showCtx;refresh()};
-  refresh();
+  refresh();d._fit=fit;
   return d;
 }
 function render(){
@@ -238,11 +289,12 @@ function render(){
   if(page>=pages)page=pages-1;
   const part=size>0?f.slice(page*size,page*size+size):f;
   if(!part.length)L.innerHTML='<div id="empty">No matches</div>';
-  part.forEach(u=>L.appendChild(card(u)));
+  part.forEach(u=>{const c=card(u);L.appendChild(c);c._fit()});
   upd();
 }
 function upd(){
   $('fn').textContent=doc?name:'No file';
+  $('imp').hidden=!doc;
   $('info').textContent=!doc?'':mode==='strings'?`${units.filter(u=>cur(u).trim()).length} / ${units.length} done`:`${edited()} edited / ${units.length}`;
   $('pg').textContent=doc&&size>0?`${page+1}/${pages}`:'–';
   $('prev').disabled=!doc||size===0||page<=0;
