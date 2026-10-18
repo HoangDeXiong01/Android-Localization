@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>XLIFF Editor</title>
+<title>Android Localization</title>
 <style>
 :root{--bg:#fff;--fg:#1c1b1f;--card:#f3f1f6;--ac:#5b4bd5;--mut:#6b6874}
 @media(prefers-color-scheme:dark){:root{--bg:#141318;--fg:#e6e1e9;--card:#211f26;--ac:#a99cff;--mut:#9a95a3}}
@@ -26,7 +26,12 @@ button.on{background:var(--ac)!important;color:var(--bg)!important}
 .h{gap:4px;flex-wrap:wrap}
 .idw{flex:1 1 90px;min-width:0}
 .bt{display:flex;gap:4px;flex:none}
-#fn{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
+#fn{flex:1;min-width:0;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+[hidden]{display:none!important}
+#tl{max-width:150px;height:36px}
+#imp{height:36px}
+body.sm .ap,body.sm .hd,body.sm .cx{display:none}
+body.sm #fl [data-f=rn],body.sm #fl [data-f=ctx]{display:none}
 .cxt{font-size:13px;color:var(--mut);white-space:pre-wrap;word-break:break-word;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--bg)}
 #fl{display:none;flex-wrap:wrap}
 #fl.show{display:flex}
@@ -36,13 +41,13 @@ textarea{width:100%;min-height:70px;padding:8px;border-radius:8px;border:1px sol
 #empty{padding:30px;text-align:center;color:var(--mut)}
 </style></head><body>
 <header>
-<div id="fn">No file</div>
+<div class="row" id="top"><div id="fn">No file</div><select id="tl" title="Target language" hidden></select><button id="imp" title="Import existing translation (strings.xml)" aria-label="Import existing translation" hidden></button></div>
 <div class="row">
 <button id="open" class="p" title="Open file" aria-label="Open file"></button>
 <button id="save" title="Save / Share" aria-label="Save / Share"></button>
 <button id="close" title="Close file" aria-label="Close file"></button>
 <input id="q" type="search" placeholder="Search"><button id="flt" title="Search in…" aria-label="Search in"></button>
-<input id="f" type="file" accept="*/*" hidden></div>
+<input id="f" type="file" accept="*/*" hidden><input id="f2" type="file" accept="*/*" hidden></div>
 <div class="row" id="fl"><button data-f="id">ID</button><button data-f="rn">Name</button><button data-f="src">Source</button><button data-f="ctx">Context</button><button data-f="tgt">Target</button></div>
 <div class="row">
 <select id="sz" title="Units per page"><option>10</option><option selected>20</option><option>50</option><option>100</option><option value="0">∞</option></select>
@@ -66,12 +71,13 @@ help:'M11 18h2v-2h-2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 
 eye:'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
 eyeoff:'M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3z',
 mt:'M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0 0 14.07 6H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z',
+imp:'M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z',
 prev:'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z',
 next:'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z'};
 const ic=k=>'<svg viewBox="0 0 24 24"><path d="'+IC[k]+'"/></svg>';
-['open','save','close','prev','next','flt'].forEach(k=>$(k).innerHTML=ic(k));
+['open','save','close','prev','next','flt','imp'].forEach(k=>$(k).innerHTML=ic(k));
 
-let doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,crowdin=false;
+let doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,crowdin=false,mode='xliff';
 const F={id:1,rn:1,src:1,ctx:1,tgt:1};
 const ga=(t,n)=>{const r=new RegExp('\\s'+n+'=(?:"([^"]*)"|\'([^\']*)\')').exec(t);return r?(r[1]!==undefined?r[1]:r[2]):null};
 const setAttr=(t,n,v)=>{const re=new RegExp('(\\s'+n+'=)(?:"[^"]*"|\'[^\']*\')');
@@ -83,6 +89,58 @@ const cur=u=>u.val!==undefined?u.val:u.rt;
 const edited=()=>units.filter(changed).length;
 const setVal=(u,v)=>{if(v===u.rt)delete u.val;else u.val=v};
 
+const LANGS=[['vi','Vietnamese'],['en','English'],['zh-CN','Chinese (Simplified)'],['zh-TW','Chinese (Traditional)'],['ja','Japanese'],['ko','Korean'],['fr','French'],['de','German'],['es','Spanish'],['pt','Portuguese'],['ru','Russian'],['it','Italian'],['id','Indonesian'],['th','Thai'],['tr','Turkish'],['ar','Arabic'],['hi','Hindi'],['nl','Dutch'],['pl','Polish'],['uk','Ukrainian'],['ms','Malay']];
+$('tl').innerHTML=LANGS.map(l=>'<option value="'+l[0]+'">'+l[0]+' – '+l[1]+'</option>').join('');
+try{const v=localStorage.getItem('tl');if(v&&LANGS.some(l=>l[0]===v))$('tl').value=v}catch(e){}
+$('tl').onchange=()=>{try{localStorage.setItem('tl',$('tl').value)}catch(e){}};
+function setMode(m){
+  mode=m;document.body.classList.toggle('sm',m==='strings');
+  $('tl').hidden=$('imp').hidden=m!=='strings';
+  document.querySelector('#fl [data-f=id]').textContent=m==='strings'?'Key':'ID';
+}
+function parseStrings(txt){
+  const t=txt.replace(/<!--[\s\S]*?-->/g,'');
+  const res=[];const re=/<(string-array|plurals|string)(?=[\s>\/])([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g;let m;
+  const add=(kind,name,sub,rs)=>res.push({kind,name,sub,rs,id:name,rn:kind==='p'?sub:kind==='a'?'['+sub+']':'',
+    rt:'',is12:false,oAp:false,oTr:'yes',ctx:[],ct:'',idx:res.length});
+  while((m=re.exec(t))){
+    const at=' '+m[2],name=ga(at,'name');
+    if(!name||ga(at,'translatable')==='false')continue;
+    const body=m[3]||'';
+    if(m[1]==='string')add('s',name,'',body);
+    else{const ir=/<item\b([^>]*)>([\s\S]*?)<\/item>/g;let im,i=0;
+      while((im=ir.exec(body)))add(m[1]==='plurals'?'p':'a',name,m[1]==='plurals'?(ga(' '+im[1],'quantity')||'other'):String(i++),im[2])}
+  }
+  return res;
+}
+const skey=u=>u.kind+'|'+u.name+'|'+u.sub;
+function buildStrings(){
+  const L=['<?xml version="1.0" encoding="utf-8"?>','<resources>'];
+  const has=v=>v.trim()!=='';
+  for(let i=0;i<units.length;){
+    const u=units[i];let j=i;
+    while(j<units.length&&units[j].kind===u.kind&&units[j].name===u.name)j++;
+    const g=units.slice(i,j);i=j;
+    if(u.kind==='s'){if(has(cur(u)))L.push('    <string name="'+u.name+'">'+cur(u)+'</string>')}
+    else if(u.kind==='p'){const it=g.filter(x=>has(cur(x)));
+      if(it.length){L.push('    <plurals name="'+u.name+'">');
+        it.forEach(x=>L.push('        <item quantity="'+x.sub+'">'+cur(x)+'</item>'));L.push('    </plurals>')}}
+    else if(g.some(x=>has(cur(x)))){L.push('    <string-array name="'+u.name+'">');
+      g.forEach(x=>L.push('        <item>'+(has(cur(x))?cur(x):x.rs)+'</item>'));L.push('    </string-array>')}
+  }
+  L.push('</resources>','');return L.join('\n');
+}
+$('imp').onclick=()=>$('f2').click();
+$('f2').onchange=async e=>{
+  const file=e.target.files[0];e.target.value='';if(!file||mode!=='strings')return;
+  const txt=await file.text();
+  const d=new DOMParser().parseFromString(txt,'application/xml');
+  if(d.querySelector('parsererror')||d.documentElement.localName!=='resources'){alert('Not a valid strings.xml file');return}
+  const mp=new Map(parseStrings(txt).map(x=>[skey(x),x.rs]));let n=0;
+  units.forEach(u=>{const v=mp.get(skey(u));if(v===undefined||!v.trim())return;n++;
+    u.rt=v;if(u.val===v)delete u.val});
+  alert('Imported '+n+' translations');render();
+};
 $('open').onclick=()=>{
   if(doc&&edited()&&!confirm('Open another file? Unsaved changes will be lost.'))return;
   $('f').click();
@@ -92,6 +150,10 @@ $('f').onchange=async e=>{
   const txt=await file.text();
   const d=new DOMParser().parseFromString(txt,'application/xml');
   if(d.querySelector('parsererror')){alert('Invalid XML file');e.target.value='';return}
+  if(d.documentElement.localName==='resources'){
+    name=file.name;raw=txt;doc=d;page=0;$('q').value='';units=parseStrings(txt);
+    setMode('strings');render();e.target.value='';return}
+  setMode('xliff');
   name=file.name;raw=txt;doc=d;units=[];page=0;$('q').value='';
   let k=0;
   doc.querySelectorAll('*').forEach(el=>{
@@ -118,7 +180,7 @@ $('f').onchange=async e=>{
 $('close').onclick=()=>{
   if(!doc)return;
   if(edited()&&!confirm('Close this file? Unsaved changes will not be saved.'))return;
-  doc=null;raw='';units=[];page=0;$('q').value='';render();
+  doc=null;raw='';units=[];page=0;$('q').value='';setMode('xliff');render();
 };
 $('q').oninput=()=>{page=0;render()};
 $('flt').onclick=()=>$('fl').classList.toggle('show');
@@ -181,7 +243,7 @@ function render(){
 }
 function upd(){
   $('fn').textContent=doc?name:'No file';
-  $('info').textContent=doc?`${edited()} edited / ${units.length}`:'';
+  $('info').textContent=!doc?'':mode==='strings'?`${units.filter(u=>cur(u).trim()).length} / ${units.length} done`:`${edited()} edited / ${units.length}`;
   $('pg').textContent=doc&&size>0?`${page+1}/${pages}`:'–';
   $('prev').disabled=!doc||size===0||page<=0;
   $('next').disabled=!doc||size===0||page>=pages-1;
@@ -208,7 +270,7 @@ async function mym(q,sl,tl){
   const t=document.createElement('textarea');t.innerHTML=j.responseData.translatedText;return t.value;
 }
 async function machine(src){
-  const {sl,tl}=langs();
+  const {sl,tl}=mode==='strings'?{sl:'auto',tl:lc($('tl').value)}:langs();
   if(!tl)throw new Error('Target language not found in file');
   if(src.length>1500)throw new Error('Source too long');
   const toks=[];
@@ -217,6 +279,7 @@ async function machine(src){
   try{out=await gtx(p,sl,tl)}catch(e1){
     try{out=await mym(p,sl,tl)}catch(e2){throw new Error(e1.message+' / '+e2.message)}}
   out=out.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  if(mode==='strings')out=out.replace(/(?<!\\)(['"])/g,'\\$1');
   const used=new Set();
   out=out.replace(/\[\s*\[\s*(\d+)\s*\]\s*\]/g,(m,i)=>{if(toks[i]===undefined)return m;used.add(i);return toks[i]});
   return {text:out,warn:used.size<toks.length};
@@ -224,9 +287,12 @@ async function machine(src){
 
 $('save').onclick=async()=>{
   if(!doc){alert('No file open');return}
+  let out,outName=name;
+  if(mode==='strings'){out=buildStrings();outName='strings-'+$('tl').value+'.xml'}
+  else{
   const starts=[];const re=/<(trans-unit|unit)\b/g;let m;
   while((m=re.exec(raw)))starts.push([m.index,m[1]]);
-  let out=raw;
+  out=raw;
   const ed=units.filter(changed).sort((x,y)=>y.idx-x.idx);
   for(const u of ed){
     const [st,tag]=starts[u.idx];
@@ -246,16 +312,17 @@ $('save').onclick=async()=>{
       return t});
     out=out.slice(0,st)+blk+out.slice(en);
   }
+  }
   const chk=new DOMParser().parseFromString(out,'application/xml');
   if(chk.querySelector('parsererror')){alert('Your edits make the XML invalid (e.g. a bare & or < instead of &amp; / &lt;). Not saved.');return}
   try{
     const P=window.Capacitor&&window.Capacitor.Plugins;
     if(P&&P.Filesystem&&P.Share){
-      const r=await P.Filesystem.writeFile({path:name,data:out,directory:'CACHE',encoding:'utf8'});
-      await P.Share.share({title:name,url:r.uri,dialogTitle:'Save XLIFF file'});
+      const r=await P.Filesystem.writeFile({path:outName,data:out,directory:'CACHE',encoding:'utf8'});
+      await P.Share.share({title:outName,url:r.uri,dialogTitle:'Save XLIFF file'});
     }else{
       const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([out],{type:'application/xml'}));
-      a.download=name;a.click();
+      a.download=outName;a.click();
     }
   }catch(e){if(!String(e).includes('cancel'))alert('Save failed: '+e)}
 };
