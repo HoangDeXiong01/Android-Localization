@@ -1,5 +1,8 @@
 {
   "appId": "com.example.xliffeditor",
   "appName": "XLIFF Editor",
-  "webDir": "www"
+  "webDir": "www",
+  "plugins": {
+    "CapacitorHttp": { "enabled": true }
+  }
 }
