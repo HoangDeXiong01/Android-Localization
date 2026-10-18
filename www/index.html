@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XLIFF Editor</title>
+<style>
+:root{--bg:#fff;--fg:#1c1b1f;--card:#f3f1f6;--ac:#5b4bd5;--mut:#6b6874}
+@media(prefers-color-scheme:dark){:root{--bg:#141318;--fg:#e6e1e9;--card:#211f26;--ac:#a99cff;--mut:#9a95a3}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,sans-serif;padding-top:env(safe-area-inset-top)}
+header{position:sticky;top:0;background:var(--bg);padding:10px;border-bottom:1px solid var(--card);z-index:2}
+.row{display:flex;gap:8px;margin-bottom:8px}
+button{background:var(--ac);color:var(--bg);border:0;border-radius:10px;padding:10px 14px;font-size:15px}
+button.s{background:var(--card);color:var(--fg)}
+input[type=search]{flex:1;min-width:0;padding:10px;border-radius:10px;border:1px solid var(--card);background:var(--card);color:var(--fg)}
+#info{font-size:13px;color:var(--mut)}
+.u{background:var(--card);margin:10px;padding:12px;border-radius:12px}
+.id{font-size:12px;color:var(--mut);word-break:break-all}
+.src{margin:6px 0;white-space:pre-wrap}
+textarea{width:100%;min-height:70px;padding:8px;border-radius:8px;border:1px solid var(--mut);background:var(--bg);color:var(--fg);font:inherit}
+.ch textarea{border-color:var(--ac)}
+#empty{padding:30px;text-align:center;color:var(--mut)}
+</style></head><body>
+<header>
+<div class="row"><button id="open">Mở tệp</button><button id="save" class="s">Lưu / Chia sẻ</button>
+<input id="f" type="file" accept="*/*" hidden></div>
+<div class="row"><input id="q" type="search" placeholder="Tìm trong nguồn / bản dịch"></div>
+<div id="info">Chưa mở tệp</div></header>
+<div id="list"><div id="empty">Bấm "Mở tệp" để chọn tệp .xlf / .xliff</div></div>
+<script>
+let doc=null,name='file.xlf',units=[];
+const $=id=>document.getElementById(id);
+const byLocal=(p,n)=>[...p.children].find(c=>c.localName===n);
+$('open').onclick=()=>$('f').click();
+$('f').onchange=async e=>{
+  const file=e.target.files[0];if(!file)return;
+  name=file.name;const txt=await file.text();
+  const d=new DOMParser().parseFromString(txt,'application/xml');
+  if(d.querySelector('parsererror')){alert('Tệp XML không hợp lệ');return}
+  doc=d;units=[];
+  doc.querySelectorAll('*').forEach(el=>{
+    if(el.localName==='trans-unit'||el.localName==='unit'){
+      let host=el;
+      if(el.localName==='unit'){host=byLocal(el,'segment')||el}
+      const s=byLocal(host,'source');if(!s)return;
+      units.push({el,host,src:s,id:el.getAttribute('id')||'',orig:null});
+    }});
+  render();e.target.value='';
+};
+function render(){
+  const q=$('q').value.toLowerCase(),L=$('list');L.innerHTML='';let n=0;
+  units.forEach(u=>{
+    const t=byLocal(u.host,'target');
+    const cur=u.val!==undefined?u.val:(t?t.textContent:'');
+    const s=u.src.textContent;
+    if(q&&!(s.toLowerCase().includes(q)||cur.toLowerCase().includes(q)))return;
+    n++;
+    const d=document.createElement('div');d.className='u'+(u.val!==undefined?' ch':'');
+    const hasTags=t&&t.children.length>0;
+    d.innerHTML='<div class="id"></div><div class="src"></div><textarea></textarea>';
+    d.children[0].textContent=u.id+(hasTags?' ⚠ có thẻ nội tuyến (sửa sẽ thay bằng văn bản thuần)':'');
+    d.children[1].textContent=s;
+    const ta=d.children[2];ta.value=cur;
+    ta.oninput=()=>{u.val=ta.value;d.classList.add('ch');upd()};
+    L.appendChild(d);
+  });
+  if(!n)L.innerHTML='<div id="empty">Không có mục nào</div>';
+  upd();
+}
+function upd(){
+  const c=units.filter(u=>u.val!==undefined).length;
+  $('info').textContent=doc?`${name} · ${units.length} mục · ${c} đã sửa`:'Chưa mở tệp';
+}
+$('q').oninput=render;
+$('save').onclick=async()=>{
+  if(!doc){alert('Chưa mở tệp');return}
+  units.forEach(u=>{
+    if(u.val===undefined)return;
+    let t=byLocal(u.host,'target');
+    if(!t){t=doc.createElementNS(u.src.namespaceURI,'target');
+      u.src.after(t);}
+    t.textContent=u.val;
+    if(u.el.localName==='trans-unit'&&u.val)t.setAttribute('state','translated');
+  });
+  const out='<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(doc).replace(/^<\?xml[^>]*\?>\s*/,'');
+  try{
+    const P=window.Capacitor&&window.Capacitor.Plugins;
+    if(P&&P.Filesystem&&P.Share){
+      const r=await P.Filesystem.writeFile({path:name,data:out,directory:'CACHE',encoding:'utf8'});
+      await P.Share.share({title:name,url:r.uri,dialogTitle:'Lưu tệp XLIFF'});
+    }else{
+      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([out],{type:'application/xml'}));
+      a.download=name;a.click();
+    }
+  }catch(e){if(!String(e).includes('cancel'))alert('Lỗi khi lưu: '+e)}
+};
+</script></body></html>
