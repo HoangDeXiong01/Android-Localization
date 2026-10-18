@@ -53,9 +53,19 @@ mark.ph{background:rgba(255,167,38,.38)}
 mark.tg{background:rgba(66,165,245,.38)}
 mark.es{background:rgba(102,187,106,.42)}
 .hl mark{color:transparent}
+#cfg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
+.dlg{background:var(--bg);color:var(--fg);border-radius:16px;padding:16px;width:100%;max-width:420px;max-height:90vh;overflow:auto}
+.dlg h3{margin:0 0 4px;font-size:17px}
+.dlg label{display:block;font-size:13px;color:var(--mut);margin:12px 0 4px}
+.dlg input,.dlg select,.dlg textarea{width:100%;font:inherit;font-size:15px;color:var(--fg);background:var(--card);border:1px solid var(--card);border-radius:10px;padding:0 10px;height:40px}
+.dlg textarea{height:90px;padding:8px 10px;resize:vertical}
+.kr{display:flex;gap:6px}
+.hint{font-size:12px;color:var(--mut);margin-top:10px}
+.dr{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.dr button{padding:0 16px}
 </style></head><body>
 <header>
-<div class="row" id="top"><div id="fn">No file</div><select id="tl" title="Target language" hidden></select><button id="imp" title="Import translations (XLIFF or strings.xml)" aria-label="Import translations" hidden></button></div>
+<div class="row" id="top"><div id="fn">No file</div><select id="tl" title="Target language" hidden></select><button id="cfgb" title="Auto-translate settings" aria-label="Auto-translate settings"></button><button id="imp" title="Import translations (XLIFF or strings.xml)" aria-label="Import translations" hidden></button></div>
 <div class="row">
 <button id="open" class="p" title="Open file" aria-label="Open file"></button>
 <button id="save" title="Save / Share" aria-label="Save / Share"></button>
@@ -70,6 +80,18 @@ mark.es{background:rgba(102,187,106,.42)}
 <button id="next" title="Next page" aria-label="Next page"></button>
 <span id="info">No file</span></div>
 </header>
+<div id="cfg" hidden><div class="dlg">
+<h3>Auto-translate</h3>
+<label>Engine<select id="c-eng"><option value="free">Free (Google / MyMemory)</option><option value="gemini">Gemini (AI, uses context)</option></select></label>
+<div id="gf">
+<label>Gemini API key<div class="kr"><input id="c-key" type="password" autocomplete="off" spellcheck="false" placeholder="AIza..."><button id="c-eye" type="button" title="Show / hide key" aria-label="Show or hide key"></button></div></label>
+<label>Model<input id="c-model" list="c-models" autocomplete="off" spellcheck="false"></label>
+<datalist id="c-models"><option value="gemini-3.6-flash"><option value="gemini-3.8-flash"><option value="gemini-3.5-flash-lite"><option value="gemini-4-argon"></datalist>
+<label>Notes for the AI (optional)<textarea id="c-notes" placeholder="e.g. Music player app. Informal tone. Keep 'Playlist' untranslated."></textarea></label>
+<div class="hint">The key is stored only on this device and sent only to Google. Get one at aistudio.google.com/apikey</div>
+</div>
+<div class="dr"><button id="c-test" type="button">Test</button><button id="c-cancel" type="button">Close</button><button id="c-save" type="button" class="p">Save</button></div>
+</div></div>
 <div id="list"></div>
 <script>
 const $=id=>document.getElementById(id);
@@ -86,10 +108,11 @@ eye:'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-
 eyeoff:'M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3z',
 mt:'M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0 0 14.07 6H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z',
 imp:'M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z',
+cfg:'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z',
 prev:'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z',
 next:'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z'};
 const ic=k=>'<svg viewBox="0 0 24 24"><path d="'+IC[k]+'"/></svg>';
-['open','save','close','prev','next','flt','imp'].forEach(k=>$(k).innerHTML=ic(k));
+['open','save','close','prev','next','flt','imp','cfg'].forEach(k=>$(k==='cfg'?'cfgb':k).innerHTML=ic(k));
 
 let doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,crowdin=false,mode='xliff';
 const F={id:1,rn:1,src:1,ctx:1,tgt:1};
@@ -103,6 +126,11 @@ const cur=u=>u.val!==undefined?u.val:u.rt;
 const edited=()=>units.filter(changed).length;
 const setVal=(u,v)=>{if(v===u.rt)delete u.val;else u.val=v};
 
+const DEFMODEL='gemini-3.6-flash';
+const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gnotes:''};
+try{Object.assign(CFG,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
+const saveCfg=()=>{try{localStorage.setItem('cfg',JSON.stringify(CFG))}catch(e){}};
+const engName=()=>CFG.eng==='gemini'?'Gemini':'Google';
 const LANGS=[['vi','Vietnamese'],['en','English'],['zh-CN','Chinese (Simplified)'],['zh-TW','Chinese (Traditional)'],['ja','Japanese'],['ko','Korean'],['fr','French'],['de','German'],['es','Spanish'],['pt','Portuguese'],['ru','Russian'],['it','Italian'],['id','Indonesian'],['th','Thai'],['tr','Turkish'],['ar','Arabic'],['hi','Hindi'],['nl','Dutch'],['pl','Polish'],['uk','Ukrainian'],['ms','Malay']];
 $('tl').innerHTML=LANGS.map(l=>'<option value="'+l[0]+'">'+l[0]+' – '+l[1]+'</option>').join('');
 try{const v=localStorage.getItem('tl');if(v&&LANGS.some(l=>l[0]===v))$('tl').value=v}catch(e){}
@@ -178,6 +206,30 @@ $('f2').onchange=async e=>{
   alert('Imported '+n+(skipped?', skipped '+skipped+(mode==='strings'?' not in source':' with no match'):''));
   render();
 };
+const gfShow=()=>{$('gf').hidden=$('c-eng').value!=='gemini'};
+function openCfg(){
+  $('c-eng').value=CFG.eng;$('c-key').value=CFG.gkey;$('c-model').value=CFG.gmodel||DEFMODEL;$('c-notes').value=CFG.gnotes;
+  $('c-key').type='password';gfShow();$('cfg').hidden=false;
+}
+function applyCfg(){
+  CFG.eng=$('c-eng').value;CFG.gkey=$('c-key').value.trim();CFG.gmodel=$('c-model').value.trim()||DEFMODEL;CFG.gnotes=$('c-notes').value;
+  saveCfg();
+}
+$('c-eye').innerHTML=ic('eye');
+$('c-eye').onclick=()=>{const k=$('c-key');k.type=k.type==='password'?'text':'password'};
+$('c-eng').onchange=gfShow;
+$('cfgb').onclick=openCfg;
+$('c-cancel').onclick=()=>{$('cfg').hidden=true};
+$('c-save').onclick=()=>{applyCfg();$('cfg').hidden=true;render()};
+$('c-test').onclick=async()=>{
+  applyCfg();
+  if(CFG.eng!=='gemini'){alert('Select the Gemini engine to test it');return}
+  if(!CFG.gkey){alert('Enter your Gemini API key first');return}
+  const b=$('c-test');b.disabled=true;
+  try{const t=await gemini('Hello, %s!',{id:'test',rn:'',ctx:[]},'en',lc($('tl').value)||'vi');alert('OK: '+t)}
+  catch(e){alert('Failed: '+e.message)}
+  b.disabled=false;
+};
 $('open').onclick=()=>{
   if(doc&&edited()&&!confirm('Open another file? Unsaved changes will be lost.'))return;
   $('f').click();
@@ -243,7 +295,7 @@ function card(u){
   const q=s=>d.querySelector(s);
   const mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
   mtb.innerHTML=ic('mt');ap.innerHTML=ic('check');cx.innerHTML=ic('help');cp.innerHTML=ic('copy');un.innerHTML=ic('undo');
-  [[ap,'Approve'],[hd,'Visible'],[cx,'Context'],[mtb,'Machine translate'],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
+  [[ap,'Approve'],[hd,'Visible'],[cx,'Context'],[mtb,'Machine translate · '+engName()],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
   q('.id').textContent=u.id;q('.rn').textContent=u.rn;q('.rn').hidden=!u.rn;
   q('.src').innerHTML=hlight(u.rs);
   q('.sc').textContent=clen(u.rs)+' chars';
@@ -270,9 +322,10 @@ function card(u){
   mtb.onclick=async()=>{
     if(!u.rs.trim())return;
     if(u.val!==undefined&&!confirm('Replace your edit with machine translation?'))return;
+    if(CFG.eng==='gemini'&&!CFG.gkey.trim()){alert('Enter your Gemini API key in the settings first');openCfg();return}
     mtb.disabled=true;mtb.classList.add('on');
-    try{const r=await machine(u.rs);setText(r.text);setVal(u,r.text);
-      if(r.warn)alert('Some placeholders may be missing from the translation. Please review it.')}
+    try{const r=await machine(u.rs,u);setText(r.text);setVal(u,r.text);
+      if(r.warn)alert(r.msg)}
     catch(e){alert('Translation failed: '+e.message)}
     mtb.classList.remove('on');mtb.disabled=false;sync()};
   cx.onclick=()=>{u.showCtx=!u.showCtx;refresh()};
@@ -321,20 +374,58 @@ async function mym(q,sl,tl){
   if(!j.responseData||String(j.responseStatus)!=='200')throw new Error(j.responseDetails||'Service error');
   const t=document.createElement('textarea');t.innerHTML=j.responseData.translatedText;return t.value;
 }
-async function machine(src){
+const lname=c=>{const l=LANGS.find(x=>x[0].toLowerCase()===String(c).toLowerCase());return l?l[1]+' ('+l[0]+')':c};
+async function gemini(src,u,sl,tl){
+  const sys=['You are a professional software localizer for an Android app. Translate the given UI string.',
+    'Rules:',
+    '- Output ONLY the translation: no quotes, no notes, no code fences.',
+    '- The text is raw XML content. Keep placeholders (%s, %1$d, {name}), escape sequences (\\n, \\\', \\\"), XML entities (&amp; &lt; &gt;) and tags (<b>, <xliff:g ...>) exactly as in the source. Never translate tag names, attributes or placeholders.',
+    '- Keep the same line breaks, leading/trailing spaces and punctuation style.',
+    '- The key name and context are only hints about meaning and are not to be translated.',
+    '- For a plural form, write the correct plural form for the target language.',
+    mode==='strings'?'- Apostrophes and double quotes in the output must be escaped as \\\' and \\\" (Android strings.xml).':'',
+    CFG.gnotes.trim()?'Extra notes from the app author:\n'+CFG.gnotes.trim():''].filter(Boolean).join('\n');
+  const info=['Key: '+(mode==='strings'?u.id:(u.rn||u.id))];
+  if(u.kind==='p')info.push('Plural quantity: '+u.sub);
+  if(u.kind==='a')info.push('Array item index: '+u.sub);
+  if(crowdin&&u.ctx&&u.ctx.length)info.push('Context: '+u.ctx.join('; '));
+  const prompt=info.join('\n')+'\n\nSource text'+(sl&&sl!=='auto'?' ('+lname(sl)+')':'')+':\n<<<\n'+src+'\n>>>\n\nTranslate into '+lname(tl)+'. Output only the translation.';
+  const url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent((CFG.gmodel||DEFMODEL).trim())+':generateContent';
+  const headers={'Content-Type':'application/json','x-goog-api-key':CFG.gkey.trim()};
+  const base={system_instruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:prompt}]}]};
+  const send=b=>fetch(url,{method:'POST',headers,body:JSON.stringify(b)});
+  let r=await send({...base,generationConfig:{thinkingConfig:{thinkingLevel:'low'}}});
+  if(r.status===400)r=await send(base);
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
+  const c=j.candidates&&j.candidates[0];
+  let t=c&&c.content&&c.content.parts?c.content.parts.filter(p=>!p.thought).map(p=>p.text||'').join(''):'';
+  if(!t.trim())throw new Error(j.promptFeedback&&j.promptFeedback.blockReason?'Blocked: '+j.promptFeedback.blockReason:'Empty response'+(c&&c.finishReason?' ('+c.finishReason+')':''));
+  t=t.trim().replace(/^```[a-z]*\n?/i,'').replace(/\n?```$/,'').replace(/^<<<\n?/,'').replace(/\n?>>>$/,'').trim();
+  return /^\s*/.exec(src)[0]+t+/\s*$/.exec(src)[0];
+}
+const tokCount=t=>{const m=new Map();(t.match(TOK)||[]).forEach(x=>m.set(x,(m.get(x)||0)+1));return m};
+async function machine(src,u){
   const {sl,tl}=mode==='strings'?{sl:'auto',tl:lc($('tl').value)}:langs();
   if(!tl)throw new Error('Target language not found in file');
   if(src.length>1500)throw new Error('Source too long');
+  const quotes=t=>mode==='strings'?t.replace(/(?<!\\)(['"])/g,'\\$1'):t;
+  if(CFG.eng==='gemini'){
+    const out=quotes(await gemini(src,u,sl,tl));
+    const a=tokCount(src),b=tokCount(out);let miss=false;a.forEach((n,k)=>{if((b.get(k)||0)!==n)miss=true});
+    const bad=new DOMParser().parseFromString('<r xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">'+out+'</r>','application/xml').querySelector('parsererror');
+    return {text:out,warn:miss||!!bad,msg:bad?'The translation may not be valid XML (check &, < and tags). Please review it.':'Some placeholders differ from the source. Please review the translation.'};
+  }
   const toks=[];
   const p=src.replace(TOK,t=>{toks.push(t);return '[['+(toks.length-1)+']]'});
   let out;
   try{out=await gtx(p,sl,tl)}catch(e1){
     try{out=await mym(p,sl,tl)}catch(e2){throw new Error(e1.message+' / '+e2.message)}}
   out=out.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  if(mode==='strings')out=out.replace(/(?<!\\)(['"])/g,'\\$1');
+  out=quotes(out);
   const used=new Set();
   out=out.replace(/\[\s*\[\s*(\d+)\s*\]\s*\]/g,(m,i)=>{if(toks[i]===undefined)return m;used.add(i);return toks[i]});
-  return {text:out,warn:used.size<toks.length};
+  return {text:out,warn:used.size<toks.length,msg:'Some placeholders may be missing from the translation. Please review it.'};
 }
 
 $('save').onclick=async()=>{
