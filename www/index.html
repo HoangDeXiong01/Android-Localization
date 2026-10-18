@@ -14,7 +14,7 @@ button.p{background:var(--ac);color:var(--bg)}
 button:disabled{opacity:.35}
 svg{width:22px;height:22px;fill:currentColor}
 input[type=search]{flex:1;min-width:0;height:40px;padding:0 10px;border-radius:10px;border:1px solid var(--card);background:var(--card);color:var(--fg);font-size:16px}
-#info{flex:1;min-width:0;font-size:13px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#selc,#info{flex:1;min-width:0;font-size:13px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #pg{font-size:14px;min-width:48px;text-align:center}
 .u{background:var(--card);margin:10px;padding:10px 12px;border-radius:12px;border:2px solid transparent}
 .u.ch{border-color:var(--ac)}
@@ -76,7 +76,7 @@ body.sm .mi.x{display:none}
 #pt{padding:8px 0;font-size:16px}
 </style></head><body>
 <header>
-<div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div></div><select id="tl" title="Target language" hidden></select><button id="cfgb" title="Auto-translate settings" aria-label="Auto-translate settings"></button><button id="imp" title="Import translations (XLIFF or strings.xml)" aria-label="Import translations" hidden></button></div>
+<div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div><div id="selc" hidden></div></div><select id="tl" title="Target language" hidden></select><button id="cfgb" title="Auto-translate settings" aria-label="Auto-translate settings"></button><button id="imp" title="Import translations (XLIFF or strings.xml)" aria-label="Import translations" hidden></button></div>
 <div class="row">
 <button id="open" class="p" title="Open file" aria-label="Open file"></button>
 <button id="save" title="Save / Share" aria-label="Save / Share"></button>
@@ -394,7 +394,7 @@ function card(u){
 }
 function render(){
   const L=$('list');L.innerHTML='';
-  if(!doc){shown=[];L.innerHTML='<div id="empty">Tap the folder icon to open an .xlf / .xliff file</div>';pages=1;page=0;upd();return}
+  if(!doc){shown=[];L.innerHTML='<div id="empty">Tap the folder icon to open a .xlf / .xliff or strings.xml file</div>';pages=1;page=0;upd();return}
   const q=$('q').value.toLowerCase();
   const hit=(v)=>(v||'').toLowerCase().includes(q);
   const f=units.filter(u=>!q||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(F.ctx&&hit(u.ct))||(F.tgt&&hit(cur(u))));
@@ -410,7 +410,8 @@ function upd(){
   $('fn').textContent=doc?name:'No file';
   $('imp').hidden=!doc;
   const nsel=units.filter(x=>x.sel).length;
-  $('info').textContent=!doc?'':(mode==='strings'?`${units.filter(u=>cur(u).trim()).length} / ${units.length} done`:`${edited()} edited / ${units.length}`)+(nsel?` · ${nsel} selected`:'');
+  $('info').textContent=!doc?'':(mode==='strings'?`${units.filter(u=>cur(u).trim()).length} / ${units.length} done`:`${edited()} edited / ${units.length}`); 
+  $('selc').textContent=nsel+' selected';$('selc').hidden=!doc||!nsel;
   $('bulk').disabled=!nsel;
   const sc=shown.filter(x=>x.sel).length;
   $('sa').checked=shown.length>0&&sc===shown.length;$('sa').indeterminate=sc>0&&sc<shown.length;$('sa').disabled=!shown.length;
