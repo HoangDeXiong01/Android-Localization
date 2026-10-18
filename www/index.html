@@ -26,22 +26,22 @@ textarea{width:100%;min-height:70px;padding:8px;border-radius:8px;border:1px sol
 <div id="info">Chưa mở tệp</div></header>
 <div id="list"><div id="empty">Bấm "Mở tệp" để chọn tệp .xlf / .xliff</div></div>
 <script>
-let doc=null,name='file.xlf',units=[];
+let doc=null,raw='',name='file.xlf',units=[];
 const $=id=>document.getElementById(id);
 const byLocal=(p,n)=>[...p.children].find(c=>c.localName===n);
 $('open').onclick=()=>$('f').click();
 $('f').onchange=async e=>{
   const file=e.target.files[0];if(!file)return;
-  name=file.name;const txt=await file.text();
+  name=file.name;const txt=await file.text();raw=txt;
   const d=new DOMParser().parseFromString(txt,'application/xml');
   if(d.querySelector('parsererror')){alert('Tệp XML không hợp lệ');return}
-  doc=d;units=[];
+  doc=d;units=[];let k=0;
   doc.querySelectorAll('*').forEach(el=>{
     if(el.localName==='trans-unit'||el.localName==='unit'){
-      let host=el;
+      const idx=k++;let host=el;
       if(el.localName==='unit'){host=byLocal(el,'segment')||el}
       const s=byLocal(host,'source');if(!s)return;
-      units.push({el,host,src:s,id:el.getAttribute('id')||'',orig:null});
+      units.push({el,host,src:s,idx,id:el.getAttribute('id')||''});
     }});
   render();e.target.value='';
 };
@@ -72,15 +72,24 @@ function upd(){
 $('q').oninput=render;
 $('save').onclick=async()=>{
   if(!doc){alert('Chưa mở tệp');return}
-  units.forEach(u=>{
-    if(u.val===undefined)return;
-    let t=byLocal(u.host,'target');
-    if(!t){t=doc.createElementNS(u.src.namespaceURI,'target');
-      u.src.after(t);}
-    t.textContent=u.val;
-    if(u.el.localName==='trans-unit'&&u.val)t.setAttribute('state','translated');
-  });
-  const out='<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(doc).replace(/^<\?xml[^>]*\?>\s*/,'');
+  const starts=[];const re=/<(trans-unit|unit)\b/g;let m;
+  while((m=re.exec(raw)))starts.push([m.index,m[1]]);
+  const esc=v=>v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let out=raw;
+  const ed=units.filter(u=>u.val!==undefined).sort((x,y)=>y.idx-x.idx);
+  for(const u of ed){
+    const [st,tag]=starts[u.idx];
+    let en=out.indexOf('</'+tag+'>',st);if(en<0)continue;
+    let blk=out.slice(st,en);
+    const tre=/<target\b([^>]*?)\s*(?:\/>|>[\s\S]*?<\/target>)/;
+    if(tre.test(blk)){
+      blk=blk.replace(tre,(_,at)=>'<target'+at+'>'+esc(u.val)+'</target>');
+    }else{
+      blk=blk.replace(/([ \t]*)<source\b[^>]*?(?:\/>|>[\s\S]*?<\/source>)/,
+        (x,ind)=>x+'\n'+ind+'<target>'+esc(u.val)+'</target>');
+    }
+    out=out.slice(0,st)+blk+out.slice(en);
+  }
   try{
     const P=window.Capacitor&&window.Capacitor.Plugins;
     if(P&&P.Filesystem&&P.Share){
