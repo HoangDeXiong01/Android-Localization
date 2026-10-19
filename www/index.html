@@ -67,7 +67,7 @@ mark.es{background:rgba(102,187,106,.42)}
 .dr{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 .dr button{padding:0 16px}
 #fnw{flex:1;min-width:0}
-#bm,#prog,#ip,#rp,#tm{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
+#bm,#prog,#ip,#rp,#sf{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
 .sp{flex:1}
 #sw{width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex:none}
 .sel,#sa{width:20px;height:20px;accent-color:var(--ac);margin:2px 0 0;flex:none}
@@ -95,7 +95,7 @@ body.sm .mi.x{display:none}
 .clr button{height:34px;min-width:34px;padding:0}
 </style></head><body>
 <header>
-<div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div><div id="selc" hidden></div></div><select id="tl" title="Target language" hidden></select><button id="tools" title="File tools" aria-label="File tools"></button><button id="cfgb" title="Settings" aria-label="Settings"></button><button id="imp" title="Import translations (XLIFF or strings.xml)" aria-label="Import translations" hidden></button></div>
+<div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div><div id="selc" hidden></div></div><select id="tl" title="Target language" hidden></select><button id="cfgb" title="Settings" aria-label="Settings"></button><button id="imp" title="Import translations (XLIFF or strings.xml)" aria-label="Import translations" hidden></button></div>
 <div class="row">
 <button id="open" class="p" title="Open file" aria-label="Open file"></button>
 <button id="save" title="Save / Share" aria-label="Save / Share"></button>
@@ -126,7 +126,7 @@ body.sm .mi.x{display:none}
 <label>Glossary</label>
 <div class="kr"><button id="g-imp" type="button">Import CSV / TSV / TBX</button><button id="g-clr" type="button">Clear</button></div>
 <div class="hint" id="g-info"></div>
-<input id="f3" type="file" accept="*/*" hidden><input id="f4" type="file" accept="*/*" hidden>
+<input id="f3" type="file" accept="*/*" hidden>
 <label>Custom languages (strings.xml)</label>
 <div id="cl-list"></div>
 <div class="kr"><input id="cl-code" placeholder="Code, e.g. pt-BR" autocomplete="off" spellcheck="false"><input id="cl-name" placeholder="Name (optional)" autocomplete="off"></div>
@@ -137,8 +137,8 @@ body.sm .mi.x{display:none}
 </div></div>
 <div id="bm" hidden><div class="dlg"><h3>Selected units</h3><div id="bl"></div><div class="dr"><button id="bclose" type="button">Close</button></div></div></div>
 <div id="ip" hidden><div class="dlg"><h3>Import preview</h3><div id="ips" class="hint"></div><div id="ipl"></div><div class="dr"><button id="ip-c" type="button">Cancel</button><button id="ip-fill" type="button"></button><button id="ip-all" type="button" class="p"></button></div></div></div>
-<div id="rp" hidden><div class="dlg"><h3>Repair report</h3><div id="rps" class="hint"></div><div id="rpl"></div><div class="dr"><button id="rp-c" type="button">Cancel</button><button id="rp-a" type="button" class="p">Apply &amp; export</button></div></div></div>
-<div id="tm" hidden><div class="dlg"><h3>File tools</h3><div id="tml"></div><div class="dr"><button id="tm-c" type="button">Close</button></div></div></div>
+<div id="rp" hidden><div class="dlg"><h3>XML errors</h3><div id="rps" class="hint"></div><div id="rpl"></div><div class="dr"><button id="rp-c" type="button">No</button><button id="rp-a" type="button" class="p">Save as .txt</button></div></div></div>
+<div id="sf" hidden><div class="dlg"><h3>Save as</h3><button class="mi" data-f="xliff" type="button"></button><button class="mi" data-f="strings" type="button"></button><div class="dr"><button id="sf-c" type="button">Cancel</button></div></div></div>
 <div id="prog" hidden><div class="dlg"><div id="pt"></div><div class="dr"><button id="pstop" type="button">Stop</button></div></div></div>
 <div id="list"></div>
 <script>
@@ -163,7 +163,7 @@ tools:'M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4
 prev:'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z',
 next:'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z'};
 const ic=k=>'<svg viewBox="0 0 24 24"><path d="'+IC[k]+'"/></svg>';
-['open','save','close','prev','next','flt','imp','cfg','bulk','tools'].forEach(k=>$(k==='cfg'?'cfgb':k).innerHTML=ic(k));
+['open','save','close','prev','next','flt','imp','cfg','bulk'].forEach(k=>$(k==='cfg'?'cfgb':k).innerHTML=ic(k));
 
 let shown=[],doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,crowdin=false,mode='xliff';
 let RX=false;
@@ -541,7 +541,7 @@ $('f').onchange=async e=>{
   const file=e.target.files[0];if(!file)return;
   const txt=await file.text();
   const d=new DOMParser().parseFromString(txt,'application/xml');
-  if(d.querySelector('parsererror')){e.target.value='';if(confirm('This file is not valid XML. Check what can be repaired?'))await repairFlow(file.name,txt);return}
+  if(d.querySelector('parsererror')){e.target.value='';await errorFlow(file.name,txt);return}
   if(d.documentElement.localName==='resources'){
     name=file.name;raw=txt;doc=d;page=0;$('q').value='';units=parseStrings(txt);
     setMode('strings');render();e.target.value='';return}
@@ -788,148 +788,144 @@ async function machine(src,u){
   return {text:out,warn:used.size<toks.length,msg:'Some placeholders may be missing from the translation. Please review it.'};
 }
 
-async function shareFile(fname,text){
+async function shareFile(fname,text,mime){
   try{
     const P=window.Capacitor&&window.Capacitor.Plugins;
     if(P&&P.Filesystem&&P.Share){
       const r=await P.Filesystem.writeFile({path:fname,data:text,directory:'CACHE',encoding:'utf8'});
       await P.Share.share({title:fname,url:r.uri,dialogTitle:'Save '+fname});
     }else{
-      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/xml'}));
+      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime||'application/xml'}));
       a.download=fname;a.click();
     }
   }catch(e){if(!String(e).includes('cancel'))alert('Save failed: '+e)}
 }
 
-/* ---------- Repair ---------- */
-const HTMLENT={nbsp:160,copy:169,reg:174,hellip:8230,mdash:8212,ndash:8211,laquo:171,raquo:187,trade:8482,euro:8364,lsquo:8216,rsquo:8217,ldquo:8220,rdquo:8221,bull:8226,middot:183,times:215,deg:176,larr:8592,rarr:8594};
-const KMSG={lead:'Whitespace before the XML declaration (removed)',amp:'Bare "&" (written as &amp;)',ent:'Entities not defined in XML',lt:'Stray "<" in text (written as &lt;)',stray:'Closing tags without an opening tag (removed)',unclosed:'Missing closing tags (added)',tagtext:'Unclosed or stray tags that are literal text (written as &lt;…&gt;)',eof:'Missing closing tags at the end of the file (added)',attr:'Unquoted attribute values (quoted)',ctrl:'Invalid control characters (removed)',apos:"Unescaped apostrophes (written as \\')"};
-function fixAttrs(tag){
-  const m=/^<([A-Za-z_:][\w:.-]*)/.exec(tag);let p=m[0].length,res=m[0];const ch=[];
-  const end=tag.endsWith('/>')?'/>':'>',stop=tag.length-end.length;
-  while(p<stop){
-    const ws=/^\s*/.exec(tag.slice(p,stop))[0];res+=ws;p+=ws.length;if(p>=stop)break;
-    const am=/^([\w:.-]+)(\s*=\s*)/.exec(tag.slice(p,stop));
-    if(!am)return {text:tag,ch:[]};
-    res+=am[0];p+=am[0].length;
-    const q=tag[p];
-    if(q==='"'||q==="'"){const e=tag.indexOf(q,p+1);if(e<0||e>=stop)return {text:tag,ch:[]};res+=tag.slice(p,e+1);p=e+1}
-    else{const vm=/^[^\s"'>]+/.exec(tag.slice(p,stop));if(!vm)return {text:tag,ch:[]};ch.push(vm[0]);res+='"'+vm[0]+'"';p+=vm[0].length}
-  }
-  return {text:res+end,ch};
-}
-const INLT=['g','x','bx','ex','ph','bpt','ept','it','mrk','sub'];
-const CONTT=['string','item','source','target'];
-function repairText(txt){
-  const fixes=[],P=[],stack=[],n=txt.length;
+/* ---------- XML error report ---------- */
+const XNAME='[A-Za-z_:\\u00C0-\\uFFFF][\\w:.\\-\\u00B7\\u00C0-\\uFFFF]*';
+const NAME_RX=new RegExp('^'+XNAME);
+const CLOSE_RX=new RegExp('^<\\/('+XNAME+')\\s*>');
+const ATTR_RX=new RegExp('^('+XNAME+')(\\s*=\\s*)');
+const validCP=n=>n===9||n===10||n===13||(n>=32&&n<=0xD7FF)||(n>=0xE000&&n<=0xFFFD)||(n>=0x10000&&n<=0x10FFFF);
+/* Scans the text and lists every problem it can find (it never modifies anything). */
+function checkXml(txt){
+  const errs=[],n=txt.length,defined=new Set();
   const nl=[];for(let i=0;i<n;i++)if(txt.charCodeAt(i)===10)nl.push(i);
   const lineAt=p=>{let lo=0,hi=nl.length;while(lo<hi){const m=(lo+hi)>>1;if(nl[m]<p)lo=m+1;else hi=m}return lo+1};
-  const snip=p=>txt.slice(Math.max(0,p-15),p+25).replace(/\s+/g,' ');
-  const fix=(k,msg,p)=>fixes.push({k,msg,line:lineAt(p),sn:snip(p)});
-  const container=()=>{for(let k=stack.length-1;k>=0;k--)if(CONTT.includes(stack[k]))return stack[k];return null};
-  const literalOpen=(nm,j)=>{
-    const c=container();if(!c||INLT.includes(nm)||CONTT.includes(nm))return false;
-    const ce=txt.indexOf('</'+c,j),seg=ce<0?txt.slice(j):txt.slice(j,ce);
-    return !new RegExp('</'+nm.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*>').test(seg);
-  };
-  const lit=t=>'&lt;'+t.slice(1,-1).replace(/&(?!(?:#\d+|#x[0-9A-Fa-f]+|[A-Za-z]+);)/g,'&amp;')+'&gt;';
-  let i=0,ctrl=0,ctrlAt=0;
+  const add=(p,msg)=>{const line=lineAt(p),ls=line===1?0:nl[line-2]+1;errs.push({p,line,col:p-ls+1,msg})};
   const lead=/^[\s\uFEFF]*/.exec(txt)[0];
-  if(/[^\uFEFF]/.test(lead)&&/^<\?xml/.test(txt.slice(lead.length))){fix('lead','Whitespace before the XML declaration will be removed',0);i=lead.length}
-  const RX=/[<&\x00-\x08\x0B\x0C\x0E-\x1F]/g;
+  if(/[^\uFEFF]/.test(lead)&&/^<\?xml/.test(txt.slice(lead.length)))add(lead.length,'Whitespace before the XML declaration (it must be at the very start of the file)');
+  /* returns null when ok, or a message. sets endRef.e to the end of the tag */
+  const readTag=(i,ref)=>{
+    const nm=NAME_RX.exec(txt.slice(i+1,i+200));if(!nm)return 'bad';
+    ref.name=nm[0];let p=i+1+nm[0].length;const seen=new Set();
+    for(;;){
+      const ws=/^\s*/.exec(txt.slice(p,p+500))[0];p+=ws.length;
+      if(txt[p]==='>'){ref.e=p+1;ref.self=false;ref.name=nm[0];return null}
+      if(txt.startsWith('/>',p)){ref.e=p+2;ref.self=true;ref.name=nm[0];return null}
+      if(p>=n)return 'The tag <'+nm[0]+'> is never finished with ">"';
+      if(!ws.length)return 'Unexpected text inside the tag <'+nm[0]+'>: "'+txt.slice(p,p+12).replace(/\s+/g,' ')+'" (if "<" is meant as text, write &lt;)';
+      const am=ATTR_RX.exec(txt.slice(p,p+300));
+      if(!am){
+        const w=/^[^\s=>\/]+/.exec(txt.slice(p,p+100));
+        return 'Attribute "'+(w?w[0]:txt.slice(p,p+8))+'" in <'+nm[0]+'> has no ="value" (if "<" is meant as text, write &lt;)';
+      }
+      if(seen.has(am[1]))add(p,'Attribute "'+am[1]+'" is repeated in <'+nm[0]+'>');seen.add(am[1]);
+      p+=am[0].length;const q=txt[p];
+      if(q!=='"'&&q!=="'"){ref.real=true;return 'Value of attribute "'+am[1]+'" in <'+nm[0]+'> is not quoted'}
+      const e=txt.indexOf(q,p+1);
+      if(e<0){ref.real=true;return 'Value of attribute "'+am[1]+'" in <'+nm[0]+'> is missing its closing quote'}
+      for(let x=p+1;x<e;x++){
+        const ch=txt[x];
+        if(ch==='<')add(x,'Unescaped "<" inside the value of attribute "'+am[1]+'" (write &lt;)');
+        else if(ch==='&'){const r=ampCheck(x);if(r)add(x,r)}
+      }
+      p=e+1;
+      const nx=txt[p];
+      if(nx!==undefined&&!/[\s>\/]/.test(nx)){ref.real=true;return 'Quote character inside the value of attribute "'+am[1]+'" in <'+nm[0]+'> (write &quot; or &apos; inside the value)'}
+    }
+  };
+  const ampCheck=i=>{
+    const c=/^&#(?:(\d{1,8})|x([0-9A-Fa-f]{1,6}));/.exec(txt.slice(i,i+12));
+    if(c){const cp=c[1]!==undefined?parseInt(c[1],10):parseInt(c[2],16);return validCP(cp)?null:'Character reference '+c[0]+' is not a valid XML character'}
+    const h=/^&([A-Za-z_:][\w:.\-]*);/.exec(txt.slice(i,i+40));
+    if(h)return (/^(?:amp|lt|gt|quot|apos)$/.test(h[1])||defined.has(h[1]))?null:'Entity '+h[0]+' is not defined in XML (write &amp;'+h[1]+'; or use its numeric form)';
+    return 'Unescaped "&" (write &amp;)';
+  };
+  const stack=[],RX=/[<&\x00-\x08\x0B\x0C\x0E-\x1F\uFFFE\uFFFF]|\]\]>/g;
+  let i=0;
   while(i<n){
-    RX.lastIndex=i;const mm=RX.exec(txt);
-    if(!mm){P.push(txt.slice(i));break}
-    if(mm.index>i)P.push(txt.slice(i,mm.index));
+    RX.lastIndex=i;const mm=RX.exec(txt);if(!mm)break;
     i=mm.index;const c=txt[i];
-    if(c==='&'){
-      const m=/^&(?:#\d+|#x[0-9A-Fa-f]+|amp|lt|gt|quot|apos);/.exec(txt.slice(i,i+12));
-      if(m){P.push(m[0]);i+=m[0].length;continue}
-      const h=/^&([A-Za-z][A-Za-z0-9]*);/.exec(txt.slice(i,i+16));
-      if(h){
-        if(HTMLENT[h[1]]){fix('ent','&'+h[1]+'; is not defined in XML, it becomes &#'+HTMLENT[h[1]]+';',i);P.push('&#'+HTMLENT[h[1]]+';')}
-        else{fix('ent','Unknown entity &'+h[1]+'; is written as &amp;'+h[1]+';',i);P.push('&amp;'+h[1]+';')}
-        i+=h[0].length;continue;
-      }
-      fix('amp','Bare "&" will be written as &amp;',i);P.push('&amp;');i++;continue;
+    if(mm[0]===']]>'){add(i,'"]]>" is not allowed in text (write ]]&gt;)');i+=3;continue}
+    if(c==='&'){const r=ampCheck(i);if(r)add(i,r);i++;continue}
+    if(c!=='<'){add(i,'Invalid XML character U+'+c.charCodeAt(0).toString(16).toUpperCase().padStart(4,'0'));i++;continue}
+    if(txt.startsWith('<!--',i)){const e=txt.indexOf('-->',i+4);if(e<0){add(i,'Comment is never closed with "-->"');break}i=e+3;continue}
+    if(txt.startsWith('<![CDATA[',i)){const e=txt.indexOf(']]>',i);if(e<0){add(i,'CDATA section is never closed with "]]>"');break}i=e+3;continue}
+    if(txt.startsWith('<?',i)){const e=txt.indexOf('?>',i);if(e<0){add(i,'Processing instruction is never closed with "?>"');break}i=e+2;continue}
+    if(txt.startsWith('<!DOCTYPE',i)){
+      let e=txt.indexOf('>',i);const br=txt.indexOf('[',i);
+      if(br>=0&&(e<0||br<e)){const be=txt.indexOf(']',br);e=be<0?-1:txt.indexOf('>',be)}
+      if(e<0){add(i,'DOCTYPE is never closed');break}
+      txt.slice(i,e+1).replace(/<!ENTITY\s+([^\s%]+)/g,(m,nm)=>{defined.add(nm);return m});
+      i=e+1;continue;
     }
-    if(c!=='<'){ctrl++;if(ctrl===1)ctrlAt=i;i++;continue}
-    if(txt.startsWith('<!--',i)){const e=txt.indexOf('-->',i+4),j=e<0?n:e+3;P.push(txt.slice(i,j));i=j;continue}
-    if(txt.startsWith('<![CDATA[',i)){const e=txt.indexOf(']]>',i),j=e<0?n:e+3;P.push(txt.slice(i,j));i=j;continue}
-    if(txt.startsWith('<?',i)){const e=txt.indexOf('?>',i),j=e<0?n:e+2;P.push(txt.slice(i,j));i=j;continue}
-    if(txt.startsWith('<!',i)){const e=txt.indexOf('>',i),j=e<0?n:e+1;P.push(txt.slice(i,j));i=j;continue}
     if(txt[i+1]==='/'){
-      const m=/^<\/([A-Za-z_:][\w:.-]*)\s*>/.exec(txt.slice(i,i+200));
-      if(!m){fix('lt','"<" in text will be written as &lt;',i);P.push('&lt;');i++;continue}
-      const k=stack.lastIndexOf(m[1]);
-      if(k<0){
-        if(container()&&!INLT.includes(m[1])&&!CONTT.includes(m[1])){fix('tagtext','Closing tag '+m[0]+' has no opening tag; it is literal text and will be written as '+lit(m[0]),i);P.push(lit(m[0]));i+=m[0].length;continue}
-        fix('stray','Closing tag </'+m[1]+'> has no opening tag and will be removed',i);i+=m[0].length;continue;
+      const m=CLOSE_RX.exec(txt.slice(i,i+300));
+      if(!m){add(i,'Malformed closing tag (if "<" is meant as text, write &lt;)');i++;continue}
+      let k=stack.length-1;while(k>=0&&stack[k].name!==m[1])k--;
+      if(k<0)add(i,'Closing tag '+m[0]+' has no matching opening tag (if it is meant as text, write &lt;/'+m[1]+'&gt;)');
+      else{
+        while(stack.length-1>k){const o=stack.pop();add(o.p,'Tag <'+o.name+'> is not closed before '+m[0]+' on line '+lineAt(i)+' (if it is meant as text, write &lt;'+o.name+'&gt;)')}
+        stack.pop();
       }
-      while(stack.length-1>k){const x=stack.pop();fix('unclosed','Closing tag </'+x+'> will be added',i);P.push('</'+x+'>')}
-      stack.pop();P.push(m[0]);i+=m[0].length;continue;
+      i+=m[0].length;continue;
     }
-    if(/[A-Za-z_:]/.test(txt[i+1]||'')){
-      let j=i+1,q=null;
-      while(j<n){const d=txt[j];if(q){if(d===q)q=null}else if(d==='"'||d==="'")q=d;else if(d==='>'||d==='<')break;j++}
-      if(j>=n||txt[j]!=='>'){fix('lt','"<" in text (unterminated tag) will be written as &lt;',i);P.push('&lt;');i++;continue}
-      const tag=txt.slice(i,j+1),nm=/^<([A-Za-z_:][\w:.-]*)/.exec(tag)[1];
-      if(!tag.endsWith('/>')&&literalOpen(nm,j+1)){
-        fix('tagtext','Tag '+tag+' has no closing tag in this text; it is literal text and will be written as '+lit(tag),i);
-        P.push(lit(tag));i=j+1;continue;
-      }
-      if(stack[0]==='resources'){
-        if(['string','plurals','string-array'].includes(nm)||(nm==='item'&&stack[stack.length-1]==='item')){
-          const cl=nm==='item'?['item']:['string','plurals','string-array','item'];
-          while(stack.length>1&&cl.includes(stack[stack.length-1])){const x=stack.pop();fix('unclosed','Closing tag </'+x+'> will be added before <'+nm+'>',i);P.push('</'+x+'>')}
-        }
-      }else if((nm==='trans-unit'||nm==='unit')&&stack.includes(nm)){
-        while(stack.includes(nm)){const x=stack.pop();fix('unclosed','Closing tag </'+x+'> will be added before the next <'+nm+'>',i);P.push('</'+x+'>')}
-      }
-      const fa=fixAttrs(tag);
-      fa.ch.forEach(v=>fix('attr','Attribute value '+v+' will be quoted',i));
-      P.push(fa.text);if(!tag.endsWith('/>'))stack.push(nm);i=j+1;continue;
+    const ref={},msg=readTag(i,ref);
+    if(msg==='bad'){add(i,'Unescaped "<" (write &lt;)');i++;continue}
+    if(msg){
+      add(i,msg);
+      if(ref.real){const e=txt.indexOf('>',i);if(e>=0){if(txt[e-1]!=='/')stack.push({name:ref.name,p:i});i=e+1;continue}}
+      i++;continue;
     }
-    fix('lt','"<" in text will be written as &lt;',i);P.push('&lt;');i++;
+    if(!ref.self)stack.push({name:ref.name,p:i});
+    i=ref.e;
   }
-  if(ctrl)fix('ctrl','Removed '+ctrl+' invalid control character(s)',ctrlAt);
-  while(stack.length){const x=stack.pop();fix('eof','Closing tag </'+x+'> will be added at the end',n);P.push('</'+x+'>')}
-  let out=P.join('');
-  if(/<resources[\s>]/.test(out)){
-    out=out.replace(/(<(string|item)\b[^>]*>)([\s\S]*?)(<\/\2>)/g,(m,open,tg,body,close,off)=>{
-      if(/^\s*"[\s\S]*"\s*$/.test(body)||/<!\[CDATA\[/.test(body))return m;
-      let hit=false;
-      const nb=body.split(/(<[^>]*>)/).map(seg=>(seg[0]==='<'&&seg.endsWith('>'))?seg:seg.replace(/(?<!\\)'/g,()=>{hit=true;return "\\'"})).join('');
-      if(hit)fixes.push({k:'apos',msg:'Unescaped apostrophe in '+(ga(open.replace('<',' '),'name')||tg),line:out.slice(0,off).split('\n').length,sn:body.replace(/\s+/g,' ').slice(0,40)});
-      return hit?open+nb+close:m;
-    });
+  stack.forEach(o=>add(o.p,'Tag <'+o.name+'> is never closed (if it is meant as text, write &lt;'+o.name+'&gt;)'));
+  const pe=new DOMParser().parseFromString(txt,'application/xml').querySelector('parsererror');
+  if(pe){
+    const t=pe.textContent.replace(/This page contains the following errors:|Below is a rendering of the page up to the first error\./g,'').replace(/\s+/g,' ').trim();
+    const lm=/line\s*(?:number\s*)?(\d+)(?:\D+?(?:column|col)\D*(\d+))?/i.exec(t);
+    const line=lm?Math.min(+lm[1],nl.length+1):1;
+    if(lm?!errs.some(e=>e.line===line):!errs.length){
+      const ls=line===1?0:nl[line-2]+1;
+      errs.push({p:ls+(lm&&lm[2]?+lm[2]-1:0),line,col:lm&&lm[2]?+lm[2]:1,msg:'XML parser: '+t.slice(0,160)});
+    }
   }
-  const pe=new DOMParser().parseFromString(out,'application/xml').querySelector('parsererror');
-  return {out,fixes,ok:!pe,error:pe?pe.textContent.replace(/\s+/g,' ').trim().slice(0,220):''};
+  errs.sort((a,b)=>a.p-b.p);
+  const lineText=ln=>{const s=ln===1?0:nl[ln-2]+1,e=ln-1<nl.length?nl[ln-1]:n;return txt.slice(s,e).replace(/\r$/,'')};
+  errs.forEach(e=>{const t=lineText(e.line),c=e.col-1;e.full=t;e.text=t.length>160?(c>60?'\u2026':'')+t.slice(Math.max(0,c-60),c+100)+(c+100<t.length?'\u2026':''):t});
+  return errs;
 }
-function showRepair(name,r){
+const errLines=(errs,txt)=>{const seen=new Set(),out=[];errs.forEach(e=>{if(!seen.has(e.line)){seen.add(e.line);out.push(e.full)}});return out};
+function showErrors(name,lines){
   return new Promise(res=>{
-    $('rps').textContent=r.fixes.length+' fixes for "'+name+'" \u2192 "re_'+name+'". '+(r.ok?'The repaired file is valid XML.':'Still invalid after these fixes: '+r.error);
+    const q=$('rps');q.className='';q.style.cssText='font-size:16px;font-weight:600;color:var(--fg);margin:8px 0 4px';
+    q.textContent='Save the '+lines.length+' error line'+(lines.length===1?'':'s')+' to a .txt file?';
     const L=$('rpl');L.innerHTML='';
-    const by={};r.fixes.forEach(f=>(by[f.k]=by[f.k]||[]).push(f));
-    Object.keys(by).forEach(k=>{
-      const h=document.createElement('div');h.className='rpg';h.textContent=(KMSG[k]||k)+' \u00d7 '+by[k].length;L.appendChild(h);
-      by[k].slice(0,6).forEach(f=>{const d=document.createElement('div');d.className='pi';d.textContent='line '+f.line+': '+f.msg+(f.sn?'  \u2026'+f.sn+'\u2026':'');L.appendChild(d)});
-      if(by[k].length>6){const d=document.createElement('div');d.className='pi';d.textContent='\u2026 and '+(by[k].length-6)+' more';L.appendChild(d)}
-    });
-    $('rp-a').disabled=!r.ok;
+    lines.slice(0,200).forEach(s=>{const d=document.createElement('div');d.className='pi';d.style.fontFamily='monospace';d.textContent=s.trim();L.appendChild(d)});
+    if(lines.length>200){const d=document.createElement('div');d.className='pi';d.textContent='\u2026 +'+(lines.length-200)+' more';L.appendChild(d)}
     const done=v=>{$('rp').hidden=true;res(v)};
     $('rp-c').onclick=()=>done(false);$('rp-a').onclick=()=>done(true);
     $('rp').hidden=false;
   });
 }
-async function repairFlow(name,txt){
-  const r=repairText(txt);
-  if(!r.fixes.length){alert(r.ok?'This file is already valid. Nothing to repair.':'This file cannot be repaired automatically: '+r.error);return}
-  if(await showRepair(name,r))await shareFile('re_'+name,r.out);
+async function errorFlow(name,txt){
+  const errs=checkXml(txt);
+  if(!errs.length){alert('This file is not valid XML, but the problem could not be located.');return}
+  const lines=errLines(errs);
+  if(await showErrors(name,lines))await shareFile(name.replace(/\.[^.]*$/,'')+'-errors.txt',lines.join('\n')+'\n','text/plain');
 }
-$('f4').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;await repairFlow(f.name,await f.text())};
-
 /* ---------- Export as strings.xml (XLIFF mode) ---------- */
 async function exportStrings(){
   if(!doc||mode!=='xliff')return;
@@ -969,14 +965,19 @@ async function exportStrings(){
   const tl=(langs().tl||'').trim();
   await shareFile(tl?'strings-'+tl+'.xml':'strings.xml',out);
 }
-const TM=[['save','Export as strings.xml','ex'],['tools','Repair a file...','rp']];
-$('tml').innerHTML=TM.map(([i,t,a])=>'<button class="mi" data-a="'+a+'" type="button">'+ic(i)+'<span>'+t+'</span></button>').join('');
-$('tml').querySelectorAll('.mi').forEach(b=>b.onclick=()=>{$('tm').hidden=true;if(b.dataset.a==='ex')exportStrings();else $('f4').click()});
-$('tools').onclick=()=>{$('tml').querySelector('[data-a=ex]').hidden=!(doc&&mode==='xliff');$('tm').hidden=false};
-$('tm-c').onclick=()=>{$('tm').hidden=true};
-
+function askFormat(){
+  return new Promise(res=>{
+    const b=document.querySelectorAll('#sf .mi');
+    b[0].innerHTML=ic('save')+'<span>XLIFF (.xlf)</span>';
+    b[1].innerHTML=ic('save')+'<span>strings.xml (Android)</span>';
+    const done=v=>{$('sf').hidden=true;res(v)};
+    b.forEach(x=>x.onclick=()=>done(x.dataset.f));$('sf-c').onclick=()=>done(null);
+    $('sf').hidden=false;
+  });
+}
 $('save').onclick=async()=>{
   if(!doc){alert('No file open');return}
+  if(mode==='xliff'){const f=await askFormat();if(!f)return;if(f==='strings'){await exportStrings();return}}
   let out,outName=name;
   if(mode==='strings'){out=buildStrings();outName='strings-'+$('tl').value+'.xml'}
   else{
