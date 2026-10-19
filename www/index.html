@@ -831,16 +831,37 @@ async function machine(src,u){
 }
 
 async function shareFile(fname,text,mime){
+  const C=window.Capacitor,P=C&&C.Plugins;
+  const native=!!(C&&C.isNativePlatform&&C.isNativePlatform());
+  if(!native){
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/octet-stream'}));
+    a.download=fname;a.click();return;
+  }
+  const cancelled=e=>/cancel|dismiss/i.test(String((e&&e.message)||e));
+  /* 1. System "Save as" picker (always present on Android, no other app needed) */
   try{
-    const P=window.Capacitor&&window.Capacitor.Plugins;
+    const FS=(P&&P.FileSaver)||C.registerPlugin('FileSaver');
+    const r=await FS.save({name:fname,data:text});
+    if(r&&r.cancelled)return;
+    alert('Saved: '+fname);return;
+  }catch(e){if(cancelled(e))return}
+  /* 2. Share sheet (needs an app that accepts the file) */
+  let err='';
+  try{
     if(P&&P.Filesystem&&P.Share){
       const r=await P.Filesystem.writeFile({path:fname,data:text,directory:'CACHE',encoding:'utf8'});
       await P.Share.share({title:fname,url:r.uri,dialogTitle:'Save '+fname});
-    }else{
-      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime||'application/xml'}));
-      a.download=fname;a.click();
+      return;
     }
-  }catch(e){if(!String(e).includes('cancel'))alert('Save failed: '+e)}
+  }catch(e){if(cancelled(e))return;err=String((e&&e.message)||e)}
+  /* 3. Last resort: write straight into the Documents folder */
+  try{
+    if(P&&P.Filesystem){
+      const r=await P.Filesystem.writeFile({path:fname,data:text,directory:'DOCUMENTS',encoding:'utf8',recursive:true});
+      alert('Saved to Documents/'+fname);return;
+    }
+  }catch(e){err=String((e&&e.message)||e)}
+  alert('Save failed'+(err?': '+err:''));
 }
 
 /* ---------- XML error report ---------- */
