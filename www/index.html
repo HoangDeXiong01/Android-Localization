@@ -582,13 +582,16 @@ $('open').onclick=()=>{
 $('f').onchange=async e=>{
   const file=e.target.files[0];if(!file)return;
   const txt=await file.text();
+  await loadText(file.name,txt);e.target.value='';
+};
+async function loadText(fname,txt){
   const d=new DOMParser().parseFromString(txt,'application/xml');
-  if(d.querySelector('parsererror')){e.target.value='';await errorFlow(file.name,txt);return}
+  if(d.querySelector('parsererror')){await errorFlow(fname,txt);return}
   if(d.documentElement.localName==='resources'){
-    name=file.name;raw=txt;doc=d;page=0;$('q').value='';units=parseStrings(txt);
-    setMode('strings');render();e.target.value='';return}
+    name=fname;raw=txt;doc=d;page=0;$('q').value='';units=parseStrings(txt);
+    setMode('strings');render();return}
   setMode('xliff');
-  name=file.name;raw=txt;doc=d;units=[];page=0;$('q').value='';
+  name=fname;raw=txt;doc=d;units=[];page=0;$('q').value='';
   let k=0;
   doc.querySelectorAll('*').forEach(el=>{
     if(el.localName==='trans-unit'||el.localName==='unit'){
@@ -614,12 +617,12 @@ $('f').onchange=async e=>{
       if(ty==='x-crowdin-label'&&tx.trim())u.labels.push(tx.trim());
     }
     u.ct=crowdin?ctxLines(u).join('\n'):''});
-  fillSort();fchips();render();e.target.value='';
-};
+  fillSort();fchips();render();
+}
 $('close').onclick=()=>{
   if(!doc)return;
   if(edited()&&!confirm('Close this file? Unsaved changes will not be saved.'))return;
-  doc=null;raw='';units=[];page=0;$('q').value='';setMode('xliff');render();
+  doc=null;raw='';units=[];page=0;$('q').value='';setMode('xliff');clearSession();render();
 };
 $('q').oninput=()=>{page=0;render()};
 $('rx').onclick=()=>{RX=!RX;fchips();page=0;render()};
@@ -838,6 +841,7 @@ async function shareFile(fname,text,mime){
     a.download=fname;a.click();return;
   }
   const cancelled=e=>/cancel|dismiss/i.test(String((e&&e.message)||e));
+  saveSession();
   /* 1. System "Save as" picker (always present on Android, no other app needed) */
   try{
     const FS=(P&&P.FileSaver)||C.registerPlugin('FileSaver');
@@ -1072,4 +1076,27 @@ $('save').onclick=async()=>{
   await shareFile(outName,out);
 };
 render();
+/* ---------- Session backup (survives the OS killing the app while the save picker is open) ---------- */
+function saveSession(){
+  try{
+    if(!doc){localStorage.removeItem('session');return}
+    const ed=[];units.forEach((u,i)=>{if(changed(u))ed.push([i,u.val,u.ap,u.tr])});
+    localStorage.setItem('session',JSON.stringify({name,raw,ed,tl:$('tl').value,page}));
+  }catch(e){}
+}
+function clearSession(){try{localStorage.removeItem('session')}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveSession()});
+window.addEventListener('pagehide',saveSession);
+(async()=>{
+  let s=null;try{s=JSON.parse(localStorage.getItem('session')||'null')}catch(e){}
+  if(!s||!s.raw||doc)return;
+  try{
+    await loadText(s.name,s.raw);
+    if(!doc)return;
+    if(mode==='strings'&&s.tl)$('tl').value=s.tl;
+    const has=v=>v!==null&&v!==undefined;
+    (s.ed||[]).forEach(([i,v,ap,tr])=>{const u=units[i];if(!u)return;if(has(v))u.val=v;if(has(ap))u.ap=ap;if(has(tr))u.tr=tr});
+    page=Math.min(s.page||0,Math.max(0,pages-1));render();
+  }catch(e){}
+})();
 </script></body></html>
