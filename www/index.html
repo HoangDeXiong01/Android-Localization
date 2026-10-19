@@ -31,7 +31,7 @@ button.on{background:var(--ac)!important;color:var(--bg)!important}
 #tl{width:78px;height:36px;padding:0 4px}
 #imp{height:36px}
 body.sm .ap,body.sm .hd,body.sm .cx{display:none}
-body.sm #fl [data-f=rn],body.sm #fl [data-f=ctx]{display:none}
+body.sm #fl [data-f=rn],body.sm #fl [data-f=ctx],body.sm #fl [data-f=lbl]{display:none}
 .cxt{font-size:13px;color:var(--mut);white-space:pre-wrap;word-break:break-word;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--bg)}
 #fl{display:none;flex-wrap:wrap}
 #fl.show{display:flex}
@@ -67,7 +67,7 @@ mark.es{background:rgba(102,187,106,.42)}
 .dr{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 .dr button{padding:0 16px}
 #fnw{flex:1;min-width:0}
-#bm,#prog,#ip{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
+#bm,#prog,#ip,#rp,#tm{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
 .sp{flex:1}
 #sw{width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex:none}
 .sel,#sa{width:20px;height:20px;accent-color:var(--ac);margin:2px 0 0;flex:none}
@@ -77,7 +77,8 @@ mark.es{background:rgba(102,187,106,.42)}
 .mi{display:flex;align-items:center;justify-content:flex-start;gap:12px;width:100%;height:46px;margin-bottom:4px;background:transparent;font-size:15px;padding:0 8px}
 body.sm .mi.x{display:none}
 #pt{padding:8px 0;font-size:16px}
-#ipl{max-height:45vh;overflow:auto;margin-top:8px}
+#ipl,#rpl{max-height:45vh;overflow:auto;margin-top:8px}
+.rpg{font-weight:600;font-size:13px;margin-top:10px}
 .pi{padding:8px 0;border-top:1px solid var(--card);font-size:13px;word-break:break-word}
 .pk{font-size:12px;color:var(--mut);margin-bottom:2px}
 .po{color:var(--mut);text-decoration:line-through}
@@ -94,14 +95,14 @@ body.sm .mi.x{display:none}
 .clr button{height:34px;min-width:34px;padding:0}
 </style></head><body>
 <header>
-<div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div><div id="selc" hidden></div></div><select id="tl" title="Target language" hidden></select><button id="cfgb" title="Settings" aria-label="Settings"></button><button id="imp" title="Import translations (XLIFF or strings.xml)" aria-label="Import translations" hidden></button></div>
+<div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div><div id="selc" hidden></div></div><select id="tl" title="Target language" hidden></select><button id="tools" title="File tools" aria-label="File tools"></button><button id="cfgb" title="Settings" aria-label="Settings"></button><button id="imp" title="Import translations (XLIFF or strings.xml)" aria-label="Import translations" hidden></button></div>
 <div class="row">
 <button id="open" class="p" title="Open file" aria-label="Open file"></button>
 <button id="save" title="Save / Share" aria-label="Save / Share"></button>
 <button id="close" title="Close file" aria-label="Close file"></button>
 <input id="q" type="search" placeholder="Search"><button id="flt" title="Search in…" aria-label="Search in"></button>
 <input id="f" type="file" accept="*/*" hidden><input id="f2" type="file" accept="*/*" hidden></div>
-<div class="row" id="fl"><button data-f="id">ID</button><button data-f="rn">Name</button><button data-f="src">Source</button><button data-f="ctx">Context</button><button data-f="tgt">Target</button><button id="rx" type="button" title="Regex search" aria-label="Regex search">.*</button><select id="so" title="Show first"></select></div>
+<div class="row" id="fl"><button data-f="id">ID</button><button data-f="rn">Name</button><button data-f="src">Source</button><button data-f="ctx">Context</button><button data-f="lbl">Label</button><button data-f="tgt">Target</button><button id="rx" type="button" title="Regex search" aria-label="Regex search">.*</button><select id="so" title="Show first"></select></div>
 <div class="row">
 <label id="sw" title="Select all shown"><input id="sa" type="checkbox"></label><button id="bulk" title="Actions for selected units" aria-label="Actions for selected units" disabled></button>
 <select id="sz" title="Units per page"><option>10</option><option selected>20</option><option>50</option><option>100</option><option value="0">∞</option></select>
@@ -125,7 +126,7 @@ body.sm .mi.x{display:none}
 <label>Glossary</label>
 <div class="kr"><button id="g-imp" type="button">Import CSV / TSV / TBX</button><button id="g-clr" type="button">Clear</button></div>
 <div class="hint" id="g-info"></div>
-<input id="f3" type="file" accept="*/*" hidden>
+<input id="f3" type="file" accept="*/*" hidden><input id="f4" type="file" accept="*/*" hidden>
 <label>Custom languages (strings.xml)</label>
 <div id="cl-list"></div>
 <div class="kr"><input id="cl-code" placeholder="Code, e.g. pt-BR" autocomplete="off" spellcheck="false"><input id="cl-name" placeholder="Name (optional)" autocomplete="off"></div>
@@ -136,6 +137,8 @@ body.sm .mi.x{display:none}
 </div></div>
 <div id="bm" hidden><div class="dlg"><h3>Selected units</h3><div id="bl"></div><div class="dr"><button id="bclose" type="button">Close</button></div></div></div>
 <div id="ip" hidden><div class="dlg"><h3>Import preview</h3><div id="ips" class="hint"></div><div id="ipl"></div><div class="dr"><button id="ip-c" type="button">Cancel</button><button id="ip-fill" type="button"></button><button id="ip-all" type="button" class="p"></button></div></div></div>
+<div id="rp" hidden><div class="dlg"><h3>Repair report</h3><div id="rps" class="hint"></div><div id="rpl"></div><div class="dr"><button id="rp-c" type="button">Cancel</button><button id="rp-a" type="button" class="p">Apply &amp; export</button></div></div></div>
+<div id="tm" hidden><div class="dlg"><h3>File tools</h3><div id="tml"></div><div class="dr"><button id="tm-c" type="button">Close</button></div></div></div>
 <div id="prog" hidden><div class="dlg"><div id="pt"></div><div class="dr"><button id="pstop" type="button">Stop</button></div></div></div>
 <div id="list"></div>
 <script>
@@ -156,14 +159,15 @@ imp:'M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z',
 cfg:'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z',
 bulk:'M22 7h-9v2h9V7zm0 8h-9v2h9v-2zM5.54 11 2 7.46l1.41-1.41 2.12 2.12 4.24-4.24 1.41 1.41L5.54 11zm0 8L2 15.46l1.41-1.41 2.12 2.12 4.24-4.24 1.41 1.41L5.54 19z',
 edit:'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z',
+tools:'M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z',
 prev:'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z',
 next:'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z'};
 const ic=k=>'<svg viewBox="0 0 24 24"><path d="'+IC[k]+'"/></svg>';
-['open','save','close','prev','next','flt','imp','cfg','bulk'].forEach(k=>$(k==='cfg'?'cfgb':k).innerHTML=ic(k));
+['open','save','close','prev','next','flt','imp','cfg','bulk','tools'].forEach(k=>$(k==='cfg'?'cfgb':k).innerHTML=ic(k));
 
 let shown=[],doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,crowdin=false,mode='xliff';
 let RX=false;
-const F={id:1,rn:1,src:1,ctx:1,tgt:1};
+const F={id:1,rn:1,src:1,ctx:1,lbl:1,tgt:1};
 const ga=(t,n)=>{const r=new RegExp('\\s'+n+'=(?:"([^"]*)"|\'([^\']*)\')').exec(t);return r?(r[1]!==undefined?r[1]:r[2]):null};
 const setAttr=(t,n,v)=>{const re=new RegExp('(\\s'+n+'=)(?:"[^"]*"|\'[^\']*\')');
   return re.test(t)?t.replace(re,'$1"'+v+'"'):t.replace(/\s*(\/?>)$/,' '+n+'="'+v+'"$1')};
@@ -537,7 +541,7 @@ $('f').onchange=async e=>{
   const file=e.target.files[0];if(!file)return;
   const txt=await file.text();
   const d=new DOMParser().parseFromString(txt,'application/xml');
-  if(d.querySelector('parsererror')){alert('Invalid XML file');e.target.value='';return}
+  if(d.querySelector('parsererror')){e.target.value='';if(confirm('This file is not valid XML. Check what can be repaired?'))await repairFlow(file.name,txt);return}
   if(d.documentElement.localName==='resources'){
     name=file.name;raw=txt;doc=d;page=0;$('q').value='';units=parseStrings(txt);
     setMode('strings');render();e.target.value='';return}
@@ -567,7 +571,7 @@ $('f').onchange=async e=>{
       const ty=ga(cm[1],'context-type')||'context',tx=cm[2];u.ctx.push(ty+': '+tx);
       if(ty==='x-crowdin-label'&&tx.trim())u.labels.push(tx.trim());
     }
-    u.ct=crowdin?u.ctx.join('\n'):''});
+    u.ct=crowdin?u.ctx.filter(x=>!x.startsWith('x-crowdin-label: ')&&!x.startsWith('source: ')).join('\n'):''});
   fillSort();fchips();render();e.target.value='';
 };
 $('close').onclick=()=>{
@@ -582,7 +586,7 @@ document.querySelectorAll('#fl button[data-f]').forEach(b=>b.onclick=()=>{F[b.da
 function fchips(){document.querySelectorAll('#fl button[data-f]').forEach(b=>b.classList.toggle('on',!!F[b.dataset.f]));
   $('rx').classList.toggle('on',RX);$('q').placeholder=RX?'Regex':'Search';
   $('flt').classList.toggle('on',Object.values(F).some(v=>!v)||$('so').value!=='none'||RX)}
-const SORTS=[['none','Original order',0],['mod','Edited first',0],['qa','QA issues first',0],['unap','Unapproved first',1],['hid','Hidden first',1],['untr','Untranslated first',0],['same','Same as source first',0],['lsrc','Longest source first',0],['ssrc','Shortest source first',0],['ltgt','Longest target first',0],['stgt','Shortest target first',0],['lbl','Crowdin label A\u2013Z',0,'labels'],['over','Over max length first',0,'max']];
+const SORTS=[['none','Original order',0],['mod','Edited first',0],['qa','QA issues first',0],['unap','Unapproved first',1],['hid','Hidden first',1],['untr','Untranslated first',0],['same','Same as source first',0],['lsrc','Longest source first',0],['ssrc','Shortest source first',0],['ltgt','Longest target first',0],['stgt','Shortest target first',0],['over','Over max length first',0,'max']];
 function fillSort(){
   const so=$('so'),v=so.value||'none';
   so.innerHTML=SORTS.filter(x=>(!x[2]||mode==='xliff')&&(!x[3]||units.some(u=>x[3]==='labels'?u.labels&&u.labels.length:u.max))).map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');
@@ -631,8 +635,7 @@ function card(u){
   q('.lb').textContent=u.labels.length?'Label: '+u.labels.join(', '):'';q('.lb').hidden=!u.labels.length;
   q('.src').innerHTML=hlight(u.rs);
   q('.sc').textContent=clen(u.rs)+' chars';
-  {const ls=(u.labels.length?['Label: '+u.labels.join(', ')]:[]).concat(u.ctx.filter(x=>!x.startsWith('x-crowdin-label: ')));
-    if(u.max)ls.push('Max length: '+u.max+' chars');
+  {const ls=u.ctx.filter(x=>!x.startsWith('x-crowdin-label: ')&&!x.startsWith('source: '));
     cxt.textContent=crowdin?(ls.join('\n')||'No context'):'For Crowdin Only'}
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
   const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=clen(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars';tc.classList.toggle('over',!!u.max&&n>u.max)};
@@ -676,9 +679,9 @@ function render(){
   else{const ql=qs.toLowerCase();hit=v=>(v||'').toLowerCase().includes(ql)}
   $('q').classList.toggle('bad',bad);
   const q=qs;
-  let f=units.filter(u=>!q||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(F.ctx&&hit(u.ct))||(F.tgt&&hit(cur(u))));
+  let f=units.filter(u=>!q||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(F.ctx&&hit(u.ct))||(F.lbl&&hit((u.labels||[]).join(' ')))||(F.tgt&&hit(cur(u))));
   const sk=$('so').value;
-  if(sk!=='none')f=f.map((u,i)=>[u,i,sortKey(sk,u)]).sort((a,b)=>{if(sk==='lbl'){const A=(a[0].labels||[])[0],B=(b[0].labels||[])[0];if(!A!==!B)return A?-1:1;if(A&&B){const c=A.localeCompare(B,undefined,{sensitivity:'base'});if(c)return c}}else{const d=a[2]-b[2];if(d)return d}return a[1]-b[1]}).map(x=>x[0]);
+  if(sk!=='none')f=f.map((u,i)=>[u,i,sortKey(sk,u)]).sort((a,b)=>a[2]-b[2]||a[1]-b[1]).map(x=>x[0]);
   pages=size>0?Math.max(1,Math.ceil(f.length/size)):1;
   if(page>=pages)page=pages-1;
   const part=size>0?f.slice(page*size,page*size+size):f;
@@ -784,6 +787,177 @@ async function machine(src,u){
   return {text:out,warn:used.size<toks.length,msg:'Some placeholders may be missing from the translation. Please review it.'};
 }
 
+async function shareFile(fname,text){
+  try{
+    const P=window.Capacitor&&window.Capacitor.Plugins;
+    if(P&&P.Filesystem&&P.Share){
+      const r=await P.Filesystem.writeFile({path:fname,data:text,directory:'CACHE',encoding:'utf8'});
+      await P.Share.share({title:fname,url:r.uri,dialogTitle:'Save '+fname});
+    }else{
+      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/xml'}));
+      a.download=fname;a.click();
+    }
+  }catch(e){if(!String(e).includes('cancel'))alert('Save failed: '+e)}
+}
+
+/* ---------- Repair ---------- */
+const HTMLENT={nbsp:160,copy:169,reg:174,hellip:8230,mdash:8212,ndash:8211,laquo:171,raquo:187,trade:8482,euro:8364,lsquo:8216,rsquo:8217,ldquo:8220,rdquo:8221,bull:8226,middot:183,times:215,deg:176,larr:8592,rarr:8594};
+const KMSG={lead:'Whitespace before the XML declaration (removed)',amp:'Bare "&" (written as &amp;)',ent:'Entities not defined in XML',lt:'Stray "<" in text (written as &lt;)',stray:'Closing tags without an opening tag (removed)',unclosed:'Missing closing tags (added)',eof:'Missing closing tags at the end of the file (added)',attr:'Unquoted attribute values (quoted)',ctrl:'Invalid control characters (removed)',apos:"Unescaped apostrophes (written as \\')"};
+function fixAttrs(tag){
+  const m=/^<([A-Za-z_:][\w:.-]*)/.exec(tag);let p=m[0].length,res=m[0];const ch=[];
+  const end=tag.endsWith('/>')?'/>':'>',stop=tag.length-end.length;
+  while(p<stop){
+    const ws=/^\s*/.exec(tag.slice(p,stop))[0];res+=ws;p+=ws.length;if(p>=stop)break;
+    const am=/^([\w:.-]+)(\s*=\s*)/.exec(tag.slice(p,stop));
+    if(!am)return {text:tag,ch:[]};
+    res+=am[0];p+=am[0].length;
+    const q=tag[p];
+    if(q==='"'||q==="'"){const e=tag.indexOf(q,p+1);if(e<0||e>=stop)return {text:tag,ch:[]};res+=tag.slice(p,e+1);p=e+1}
+    else{const vm=/^[^\s"'>]+/.exec(tag.slice(p,stop));if(!vm)return {text:tag,ch:[]};ch.push(vm[0]);res+='"'+vm[0]+'"';p+=vm[0].length}
+  }
+  return {text:res+end,ch};
+}
+function repairText(txt){
+  const fixes=[],P=[],stack=[],n=txt.length;
+  const nl=[];for(let i=0;i<n;i++)if(txt.charCodeAt(i)===10)nl.push(i);
+  const lineAt=p=>{let lo=0,hi=nl.length;while(lo<hi){const m=(lo+hi)>>1;if(nl[m]<p)lo=m+1;else hi=m}return lo+1};
+  const snip=p=>txt.slice(Math.max(0,p-15),p+25).replace(/\s+/g,' ');
+  const fix=(k,msg,p)=>fixes.push({k,msg,line:lineAt(p),sn:snip(p)});
+  let i=0,ctrl=0,ctrlAt=0;
+  const lead=/^[\s\uFEFF]*/.exec(txt)[0];
+  if(/[^\uFEFF]/.test(lead)&&/^<\?xml/.test(txt.slice(lead.length))){fix('lead','Whitespace before the XML declaration will be removed',0);i=lead.length}
+  const RX=/[<&\x00-\x08\x0B\x0C\x0E-\x1F]/g;
+  while(i<n){
+    RX.lastIndex=i;const mm=RX.exec(txt);
+    if(!mm){P.push(txt.slice(i));break}
+    if(mm.index>i)P.push(txt.slice(i,mm.index));
+    i=mm.index;const c=txt[i];
+    if(c==='&'){
+      const m=/^&(?:#\d+|#x[0-9A-Fa-f]+|amp|lt|gt|quot|apos);/.exec(txt.slice(i,i+12));
+      if(m){P.push(m[0]);i+=m[0].length;continue}
+      const h=/^&([A-Za-z][A-Za-z0-9]*);/.exec(txt.slice(i,i+16));
+      if(h){
+        if(HTMLENT[h[1]]){fix('ent','&'+h[1]+'; is not defined in XML, it becomes &#'+HTMLENT[h[1]]+';',i);P.push('&#'+HTMLENT[h[1]]+';')}
+        else{fix('ent','Unknown entity &'+h[1]+'; is written as &amp;'+h[1]+';',i);P.push('&amp;'+h[1]+';')}
+        i+=h[0].length;continue;
+      }
+      fix('amp','Bare "&" will be written as &amp;',i);P.push('&amp;');i++;continue;
+    }
+    if(c!=='<'){ctrl++;if(ctrl===1)ctrlAt=i;i++;continue}
+    if(txt.startsWith('<!--',i)){const e=txt.indexOf('-->',i+4),j=e<0?n:e+3;P.push(txt.slice(i,j));i=j;continue}
+    if(txt.startsWith('<![CDATA[',i)){const e=txt.indexOf(']]>',i),j=e<0?n:e+3;P.push(txt.slice(i,j));i=j;continue}
+    if(txt.startsWith('<?',i)){const e=txt.indexOf('?>',i),j=e<0?n:e+2;P.push(txt.slice(i,j));i=j;continue}
+    if(txt.startsWith('<!',i)){const e=txt.indexOf('>',i),j=e<0?n:e+1;P.push(txt.slice(i,j));i=j;continue}
+    if(txt[i+1]==='/'){
+      const m=/^<\/([A-Za-z_:][\w:.-]*)\s*>/.exec(txt.slice(i,i+200));
+      if(!m){fix('lt','"<" in text will be written as &lt;',i);P.push('&lt;');i++;continue}
+      const k=stack.lastIndexOf(m[1]);
+      if(k<0){fix('stray','Closing tag </'+m[1]+'> has no opening tag and will be removed',i);i+=m[0].length;continue}
+      while(stack.length-1>k){const x=stack.pop();fix('unclosed','Closing tag </'+x+'> will be added',i);P.push('</'+x+'>')}
+      stack.pop();P.push(m[0]);i+=m[0].length;continue;
+    }
+    if(/[A-Za-z_:]/.test(txt[i+1]||'')){
+      let j=i+1,q=null;
+      while(j<n){const d=txt[j];if(q){if(d===q)q=null}else if(d==='"'||d==="'")q=d;else if(d==='>'||d==='<')break;j++}
+      if(j>=n||txt[j]!=='>'){fix('lt','"<" in text (unterminated tag) will be written as &lt;',i);P.push('&lt;');i++;continue}
+      const tag=txt.slice(i,j+1),nm=/^<([A-Za-z_:][\w:.-]*)/.exec(tag)[1];
+      if(stack[0]==='resources'){
+        if(['string','plurals','string-array'].includes(nm)||(nm==='item'&&stack[stack.length-1]==='item')){
+          const cl=nm==='item'?['item']:['string','plurals','string-array','item'];
+          while(stack.length>1&&cl.includes(stack[stack.length-1])){const x=stack.pop();fix('unclosed','Closing tag </'+x+'> will be added before <'+nm+'>',i);P.push('</'+x+'>')}
+        }
+      }else if((nm==='trans-unit'||nm==='unit')&&stack.includes(nm)){
+        while(stack.includes(nm)){const x=stack.pop();fix('unclosed','Closing tag </'+x+'> will be added before the next <'+nm+'>',i);P.push('</'+x+'>')}
+      }
+      const fa=fixAttrs(tag);
+      fa.ch.forEach(v=>fix('attr','Attribute value '+v+' will be quoted',i));
+      P.push(fa.text);if(!tag.endsWith('/>'))stack.push(nm);i=j+1;continue;
+    }
+    fix('lt','"<" in text will be written as &lt;',i);P.push('&lt;');i++;
+  }
+  if(ctrl)fix('ctrl','Removed '+ctrl+' invalid control character(s)',ctrlAt);
+  while(stack.length){const x=stack.pop();fix('eof','Closing tag </'+x+'> will be added at the end',n);P.push('</'+x+'>')}
+  let out=P.join('');
+  if(/<resources[\s>]/.test(out)){
+    out=out.replace(/(<(string|item)\b[^>]*>)([\s\S]*?)(<\/\2>)/g,(m,open,tg,body,close,off)=>{
+      if(/^\s*"[\s\S]*"\s*$/.test(body)||/<!\[CDATA\[/.test(body))return m;
+      let hit=false;
+      const nb=body.split(/(<[^>]*>)/).map(seg=>(seg[0]==='<'&&seg.endsWith('>'))?seg:seg.replace(/(?<!\\)'/g,()=>{hit=true;return "\\'"})).join('');
+      if(hit)fixes.push({k:'apos',msg:'Unescaped apostrophe in '+(ga(open.replace('<',' '),'name')||tg),line:out.slice(0,off).split('\n').length,sn:body.replace(/\s+/g,' ').slice(0,40)});
+      return hit?open+nb+close:m;
+    });
+  }
+  const pe=new DOMParser().parseFromString(out,'application/xml').querySelector('parsererror');
+  return {out,fixes,ok:!pe,error:pe?pe.textContent.replace(/\s+/g,' ').trim().slice(0,220):''};
+}
+function showRepair(name,r){
+  return new Promise(res=>{
+    $('rps').textContent=r.fixes.length+' fixes for "'+name+'" \u2192 "re_'+name+'". '+(r.ok?'The repaired file is valid XML.':'Still invalid after these fixes: '+r.error);
+    const L=$('rpl');L.innerHTML='';
+    const by={};r.fixes.forEach(f=>(by[f.k]=by[f.k]||[]).push(f));
+    Object.keys(by).forEach(k=>{
+      const h=document.createElement('div');h.className='rpg';h.textContent=(KMSG[k]||k)+' \u00d7 '+by[k].length;L.appendChild(h);
+      by[k].slice(0,6).forEach(f=>{const d=document.createElement('div');d.className='pi';d.textContent='line '+f.line+': '+f.msg+(f.sn?'  \u2026'+f.sn+'\u2026':'');L.appendChild(d)});
+      if(by[k].length>6){const d=document.createElement('div');d.className='pi';d.textContent='\u2026 and '+(by[k].length-6)+' more';L.appendChild(d)}
+    });
+    $('rp-a').disabled=!r.ok;
+    const done=v=>{$('rp').hidden=true;res(v)};
+    $('rp-c').onclick=()=>done(false);$('rp-a').onclick=()=>done(true);
+    $('rp').hidden=false;
+  });
+}
+async function repairFlow(name,txt){
+  const r=repairText(txt);
+  if(!r.fixes.length){alert(r.ok?'This file is already valid. Nothing to repair.':'This file cannot be repaired automatically: '+r.error);return}
+  if(await showRepair(name,r))await shareFile('re_'+name,r.out);
+}
+$('f4').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;await repairFlow(f.name,await f.text())};
+
+/* ---------- Export as strings.xml (XLIFF mode) ---------- */
+async function exportStrings(){
+  if(!doc||mode!=='xliff')return;
+  const wrap=x=>'<r xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">'+x+'</r>';
+  const parse=x=>new DOMParser().parseFromString(wrap(x),'application/xml');
+  const items=[],seen=new Set();
+  let empty=0,hidden=0,dup=0,kept=0,tags=0;const badName=[],badXml=[];
+  units.forEach(u=>{
+    if((u.tr!==undefined?u.tr:u.oTr)==='no'){hidden++;return}
+    const c=cur(u);if(!c.trim()){empty++;return}
+    if(!/^[A-Za-z_][A-Za-z0-9_.]*$/.test(u.rn||'')){badName.push(u.rn||u.id);return}
+    if(seen.has(u.rn)){dup++;return}
+    const d=parse(c);if(d.querySelector('parsererror')){badXml.push(u.rn);return}
+    let text=c;
+    if(crowdin){
+      if(d.documentElement.children.length)tags++;
+      const dec=d.documentElement.textContent;
+      if(parse(dec).querySelector('parsererror'))kept++;else text=dec;
+    }
+    seen.add(u.rn);items.push([u.rn,text]);
+  });
+  if(!items.length){alert('Nothing to export: no translated, visible unit has a valid resname.');return}
+  const lines=[items.length+' strings will be exported.'];
+  if(empty)lines.push('Skipped (empty translation): '+empty);
+  if(hidden)lines.push('Skipped (hidden): '+hidden);
+  if(badName.length)lines.push('Skipped (resname missing or not a valid Android name): '+badName.length);
+  if(dup)lines.push('Skipped (duplicate resname): '+dup);
+  if(badXml.length)lines.push('Skipped (invalid XML in translation): '+badXml.length);
+  if(tags)lines.push('Inline XLIFF tags flattened to text: '+tags);
+  if(kept)lines.push('Kept in their XLIFF form (not valid after decoding): '+kept);
+  if(!confirm(lines.join('\n')+'\n\nExport?'))return;
+  const L=['<?xml version="1.0" encoding="utf-8"?>','<resources>'];
+  items.forEach(([nm,t])=>L.push('    <string name="'+nm+'">'+t+'</string>'));
+  L.push('</resources>','');
+  const out=L.join('\n');
+  if(new DOMParser().parseFromString(out,'application/xml').querySelector('parsererror')){alert('The generated strings.xml is not valid XML. Not exported.');return}
+  const tl=(langs().tl||'').trim();
+  await shareFile(tl?'strings-'+tl+'.xml':'strings.xml',out);
+}
+const TM=[['save','Export as strings.xml','ex'],['tools','Repair a file...','rp']];
+$('tml').innerHTML=TM.map(([i,t,a])=>'<button class="mi" data-a="'+a+'" type="button">'+ic(i)+'<span>'+t+'</span></button>').join('');
+$('tml').querySelectorAll('.mi').forEach(b=>b.onclick=()=>{$('tm').hidden=true;if(b.dataset.a==='ex')exportStrings();else $('f4').click()});
+$('tools').onclick=()=>{$('tml').querySelector('[data-a=ex]').hidden=!(doc&&mode==='xliff');$('tm').hidden=false};
+$('tm-c').onclick=()=>{$('tm').hidden=true};
+
 $('save').onclick=async()=>{
   if(!doc){alert('No file open');return}
   let out,outName=name;
@@ -814,16 +988,7 @@ $('save').onclick=async()=>{
   }
   const chk=new DOMParser().parseFromString(out,'application/xml');
   if(chk.querySelector('parsererror')){alert('Your edits make the XML invalid (e.g. a bare & or < instead of &amp; / &lt;). Not saved.');return}
-  try{
-    const P=window.Capacitor&&window.Capacitor.Plugins;
-    if(P&&P.Filesystem&&P.Share){
-      const r=await P.Filesystem.writeFile({path:outName,data:out,directory:'CACHE',encoding:'utf8'});
-      await P.Share.share({title:outName,url:r.uri,dialogTitle:'Save XLIFF file'});
-    }else{
-      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([out],{type:'application/xml'}));
-      a.download=outName;a.click();
-    }
-  }catch(e){if(!String(e).includes('cancel'))alert('Save failed: '+e)}
+  await shareFile(outName,out);
 };
 render();
 </script></body></html>
