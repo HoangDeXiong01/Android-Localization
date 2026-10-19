@@ -84,9 +84,14 @@ body.sm .mi.x{display:none}
 .tag{display:inline-block;font-size:11px;border-radius:6px;padding:0 6px;margin-left:6px;color:var(--bg)}
 .tag.n{background:#43a047}.tag.o{background:#f57c00}
 .dr{flex-wrap:wrap}
+.dlg input[type=checkbox]{width:20px;height:20px;padding:0;flex:none;accent-color:var(--ac)}
+.ck{display:flex!important;align-items:center;gap:10px;margin:6px 0!important;color:var(--fg)!important;font-size:14px!important}
+.qa{font-size:12px;color:#f57c00;margin:2px 2px 6px;white-space:pre-wrap;word-break:break-word}
+.lb{font-size:12px;color:var(--mut);word-break:break-all}
+.cnt.over{color:#e53935;font-weight:700}
 </style></head><body>
 <header>
-<div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div><div id="selc" hidden></div></div><select id="tl" title="Target language" hidden></select><button id="cfgb" title="Auto-translate settings" aria-label="Auto-translate settings"></button><button id="imp" title="Import translations (XLIFF or strings.xml)" aria-label="Import translations" hidden></button></div>
+<div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div><div id="selc" hidden></div></div><select id="tl" title="Target language" hidden></select><button id="cfgb" title="Settings" aria-label="Settings"></button><button id="imp" title="Import translations (XLIFF or strings.xml)" aria-label="Import translations" hidden></button></div>
 <div class="row">
 <button id="open" class="p" title="Open file" aria-label="Open file"></button>
 <button id="save" title="Save / Share" aria-label="Save / Share"></button>
@@ -103,15 +108,23 @@ body.sm .mi.x{display:none}
 </div>
 </header>
 <div id="cfg" hidden><div class="dlg">
-<h3>Auto-translate</h3>
-<label>Engine<select id="c-eng"><option value="free">Free (Google / MyMemory)</option><option value="gemini">Gemini (AI, uses context)</option></select></label>
+<h3>Settings</h3>
+<label>Auto-translate engine<select id="c-eng"><option value="free">Free (Google / MyMemory)</option><option value="gemini">Gemini (AI, uses context)</option></select></label>
 <div id="gf">
 <label>Gemini API key<div class="kr"><input id="c-key" type="password" autocomplete="off" spellcheck="false" placeholder="AIza..."><button id="c-eye" type="button" title="Show / hide key" aria-label="Show or hide key"></button></div></label>
 <label>Model<input id="c-model" list="c-models" autocomplete="off" spellcheck="false"></label>
 <datalist id="c-models"><option value="gemini-3.6-flash"><option value="gemini-3.8-flash"><option value="gemini-3.5-flash-lite"><option value="gemini-4-argon"></datalist>
 <label>Notes for the AI (optional)<textarea id="c-notes" placeholder="e.g. Music player app. Informal tone. Keep 'Playlist' untranslated."></textarea></label>
+<label>Rate limit (requests / minute, 0 = none)<input id="c-rpmg" type="number" min="0" inputmode="numeric"></label>
 <div class="hint">The key is stored only on this device and sent only to Google. Get one at aistudio.google.com/apikey</div>
 </div>
+<div id="ff"><label>Rate limit (requests / minute, 0 = none)<input id="c-rpmf" type="number" min="0" inputmode="numeric"></label></div>
+<label>Glossary</label>
+<div class="kr"><button id="g-imp" type="button">Import CSV / TSV / TBX</button><button id="g-clr" type="button">Clear</button></div>
+<div class="hint" id="g-info"></div>
+<input id="f3" type="file" accept="*/*" hidden>
+<label>QA checks</label>
+<div id="qac"></div>
 <div class="dr"><button id="c-test" type="button">Test</button><button id="c-cancel" type="button">Close</button><button id="c-save" type="button" class="p">Save</button></div>
 </div></div>
 <div id="bm" hidden><div class="dlg"><h3>Selected units</h3><div id="bl"></div><div class="dr"><button id="bclose" type="button">Close</button></div></div></div>
@@ -156,10 +169,119 @@ const edited=()=>units.filter(changed).length;
 const setVal=(u,v)=>{if(v===u.rt)delete u.val;else u.val=v};
 
 const DEFMODEL='gemini-3.6-flash';
-const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gnotes:''};
+const QALAB=[['ph','Placeholders & tags'],['ws','Spaces & line breaks'],['dsp','Double spaces'],['pu','End punctuation'],['num','Numbers'],['xml','Valid XML'],['gl','Glossary terms'],['apo','Unescaped quotes (strings.xml)'],['len','Max length']];
+const QADEF={ph:1,ws:1,dsp:1,pu:1,num:1,xml:1,gl:1,apo:1,len:1};
+let QV=0;
+const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gnotes:'',rpmG:10,rpmF:30,qa:{}};
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
+CFG.qa=Object.assign({},QADEF,CFG.qa||{});
 const saveCfg=()=>{try{localStorage.setItem('cfg',JSON.stringify(CFG))}catch(e){}};
 const engName=()=>CFG.eng==='gemini'?'Gemini':'Google';
+const escRe=t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+let GL=[];
+function setGlossary(pairs){
+  const mp=new Map();
+  pairs.forEach(([a,b])=>{a=String(a).trim();b=String(b).trim();if(a&&b)mp.set(a.toLowerCase(),[a,b])});
+  GL=[...mp.values()].sort((x,y)=>y[0].length-x[0].length).map(([a,b])=>({s:a,t:b,re:new RegExp('(?<![\\p{L}\\p{N}])'+escRe(a)+'(?![\\p{L}\\p{N}])','iu')}));
+  QV++;
+}
+const saveGl=()=>{try{localStorage.setItem('glossary',JSON.stringify(GL.map(e=>[e.s,e.t])))}catch(e){alert('The glossary is too large to store on this device')}};
+try{setGlossary(JSON.parse(localStorage.getItem('glossary')||'[]'))}catch(e){}
+function glossHits(text){
+  const h=GL.filter(e=>e.re.test(text));
+  return h.filter(a=>!h.some(b=>b!==a&&b.s.length>a.s.length&&b.s.toLowerCase().includes(a.s.toLowerCase())));
+}
+function parseCSV(t,d){
+  const rows=[];let row=[],f='',q=false;
+  for(let i=0;i<t.length;i++){const c=t[i];
+    if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"'&&f==='')q=true;
+    else if(c===d){row.push(f);f=''}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;row.push(f);f='';rows.push(row);row=[]}
+    else f+=c}
+  row.push(f);rows.push(row);
+  return rows.filter(r=>r.some(x=>x.trim()));
+}
+function parseGlossary(txt){
+  txt=txt.replace(/^\uFEFF/,'');
+  if(txt.trimStart().startsWith('<')){
+    const d=new DOMParser().parseFromString(txt,'application/xml');
+    if(d.querySelector('parsererror'))throw new Error('Invalid XML');
+    const tl=mode==='strings'?lc($('tl').value):(doc?langs().tl:''),tb=(tl||'').split('-')[0].toLowerCase(),out=[];
+    d.querySelectorAll('termEntry').forEach(te=>{
+      const ls=[...te.querySelectorAll('langSet')].map(l=>[(l.getAttribute('xml:lang')||l.getAttribute('lang')||'').toLowerCase(),(l.querySelector('term')||{}).textContent||'']);
+      if(ls.length<2)return;
+      const t=ls.slice(1).find(x=>tb&&x[0].split('-')[0]===tb)||ls[1];
+      out.push([ls[0][1],t[1]]);
+    });
+    return out;
+  }
+  const first=txt.split(/\r?\n/).find(l=>l.trim())||'';
+  const cnt=c=>first.split(c).length-1;
+  const dl=cnt('\t')?'\t':cnt(';')>cnt(',')?';':',';
+  let rows=parseCSV(txt,dl).filter(r=>r.length>=2);
+  const hdr=r=>/^(source|src|term|english|en|target|translation|tgt)$/i.test(r[0].trim())||/^(target|translation|tgt)$/i.test(r[1].trim());
+  if(rows.length&&hdr(rows[0]))rows=rows.slice(1);
+  return rows.map(r=>[r[0],r[1]]);
+}
+function tcls(t){
+  t=t.replace(/\s+$/,'');if(!t)return '';
+  if(/(\.\.\.|\u2026)$/.test(t))return 'ell';
+  const c=t.slice(-1);
+  if('.\u3002\uff0e'.includes(c))return 'dot';
+  if('!\uff01'.includes(c))return 'ex';
+  if('?\uff1f'.includes(c))return 'q';
+  if(':\uff1a'.includes(c))return 'col';
+  if(';\uff1b'.includes(c))return 'sc';
+  return '';
+}
+function qaOf(u){
+  const c=cur(u),k=c+'\u0001'+QV+mode;
+  if(u._qk===k)return u._qa;
+  const out=[],tr=u.tr!==undefined?u.tr:u.oTr;
+  if(c.trim()&&tr!=='no'){
+    const Q=CFG.qa,s=u.rs;
+    if(Q.ph){const a=tokCount(s),b=tokCount(c),miss=[],extra=[];
+      a.forEach((n,t)=>{if((b.get(t)||0)<n)miss.push(t)});
+      b.forEach((n,t)=>{if((a.get(t)||0)<n)extra.push(t)});
+      if(miss.length)out.push('Missing: '+miss.slice(0,4).join(' '));
+      if(extra.length)out.push('Extra: '+extra.slice(0,4).join(' '))}
+    if(Q.ws){
+      if(/^\s*/.exec(s)[0]!==/^\s*/.exec(c)[0]||/\s*$/.exec(s)[0]!==/\s*$/.exec(c)[0])out.push('Leading/trailing spaces differ');
+      if((s.match(/\n/g)||[]).length!==(c.match(/\n/g)||[]).length)out.push('Line breaks differ')}
+    if(Q.dsp&&/ {2,}/.test(c)&&!/ {2,}/.test(s))out.push('Double spaces');
+    if(Q.pu&&tcls(s)!==tcls(c))out.push('End punctuation differs');
+    if(Q.num){const n1=(s.replace(TOK,' ').match(/\d+/g)||[]).sort().join(),n2=(c.replace(TOK,' ').match(/\d+/g)||[]).sort().join();
+      if(n1!==n2)out.push('Numbers differ')}
+    if(Q.xml&&new DOMParser().parseFromString('<r xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">'+c+'</r>','application/xml').querySelector('parsererror'))out.push('Invalid XML');
+    if(Q.gl&&GL.length){const lcc=c.toLowerCase();glossHits(s).forEach(h=>{if(!lcc.includes(h.t.toLowerCase()))out.push('Glossary: '+h.s+' \u2192 '+h.t)})}
+    if(Q.len&&u.max&&clen(c)>u.max)out.push('Over max length ('+clen(c)+'/'+u.max+')');
+    if(Q.apo&&mode==='strings'&&!/CDATA/.test(c)&&/(?<!\\)['"]/.test(c.replace(/<[^>]+>/g,'')))out.push('Unescaped quote');
+  }
+  u._qk=k;u._qa=out;return out;
+}
+const lastReq={};let onNet=null;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function throttle(){
+  const e=CFG.eng,rpm=e==='gemini'?CFG.rpmG:CFG.rpmF;
+  if(!(rpm>0))return;
+  const gap=60000/rpm,now=Date.now(),at=Math.max(now,(lastReq[e]||0)+gap);
+  lastReq[e]=at;if(at>now)await sleep(at-now);
+}
+const retryable=st=>st===429||st===503;
+const retryAfter=r=>{try{const h=r.headers&&r.headers.get&&r.headers.get('retry-after');return h&&!isNaN(+h)?Math.min(+h,120)*1000:0}catch(e){return 0}};
+const httpErr=r=>{const e=new Error((r.status===429?'Too many requests (429)':'Service busy (503)')+' - lower the rate limit in Settings');e.status=r.status;e.retryAfter=retryAfter(r);return e};
+async function net(fn){
+  for(let a=0;;a++){
+    await throttle();
+    try{return await fn()}
+    catch(e){
+      if(!retryable(e.status)||a>=3)throw e;
+      const d=e.retryAfter||5000*Math.pow(2,a);
+      for(let sec=Math.ceil(d/1000);sec>0;sec--){if(onNet)onNet('Rate limited. Retrying in '+sec+'s...');await sleep(1000)}
+    }
+  }
+}
 const LANGS=[['vi','Vietnamese'],['en','English'],['zh-CN','Chinese (Simplified)'],['zh-TW','Chinese (Traditional)'],['ja','Japanese'],['ko','Korean'],['fr','French'],['de','German'],['es','Spanish'],['pt','Portuguese'],['ru','Russian'],['it','Italian'],['id','Indonesian'],['th','Thai'],['tr','Turkish'],['ar','Arabic'],['hi','Hindi'],['nl','Dutch'],['pl','Polish'],['uk','Ukrainian'],['ms','Malay']];
 $('tl').innerHTML=LANGS.map(l=>'<option value="'+l[0]+'">'+l[0]+' – '+l[1]+'</option>').join('');
 try{const v=localStorage.getItem('tl');if(v&&LANGS.some(l=>l[0]===v))$('tl').value=v}catch(e){}
@@ -174,7 +296,7 @@ function parseStrings(txt){
   const t=txt.replace(/<!--[\s\S]*?-->/g,'');
   const res=[];const re=/<(string-array|plurals|string)(?=[\s>\/])([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g;let m;
   const add=(kind,name,sub,rs)=>res.push({kind,name,sub,rs,id:name,rn:kind==='p'?sub:kind==='a'?'['+sub+']':'',
-    rt:'',is12:false,oAp:false,oTr:'yes',ctx:[],ct:'',idx:res.length});
+    rt:'',is12:false,oAp:false,oTr:'yes',ctx:[],labels:[],max:0,ct:'',idx:res.length});
   while((m=re.exec(t))){
     const at=' '+m[2],name=ga(at,'name');
     if(!name||ga(at,'translatable')==='false')continue;
@@ -264,15 +386,33 @@ function previewImport(plan,nf,no,same,skipped){
     $('ip').hidden=false;
   });
 }
-const gfShow=()=>{$('gf').hidden=$('c-eng').value!=='gemini'};
+const gfShow=()=>{const g=$('c-eng').value==='gemini';$('gf').hidden=!g;$('ff').hidden=g};
 function openCfg(){
   $('c-eng').value=CFG.eng;$('c-key').value=CFG.gkey;$('c-model').value=CFG.gmodel||DEFMODEL;$('c-notes').value=CFG.gnotes;
+  $('c-rpmg').value=CFG.rpmG;$('c-rpmf').value=CFG.rpmF;
+  document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);glInfo();
   $('c-key').type='password';gfShow();$('cfg').hidden=false;
 }
 function applyCfg(){
   CFG.eng=$('c-eng').value;CFG.gkey=$('c-key').value.trim();CFG.gmodel=$('c-model').value.trim()||DEFMODEL;CFG.gnotes=$('c-notes').value;
+  const rp=(id,d)=>{const v=$(id).value.trim();return v===''?d:Math.max(0,Math.floor(+v)||0)};
+  CFG.rpmG=rp('c-rpmg',10);CFG.rpmF=rp('c-rpmf',30);
+  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);QV++;
   saveCfg();
 }
+$('qac').innerHTML=QALAB.map(([k,t])=>'<label class="ck"><input type="checkbox" data-q="'+k+'"> '+t+'</label>').join('');
+function glInfo(){$('g-info').textContent=GL.length?GL.length+' terms \u00b7 e.g. '+GL.slice(0,2).map(e=>e.s+' \u2192 '+e.t).join(', '):'No glossary loaded'}
+$('g-imp').onclick=()=>$('f3').click();
+$('f3').onchange=async e=>{
+  const file=e.target.files[0];e.target.value='';if(!file)return;
+  let pairs;try{pairs=parseGlossary(await file.text())}catch(err){alert('Could not read the glossary: '+err.message);return}
+  if(!pairs.length){alert('No terms found. Use a CSV / TSV with source and target columns, or a TBX file.');return}
+  const old=GL.map(x=>[x.s,x.t]);
+  const replace=!old.length||confirm('The glossary already has '+old.length+' terms. OK = replace it, Cancel = merge the new terms into it.');
+  setGlossary(replace?pairs:old.concat(pairs));saveGl();glInfo();render();
+  alert('Glossary: '+GL.length+' terms');
+};
+$('g-clr').onclick=()=>{if(!GL.length)return;if(!confirm('Remove all '+GL.length+' glossary terms?'))return;setGlossary([]);saveGl();glInfo();render()};
 $('c-eye').innerHTML=ic('eye');
 $('c-eye').onclick=()=>{const k=$('c-key');k.type=k.type==='password'?'text':'password'};
 $('c-eng').onchange=gfShow;
@@ -303,14 +443,17 @@ async function bulkMT(sel){
   if(!list.length){alert('Nothing to translate');return}
   let stop=false,done=0,warn=0,err=null;
   $('pstop').onclick=()=>{stop=true;$('pt').textContent='Stopping...'};
+  const rpm=CFG.eng==='gemini'?CFG.rpmG:CFG.rpmF;
+  onNet=m=>{$('pt').textContent=m};
   $('prog').hidden=false;
   for(const u of list){
     if(stop)break;
-    $('pt').textContent='Translating '+(done+1)+' / '+list.length+' ('+engName()+')';
+    const eta=rpm>0?Math.ceil((list.length-done)*60/rpm):0;
+    $('pt').textContent='Translating '+(done+1)+' / '+list.length+' ('+engName()+')'+(eta>5?' \u00b7 about '+(eta>=90?Math.round(eta/60)+' min':eta+' s')+' left':'');
     try{const r=await machine(u.rs,u);setVal(u,r.text);if(r.warn)warn++;done++}
     catch(e){err=e.message;break}
   }
-  $('prog').hidden=true;
+  $('prog').hidden=true;onNet=null;
   alert('Translated '+done+' / '+list.length+(warn?', '+warn+' to review (placeholders differ)':'')+(err?'. Stopped: '+err:stop?'. Stopped by you':''));
   render();
 }
@@ -367,10 +510,15 @@ $('f').onchange=async e=>{
     const sm=START.exec(b);const stg=sm?sm[0]:'';
     u.is12=tag==='trans-unit';u.rn=ga(stg,'resname')||ga(stg,'name')||'';
     u.oAp=ga(stg,'approved')==='yes';u.oTr=ga(stg,'translate')==='no'?'no':'yes';
-    u.ctx=[];const cr=/<context(?=[\s>])([^>]*)>([\s\S]*?)<\/context>/g;let cm;
-    while((cm=cr.exec(b)))u.ctx.push((ga(cm[1],'context-type')||'context')+': '+cm[2]);
+    u.ctx=[];u.labels=[];u.max=0;
+    {const mw=ga(stg,'maxwidth');if(ga(stg,'size-unit')==='char'&&/^\d+$/.test(mw||''))u.max=+mw}
+    const cr=/<context(?=[\s>])([^>]*)>([\s\S]*?)<\/context>/g;let cm;
+    while((cm=cr.exec(b))){
+      const ty=ga(cm[1],'context-type')||'context',tx=cm[2];u.ctx.push(ty+': '+tx);
+      if(ty==='x-crowdin-label'&&tx.trim())u.labels.push(tx.trim());
+    }
     u.ct=crowdin?u.ctx.join('\n'):''});
-  render();e.target.value='';
+  fillSort();fchips();render();e.target.value='';
 };
 $('close').onclick=()=>{
   if(!doc)return;
@@ -384,10 +532,10 @@ document.querySelectorAll('#fl button[data-f]').forEach(b=>b.onclick=()=>{F[b.da
 function fchips(){document.querySelectorAll('#fl button[data-f]').forEach(b=>b.classList.toggle('on',!!F[b.dataset.f]));
   $('rx').classList.toggle('on',RX);$('q').placeholder=RX?'Regex':'Search';
   $('flt').classList.toggle('on',Object.values(F).some(v=>!v)||$('so').value!=='none'||RX)}
-const SORTS=[['none','Original order',0],['mod','Edited first',0],['unap','Unapproved first',1],['hid','Hidden first',1],['untr','Untranslated first',0],['same','Same as source first',0],['lsrc','Longest source first',0],['ssrc','Shortest source first',0],['ltgt','Longest target first',0],['stgt','Shortest target first',0]];
+const SORTS=[['none','Original order',0],['mod','Edited first',0],['qa','QA issues first',0],['unap','Unapproved first',1],['hid','Hidden first',1],['untr','Untranslated first',0],['same','Same as source first',0],['lsrc','Longest source first',0],['ssrc','Shortest source first',0],['ltgt','Longest target first',0],['stgt','Shortest target first',0],['lbl','Crowdin label A\u2013Z',0,'labels'],['over','Over max length first',0,'max']];
 function fillSort(){
   const so=$('so'),v=so.value||'none';
-  so.innerHTML=SORTS.filter(x=>!x[2]||mode==='xliff').map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');
+  so.innerHTML=SORTS.filter(x=>(!x[2]||mode==='xliff')&&(!x[3]||units.some(u=>x[3]==='labels'?u.labels&&u.labels.length:u.max))).map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');
   so.value=[...so.options].some(o=>o.value===v)?v:'none';
 }
 $('so').onchange=()=>{page=0;fchips();render()};
@@ -395,10 +543,12 @@ const sortKey=(k,u)=>{
   const ap=u.ap!==undefined?u.ap:u.oAp,tr=u.tr!==undefined?u.tr:u.oTr,c=cur(u);
   switch(k){
     case 'mod':return changed(u)?0:1;
+    case 'qa':return -qaOf(u).length;
     case 'unap':return u.is12&&!ap?0:1;
     case 'hid':return u.is12&&tr==='no'?0:1;
     case 'untr':return c.trim()===''?0:1;
     case 'same':return c!==''&&c===u.rs?0:1;
+    case 'over':return u.max&&clen(c)>u.max?0:1;
     case 'lsrc':return -clen(u.rs);
     case 'ssrc':return clen(u.rs);
     case 'ltgt':return -clen(c);
@@ -421,18 +571,21 @@ function hlight(t){
 const clen=t=>[...t].length;
 function card(u){
   const d=document.createElement('div');d.className='u';
-  d.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="mt"></button><button class="cp"></button><button class="un"></button></div><div class="cxt" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="cnt tc"></div>';
+  d.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div><div class="lb" hidden></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="mt"></button><button class="cp"></button><button class="un"></button></div><div class="cxt" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="cnt tc"></div><div class="qa" hidden></div>';
   const q=s=>d.querySelector(s);
   const mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
   mtb.innerHTML=ic('mt');ap.innerHTML=ic('check');cx.innerHTML=ic('help');cp.innerHTML=ic('copy');un.innerHTML=ic('undo');
   [[ap,'Approve'],[hd,'Visible'],[cx,'Context'],[mtb,'Machine translate · '+engName()],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
   const cb=q('.sel');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
   q('.id').textContent=u.id;q('.rn').textContent=u.rn;q('.rn').hidden=!u.rn;
+  q('.lb').textContent=u.labels.length?'Label: '+u.labels.join(', '):'';q('.lb').hidden=!u.labels.length;
   q('.src').innerHTML=hlight(u.rs);
   q('.sc').textContent=clen(u.rs)+' chars';
-  cxt.textContent=crowdin?(u.ctx.join('\n')||'No context'):'For Crowdin Only';
+  {const ls=(u.labels.length?['Label: '+u.labels.join(', ')]:[]).concat(u.ctx.filter(x=>!x.startsWith('x-crowdin-label: ')));
+    if(u.max)ls.push('Max length: '+u.max+' chars');
+    cxt.textContent=crowdin?(ls.join('\n')||'No context'):'For Crowdin Only'}
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
-  const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';q('.tc').textContent=clen(ta.value)+' chars'};
+  const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=clen(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars';tc.classList.toggle('over',!!u.max&&n>u.max)};
   const setText=v=>{ta.value=v;paint();fit()};
   ta.value=cur(u);paint();
   const refresh=()=>{
@@ -442,6 +595,7 @@ function card(u){
     hd.innerHTML=ic(t==='yes'?'eye':'eyeoff');hd.classList.toggle('on',t==='yes');
     hd.title=t==='yes'?'translate=yes (tap to hide)':'translate=no (tap to unhide)';
     ap.disabled=hd.disabled=!u.is12;
+    const qe=q('.qa'),iss=qaOf(u);qe.hidden=!iss.length;qe.textContent=iss.map(x=>'\u26a0 '+x).join('\n');
     cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;
   };
   const sync=()=>{refresh();upd()};
@@ -474,7 +628,7 @@ function render(){
   const q=qs;
   let f=units.filter(u=>!q||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(F.ctx&&hit(u.ct))||(F.tgt&&hit(cur(u))));
   const sk=$('so').value;
-  if(sk!=='none')f=f.map((u,i)=>[u,i,sortKey(sk,u)]).sort((a,b)=>a[2]-b[2]||a[1]-b[1]).map(x=>x[0]);
+  if(sk!=='none')f=f.map((u,i)=>[u,i,sortKey(sk,u)]).sort((a,b)=>{if(sk==='lbl'){const A=(a[0].labels||[])[0],B=(b[0].labels||[])[0];if(!A!==!B)return A?-1:1;if(A&&B){const c=A.localeCompare(B,undefined,{sensitivity:'base'});if(c)return c}}else{const d=a[2]-b[2];if(d)return d}return a[1]-b[1]}).map(x=>x[0]);
   pages=size>0?Math.max(1,Math.ceil(f.length/size)):1;
   if(page>=pages)page=pages-1;
   const part=size>0?f.slice(page*size,page*size+size):f;
@@ -487,7 +641,8 @@ function upd(){
   $('fn').textContent=doc?name:'No file';
   $('imp').hidden=!doc;
   const nsel=units.filter(x=>x.sel).length;
-  $('info').textContent=!doc?'':(mode==='strings'?`${units.filter(u=>cur(u).trim()).length} / ${units.length} done`:`${edited()} edited / ${units.length}`); 
+  const nqa=doc?units.filter(u=>qaOf(u).length).length:0;
+  $('info').textContent=!doc?'':(mode==='strings'?`${units.filter(u=>cur(u).trim()).length} / ${units.length} done`:`${edited()} edited / ${units.length}`)+(nqa?` \u00b7 ${nqa} QA issues`:''); 
   $('selc').textContent=nsel+' selected';$('selc').hidden=!doc||!nsel;
   $('bulk').disabled=!nsel;
   const sc=shown.filter(x=>x.sel).length;
@@ -504,16 +659,18 @@ function langs(){
   const g=(t,n)=>t?ga(t[0],n):null;
   return {sl:lc(g(ft,'source-language')||g(xt,'srcLang')||'auto'),tl:lc(g(ft,'target-language')||g(xt,'trgLang'))};
 }
-const TOK=/%(?:\d+\$)?[-#+ 0,(]*\d*(?:\.\d+)?[a-zA-Z%]|\\u[0-9a-fA-F]{4}|\\[nrt'"@?\\]|&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);|<[^>]+>|\{[^}]*\}/g;
+const TOK=/%(?:\d+\$)?[-#+0,(]*\d*(?:\.\d+)?[a-zA-Z%]|\\u[0-9a-fA-F]{4}|\\[nrt'"@?\\]|&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);|<[^>]+>|\{[^}]*\}/g;
 async function gtx(q,sl,tl){
-  const r=await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl='+sl+'&tl='+tl+'&q='+encodeURIComponent(q));
+  const url='https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl='+sl+'&tl='+tl+'&q='+encodeURIComponent(q);
+  const r=await net(async()=>{const r=await fetch(url);if(retryable(r.status))throw httpErr(r);return r});
   if(!r.ok)throw new Error('HTTP '+r.status);
   const j=await r.json();return j[0].map(x=>x[0]).join('');
 }
 async function mym(q,sl,tl){
   if(q.length>480)throw new Error('Text too long for the fallback service');
-  const r=await fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(q)+'&langpair='+(sl==='auto'?'en':sl)+'|'+tl);
-  const j=await r.json();
+  const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(q)+'&langpair='+(sl==='auto'?'en':sl)+'|'+tl;
+  const j=await net(async()=>{const r=await fetch(url);if(retryable(r.status))throw httpErr(r);const j=await r.json();
+    if(String(j.responseStatus)==='429'){const e=new Error('Too many requests (429) - lower the rate limit in Settings');e.status=429;throw e}return j});
   if(!j.responseData||String(j.responseStatus)!=='200')throw new Error(j.responseDetails||'Service error');
   const t=document.createElement('textarea');t.innerHTML=j.responseData.translatedText;return t.value;
 }
@@ -527,16 +684,20 @@ async function gemini(src,u,sl,tl){
     '- The key name and context are only hints about meaning and are not to be translated.',
     '- For a plural form, write the correct plural form for the target language.',
     mode==='strings'?'- Apostrophes and double quotes in the output must be escaped as \\\' and \\\" (Android strings.xml).':'',
+    GL.length?'- If a glossary is given with the string, translate the listed terms exactly as specified (adapt only grammar if the target language requires).':'',
     CFG.gnotes.trim()?'Extra notes from the app author:\n'+CFG.gnotes.trim():''].filter(Boolean).join('\n');
   const info=['Key: '+(mode==='strings'?u.id:(u.rn||u.id))];
   if(u.kind==='p')info.push('Plural quantity: '+u.sub);
   if(u.kind==='a')info.push('Array item index: '+u.sub);
   if(crowdin&&u.ctx&&u.ctx.length)info.push('Context: '+u.ctx.join('; '));
+  if(u.max)info.push('Maximum length of the translation: '+u.max+' characters (hard limit)');
+  const gh=glossHits(src).slice(0,40);
+  if(gh.length)info.push('Glossary (use exactly these translations for these terms):\n'+gh.map(h=>'- '+h.s+' => '+h.t).join('\n'));
   const prompt=info.join('\n')+'\n\nSource text'+(sl&&sl!=='auto'?' ('+lname(sl)+')':'')+':\n<<<\n'+src+'\n>>>\n\nTranslate into '+lname(tl)+'. Output only the translation.';
   const url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent((CFG.gmodel||DEFMODEL).trim())+':generateContent';
   const headers={'Content-Type':'application/json','x-goog-api-key':CFG.gkey.trim()};
   const base={system_instruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:prompt}]}]};
-  const send=b=>fetch(url,{method:'POST',headers,body:JSON.stringify(b)});
+  const send=b=>net(async()=>{const r=await fetch(url,{method:'POST',headers,body:JSON.stringify(b)});if(retryable(r.status))throw httpErr(r);return r});
   let r=await send({...base,generationConfig:{thinkingConfig:{thinkingLevel:'low'}}});
   if(r.status===400)r=await send(base);
   const j=await r.json().catch(()=>({}));
@@ -560,7 +721,9 @@ async function machine(src,u){
     return {text:out,warn:miss||!!bad,msg:bad?'The translation may not be valid XML (check &, < and tags). Please review it.':'Some placeholders differ from the source. Please review the translation.'};
   }
   const toks=[];
-  const p=src.replace(TOK,t=>{toks.push(t);return '[['+(toks.length-1)+']]'});
+  let p0=src;
+  glossHits(src).forEach(h=>{p0=p0.replace(new RegExp(h.re.source,'giu'),()=>{toks.push(quotes(h.t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')));return '[['+(toks.length-1)+']]'})});
+  const p=p0.replace(TOK,t=>{toks.push(t);return '[['+(toks.length-1)+']]'});
   let out;
   try{out=await gtx(p,sl,tl)}catch(e1){
     try{out=await mym(p,sl,tl)}catch(e2){throw new Error(e1.message+' / '+e2.message)}}
