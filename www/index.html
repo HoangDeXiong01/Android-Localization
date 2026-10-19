@@ -63,6 +63,9 @@ mark.es{background:rgba(102,187,106,.42)}
 .dlg input,.dlg select,.dlg textarea{width:100%;font:inherit;font-size:15px;color:var(--fg);background:var(--card);border:1px solid var(--card);border-radius:10px;padding:0 10px;height:40px}
 .dlg textarea{height:90px;padding:8px 10px;resize:vertical}
 .kr{display:flex;gap:6px}
+#c-model{flex:1;min-width:0}
+#c-ref{flex:none}
+#c-ref svg{width:20px;height:20px;fill:currentColor}
 .hint{font-size:12px;color:var(--mut);margin-top:10px}
 .dr{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 .dr button{padding:0 16px}
@@ -116,8 +119,8 @@ body.sm .mi.x{display:none}
 <label>Auto-translate engine<select id="c-eng"><option value="free">Free (Google / MyMemory)</option><option value="gemini">Gemini (AI, uses context)</option></select></label>
 <div id="gf">
 <label>Gemini API key<div class="kr"><input id="c-key" type="password" autocomplete="off" spellcheck="false" placeholder="AIza..."><button id="c-eye" type="button" title="Show / hide key" aria-label="Show or hide key"></button></div></label>
-<label>Model<input id="c-model" list="c-models" autocomplete="off" spellcheck="false"></label>
-<datalist id="c-models"><option value="gemini-3.6-flash"><option value="gemini-3.8-flash"><option value="gemini-3.5-flash-lite"><option value="gemini-4-argon"></datalist>
+<label>Model<div class="kr"><select id="c-model"></select><button id="c-ref" type="button" title="Load models from server" aria-label="Load models from server"></button></div></label>
+<div class="hint" id="c-mhint" style="margin-top:4px"></div>
 <label>Notes for the AI (optional)<textarea id="c-notes" placeholder="e.g. Music player app. Informal tone. Keep 'Playlist' untranslated."></textarea></label>
 <label>Rate limit (requests / minute, 0 = none)<input id="c-rpmg" type="number" min="0" inputmode="numeric"></label>
 <div class="hint">The key is stored only on this device and sent only to Google. Get one at aistudio.google.com/apikey</div>
@@ -160,6 +163,7 @@ cfg:'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 
 bulk:'M22 7h-9v2h9V7zm0 8h-9v2h9v-2zM5.54 11 2 7.46l1.41-1.41 2.12 2.12 4.24-4.24 1.41 1.41L5.54 11zm0 8L2 15.46l1.41-1.41 2.12 2.12 4.24-4.24 1.41 1.41L5.54 19z',
 edit:'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z',
 tools:'M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z',
+refresh:'M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z',
 prev:'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z',
 next:'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z'};
 const ic=k=>'<svg viewBox="0 0 24 24"><path d="'+IC[k]+'"/></svg>';
@@ -184,7 +188,7 @@ const DEFMODEL='gemini-3.6-flash';
 const QALAB=[['ph','Placeholders & tags'],['ws','Spaces & line breaks'],['dsp','Double spaces'],['pu','End punctuation'],['num','Numbers'],['xml','Valid XML'],['gl','Glossary terms'],['apo','Unescaped quotes (strings.xml)'],['len','Max length']];
 const QADEF={ph:1,ws:1,dsp:1,pu:1,num:1,xml:1,gl:1,apo:1,len:1};
 let QV=0;
-const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gnotes:'',rpmG:10,rpmF:30,qa:{}};
+const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],gnotes:'',rpmG:10,rpmF:30,qa:{}};
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
 CFG.qa=Object.assign({},QADEF,CFG.qa||{});
 const saveCfg=()=>{try{localStorage.setItem('cfg',JSON.stringify(CFG))}catch(e){}};
@@ -440,15 +444,50 @@ function previewImport(plan,nf,no,same,skipped){
     $('ip').hidden=false;
   });
 }
+function fillModels(cur){
+  cur=cur||$('c-model').value||CFG.gmodel||DEFMODEL;
+  const sel=$('c-model');sel.innerHTML='';
+  [...new Set([...(CFG.gmodels||[]),cur])].forEach(m=>sel.add(new Option(m,m)));
+  sel.value=cur;
+}
+function showModelHint(msg){
+  const n=(CFG.gmodels||[]).length,cur=$('c-model').value;
+  $('c-mhint').textContent=msg||(n?(n+' models from the server'+(CFG.gmodels.includes(cur)?'':' \u00b7 "'+cur+'" is not in the list')+'. Tap \u21bb to refresh.'):'Enter your API key, then tap \u21bb to load the available models.');
+}
+let loadingModels=false;
+async function loadModels(){
+  const key=$('c-key').value.trim(),b=$('c-ref');
+  if(!key){showModelHint();return}
+  if(loadingModels)return;
+  loadingModels=true;b.disabled=true;showModelHint('Loading models...');
+  try{
+    const out=[];let tok='';
+    for(let i=0;i<10;i++){
+      const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000'+(tok?'&pageToken='+encodeURIComponent(tok):''),{headers:{'x-goog-api-key':key}});
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
+      (j.models||[]).forEach(m=>{
+        const id=String(m.name||'').replace(/^models\//,'');
+        if(/^gemini/i.test(id)&&(m.supportedGenerationMethods||[]).includes('generateContent'))out.push(id);
+      });
+      tok=j.nextPageToken;if(!tok)break;
+    }
+    if(!out.length)throw new Error('The server returned no usable models');
+    CFG.gmodels=[...new Set(out)];saveCfg();
+    fillModels($('c-model').value);showModelHint();
+  }catch(e){showModelHint('Could not load models: '+e.message)}
+  loadingModels=false;b.disabled=false;
+}
 const gfShow=()=>{const g=$('c-eng').value==='gemini';$('gf').hidden=!g;$('ff').hidden=g};
 function openCfg(){
-  $('c-eng').value=CFG.eng;$('c-key').value=CFG.gkey;$('c-model').value=CFG.gmodel||DEFMODEL;$('c-notes').value=CFG.gnotes;
+  $('c-eng').value=CFG.eng;$('c-key').value=CFG.gkey;fillModels(CFG.gmodel||DEFMODEL);$('c-notes').value=CFG.gnotes;
   $('c-rpmg').value=CFG.rpmG;$('c-rpmf').value=CFG.rpmF;
   document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);glInfo();clRender();clReset();
   $('c-key').type='password';gfShow();$('cfg').hidden=false;
+  if(CFG.gkey.trim()&&!(CFG.gmodels||[]).length)loadModels();else showModelHint();
 }
 function applyCfg(){
-  CFG.eng=$('c-eng').value;CFG.gkey=$('c-key').value.trim();CFG.gmodel=$('c-model').value.trim()||DEFMODEL;CFG.gnotes=$('c-notes').value;
+  CFG.eng=$('c-eng').value;CFG.gkey=$('c-key').value.trim();CFG.gmodel=$('c-model').value||DEFMODEL;CFG.gnotes=$('c-notes').value;
   const rp=(id,d)=>{const v=$(id).value.trim();return v===''?d:Math.max(0,Math.floor(+v)||0)};
   CFG.rpmG=rp('c-rpmg',10);CFG.rpmF=rp('c-rpmf',30);
   document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);QV++;
@@ -467,7 +506,10 @@ $('f3').onchange=async e=>{
   alert('Glossary: '+GL.length+' terms');
 };
 $('g-clr').onclick=()=>{if(!GL.length)return;if(!confirm('Remove all '+GL.length+' glossary terms?'))return;setGlossary([]);saveGl();glInfo();render()};
-$('c-eye').innerHTML=ic('eye');
+$('c-eye').innerHTML=ic('eye');$('c-ref').innerHTML=ic('refresh');
+$('c-ref').onclick=loadModels;
+$('c-key').onchange=()=>{if($('c-key').value.trim())loadModels()};
+$('c-model').onchange=()=>showModelHint();
 $('c-eye').onclick=()=>{const k=$('c-key');k.type=k.type==='password'?'text':'password'};
 $('c-eng').onchange=gfShow;
 $('cfgb').onclick=openCfg;
