@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme:light)"><meta name="theme-color" content="#141318" media="(prefers-color-scheme:dark)">
 <title>Android Localization</title>
 <style>
-:root{--bg:#fff;--fg:#1c1b1f;--card:#f3f1f6;--ac:#5b4bd5;--mut:#6b6874}
+:root{--bg:#fff;--fg:#1c1b1f;--card:#f3f1f6;--ac:#5b4bd5;--mut:#6b6874;color-scheme:light dark}
 @media(prefers-color-scheme:dark){:root{--bg:#141318;--fg:#e6e1e9;--card:#211f26;--ac:#a99cff;--mut:#9a95a3}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,sans-serif;padding-top:env(safe-area-inset-top)}
-header{position:sticky;top:0;background:var(--bg);padding:8px 10px;border-bottom:1px solid var(--card);z-index:2}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,sans-serif;padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);-webkit-text-size-adjust:100%}
+header{position:sticky;top:0;background:var(--bg);padding:calc(8px + env(safe-area-inset-top,0px)) 10px 8px;border-bottom:1px solid var(--card);z-index:2}
 .row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
 .row:last-child{margin-bottom:0}
 button,select{background:var(--card);color:var(--fg);border:0;border-radius:10px;height:40px;min-width:40px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;padding:0 8px}
@@ -18,16 +19,15 @@ input[type=search]{flex:1;min-width:0;height:40px;padding:0 10px;border-radius:1
 #pg{font-size:14px;min-width:48px;text-align:center}
 .u{background:var(--card);margin:10px;padding:10px 12px;border-radius:12px;border:2px solid transparent}
 .u.ch{border-color:var(--ac)}
-.h{display:flex;align-items:center;gap:6px}
 .id{font-size:12px;color:var(--mut);word-break:break-all}
-.u button{height:32px;min-width:32px;padding:0;background:var(--bg)}
+.u button{height:34px;min-width:34px;padding:0;background:var(--bg)}
 .u svg{width:18px;height:18px}
 button.on{background:var(--ac)!important;color:var(--bg)!important}
-.h{gap:4px;flex-wrap:wrap}
 .idw{flex:1 1 90px;min-width:0}
 .bt{display:flex;gap:4px;flex:none}
 #fn{flex:1;min-width:0;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 [hidden]{display:none!important}
+select{font-size:16px}button,select,input,label{touch-action:manipulation}button{cursor:pointer}:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 #tl{width:78px;height:36px;padding:0 4px}
 #imp{height:36px}
 body.sm .ap,body.sm .hd,body.sm .cx{display:none}
@@ -39,14 +39,13 @@ body.nc #fl [data-f=ctx],body.nc #fl [data-f=lbl]{display:none}
 #fl button{height:32px;font-size:13px}
 #q.bad{border-color:#e53935;outline:1px solid #e53935}
 #rx{min-width:44px;font-family:monospace;font-weight:700}
-#so{flex:1 1 100%;height:36px;font-size:14px}
+#so{flex:1 1 100%;height:36px;font-size:16px}
 .src{margin:6px 0;white-space:pre-wrap;word-break:break-word}
 textarea{width:100%;min-height:70px;padding:8px;border-radius:8px;border:1px solid var(--mut);background:var(--bg);color:var(--fg);font:inherit}
 #empty{padding:30px;text-align:center;color:var(--mut)}
 
 .idw{margin-bottom:2px}
 .bt{margin:6px 0 4px}
-.u button{height:34px;min-width:34px}
 .src{margin:6px 0 0}
 .cnt{font-size:11px;color:var(--mut);text-align:right;margin:2px 2px 4px}
 .tw{position:relative;background:var(--bg);border-radius:8px}
@@ -61,7 +60,7 @@ mark.es{background:rgba(102,187,106,.42)}
 .dlg{background:var(--bg);color:var(--fg);border-radius:16px;padding:16px;width:100%;max-width:420px;max-height:90vh;overflow:auto}
 .dlg h3{margin:0 0 4px;font-size:17px}
 .dlg label{display:block;font-size:13px;color:var(--mut);margin:12px 0 4px}
-.dlg input,.dlg select,.dlg textarea{width:100%;font:inherit;font-size:15px;color:var(--fg);background:var(--card);border:1px solid var(--card);border-radius:10px;padding:0 10px;height:40px}
+.dlg input,.dlg select,.dlg textarea{width:100%;font:inherit;font-size:16px;color:var(--fg);background:var(--card);border:1px solid var(--card);border-radius:10px;padding:0 10px;height:40px}
 .dlg textarea{height:90px;padding:8px 10px;resize:vertical}
 .kr{display:flex;gap:6px}
 #c-model{flex:1;min-width:0}
@@ -72,7 +71,6 @@ mark.es{background:rgba(102,187,106,.42)}
 .dr button{padding:0 16px}
 #fnw{flex:1;min-width:0}
 #bm,#prog,#ip,#rp,#sf{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
-.sp{flex:1}
 #sw{width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex:none}
 .sel,#sa{width:20px;height:20px;accent-color:var(--ac);margin:2px 0 0;flex:none}
 #sa{margin:0}
@@ -82,7 +80,6 @@ mark.es{background:rgba(102,187,106,.42)}
 body.sm .mi.x{display:none}
 #pt{padding:8px 0;font-size:16px}
 #ipl,#rpl{max-height:45vh;overflow:auto;margin-top:8px}
-.rpg{font-weight:600;font-size:13px;margin-top:10px}
 .pi{padding:8px 0;border-top:1px solid var(--card);font-size:13px;word-break:break-word}
 .pk{font-size:12px;color:var(--mut);margin-bottom:2px}
 .po{color:var(--mut);text-decoration:line-through}
@@ -163,7 +160,6 @@ imp:'M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z',
 cfg:'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z',
 bulk:'M22 7h-9v2h9V7zm0 8h-9v2h9v-2zM5.54 11 2 7.46l1.41-1.41 2.12 2.12 4.24-4.24 1.41 1.41L5.54 11zm0 8L2 15.46l1.41-1.41 2.12 2.12 4.24-4.24 1.41 1.41L5.54 19z',
 edit:'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z',
-tools:'M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z',
 refresh:'M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z',
 prev:'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z',
 next:'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z'};
@@ -253,7 +249,7 @@ function tcls(t){
   return '';
 }
 function qaOf(u){
-  const c=cur(u),k=c+'\u0001'+QV+mode;
+  const c=cur(u),k=c+'\u0001'+QV+mode+(u.tr!==undefined?u.tr:u.oTr);
   if(u._qk===k)return u._qa;
   const out=[],tr=u.tr!==undefined?u.tr:u.oTr;
   if(c.trim()&&tr!=='no'){
@@ -270,7 +266,7 @@ function qaOf(u){
     if(Q.pu&&tcls(s)!==tcls(c))out.push('End punctuation differs');
     if(Q.num){const n1=(s.replace(TOK,' ').match(/\d+/g)||[]).sort().join(),n2=(c.replace(TOK,' ').match(/\d+/g)||[]).sort().join();
       if(n1!==n2)out.push('Numbers differ')}
-    if(Q.xml&&new DOMParser().parseFromString('<r xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">'+c+'</r>','application/xml').querySelector('parsererror'))out.push('Invalid XML');
+    if(Q.xml&&/[<&\x00-\x08\x0B\x0C\x0E-\x1F]/.test(c)&&new DOMParser().parseFromString('<r xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">'+c+'</r>','application/xml').querySelector('parsererror'))out.push('Invalid XML');
     if(Q.gl&&GL.length){const lcc=c.toLowerCase();glossHits(s).forEach(h=>{if(!lcc.includes(h.t.toLowerCase()))out.push('Glossary: '+h.s+' \u2192 '+h.t)})}
     if(Q.len&&u.max&&clen(c)>u.max)out.push('Over max length ('+clen(c)+'/'+u.max+')');
     if(Q.apo&&mode==='strings'&&!/CDATA/.test(c)&&/(?<!\\)['"]/.test(c.replace(/<[^>]+>/g,'')))out.push('Unescaped quote');
@@ -353,12 +349,13 @@ function setMode(m){
 }
 function parseStrings(txt){
   const t=txt.replace(/<!--[\s\S]*?-->/g,'');
-  const res=[];const re=/<(string-array|plurals|string)(?=[\s>\/])([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g;let m;
-  const add=(kind,name,sub,rs)=>res.push({kind,name,sub,rs,id:name,rn:kind==='p'?sub:kind==='a'?'['+sub+']':'',
+  const res=[];let fm=false;const re=/<(string-array|plurals|string)(?=[\s>\/])([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g;let m;
+  const add=(kind,name,sub,rs)=>res.push({kind,name,sub,rs,fm,id:name,rn:kind==='p'?sub:kind==='a'?'['+sub+']':'',
     rt:'',is12:false,oAp:false,oTr:'yes',ctx:[],labels:[],max:0,ct:'',idx:res.length});
   while((m=re.exec(t))){
     const at=' '+m[2],name=ga(at,'name');
     if(!name||ga(at,'translatable')==='false')continue;
+    fm=ga(at,'formatted')==='false';
     const body=m[3]||'';
     if(m[1]==='string')add('s',name,'',body);
     else{const ir=/<item\b([^>]*)>([\s\S]*?)<\/item>/g;let im,i=0;
@@ -366,7 +363,6 @@ function parseStrings(txt){
   }
   return res;
 }
-const skey=u=>u.kind+'|'+u.name+'|'+u.sub;
 function buildStrings(){
   const L=['<?xml version="1.0" encoding="utf-8"?>','<resources>'];
   const has=v=>v.trim()!=='';
@@ -374,16 +370,17 @@ function buildStrings(){
     const u=units[i];let j=i;
     while(j<units.length&&units[j].kind===u.kind&&units[j].name===u.name)j++;
     const g=units.slice(i,j);i=j;
-    if(u.kind==='s'){if(has(cur(u)))L.push('    <string name="'+u.name+'">'+cur(u)+'</string>')}
+    if(u.kind==='s'){if(has(cur(u)))L.push('    <string name="'+u.name+'"'+(u.fm?' formatted="false"':'')+'>'+cur(u)+'</string>')}
     else if(u.kind==='p'){const it=g.filter(x=>has(cur(x)));
-      if(it.length){L.push('    <plurals name="'+u.name+'">');
+      if(it.length){L.push('    <plurals name="'+u.name+'"'+(u.fm?' formatted="false"':'')+'>');
         it.forEach(x=>L.push('        <item quantity="'+x.sub+'">'+cur(x)+'</item>'));L.push('    </plurals>')}}
-    else if(g.some(x=>has(cur(x)))){L.push('    <string-array name="'+u.name+'">');
+    else if(g.some(x=>has(cur(x)))){L.push('    <string-array name="'+u.name+'"'+(u.fm?' formatted="false"':'')+'>');
       g.forEach(x=>L.push('        <item>'+(has(cur(x))?cur(x):x.rs)+'</item>'));L.push('    </string-array>')}
   }
   L.push('</resources>','');return L.join('\n');
 }
 const ckey=u=>u.kind==='s'?u.name:u.kind==='p'?u.name+':'+u.sub:u.name+'['+u.sub+']';
+const maskRaw=s=>s.replace(/<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>/g,x=>' '.repeat(x.length));
 const grabTag=(b,n)=>{const r=new RegExp('<'+n+'\\b[^>]*?(?:\\/>|>([\\s\\S]*?)<\\/'+n+'>)').exec(b);return r?(r[1]||''):''};
 function readTranslations(txt){
   const d=new DOMParser().parseFromString(txt,'application/xml');
@@ -600,10 +597,9 @@ $('f').onchange=async e=>{
     }});
   crowdin=/tool-id="crowdin"|tool-name="crowdin"/i.test(raw);
   const st=[];const re=/<(trans-unit|unit)\b/g;let m;
-  while((m=re.exec(raw)))st.push([m.index,m[1]]);
-  const grab=(b,n)=>{const r=new RegExp('<'+n+'\\b[^>]*?(?:\\/>|>([\\s\\S]*?)<\\/'+n+'>)').exec(b);return r?(r[1]||''):''};
+  for(const mr=maskRaw(raw);(m=re.exec(mr));)st.push([m.index,m[1]]);
   units.forEach(u=>{const[a,tag]=st[u.idx];const e2=raw.indexOf('</'+tag+'>',a);
-    const b=raw.slice(a,e2<0?undefined:e2);u.rs=grab(b,'source');u.rt=grab(b,'target');
+    const b=raw.slice(a,e2<0?undefined:e2);u.rs=grabTag(b,'source');u.rt=grabTag(b,'target');
     const sm=START.exec(b);const stg=sm?sm[0]:'';
     u.is12=tag==='trans-unit';u.rn=ga(stg,'resname')||ga(stg,'name')||'';
     u.oAp=ga(stg,'approved')==='yes';u.oTr=ga(stg,'translate')==='no'?'no':'yes';
@@ -622,7 +618,7 @@ $('close').onclick=()=>{
   if(edited()&&!confirm('Close this file? Unsaved changes will not be saved.'))return;
   doc=null;raw='';units=[];page=0;$('q').value='';setMode('xliff');render();
 };
-$('q').oninput=()=>{page=0;render()};
+let qt;$('q').oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{page=0;render()},150)};
 $('rx').onclick=()=>{RX=!RX;fchips();page=0;render()};
 $('flt').onclick=()=>$('fl').classList.toggle('show');
 document.querySelectorAll('#fl button[data-f]').forEach(b=>b.onclick=()=>{F[b.dataset.f]=F[b.dataset.f]?0:1;fchips();page=0;render()});
@@ -674,7 +670,7 @@ function card(u){
   const mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
   mtb.innerHTML=ic('mt');ap.innerHTML=ic('check');cx.innerHTML=ic('help');cp.innerHTML=ic('copy');un.innerHTML=ic('undo');
   [[ap,'Approve'],[hd,'Visible'],[cx,'Context'],[mtb,'Machine translate · '+engName()],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
-  const cb=q('.sel');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
+  const cb=q('.sel');cb.setAttribute('aria-label','Select unit');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
   q('.id').textContent=u.id;q('.rn').textContent=u.rn;q('.rn').hidden=!u.rn;
   q('.lb').textContent=u.labels.length?'Label: '+u.labels.join(', '):'';q('.lb').hidden=!u.labels.length;
   q('.src').innerHTML=hlight(u.rs);
@@ -683,7 +679,7 @@ function card(u){
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
   const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=clen(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars';tc.classList.toggle('over',!!u.max&&n>u.max)};
   const setText=v=>{ta.value=v;paint();fit()};
-  ta.value=cur(u);paint();
+  ta.value=cur(u);ta.setAttribute('aria-label','Translation');paint();
   const refresh=()=>{
     const a=u.ap!==undefined?u.ap:u.oAp,t=u.tr!==undefined?u.tr:u.oTr;
     d.classList.toggle('ch',changed(u));un.disabled=!changed(u);
@@ -713,6 +709,7 @@ function card(u){
   refresh();d._fit=fit;
   return d;
 }
+const fitAll=cs=>{const t=cs.map(c=>c.querySelector('textarea'));t.forEach(x=>x.style.height='auto');const h=t.map(x=>x.scrollHeight);t.forEach((x,i)=>x.style.height=Math.max(70,h[i]+2)+'px')};
 function render(){
   const L=$('list');L.innerHTML='';
   const nc=!!doc&&mode==='xliff'&&!crowdin;document.body.classList.toggle('nc',nc);
@@ -731,7 +728,7 @@ function render(){
   const part=size>0?f.slice(page*size,page*size+size):f;
   shown=part;
   if(!part.length)L.innerHTML='<div id="empty">'+(bad?'Invalid regular expression':'No matches')+'</div>';
-  part.forEach(u=>{const c=card(u);L.appendChild(c);c._fit()});
+  const fr=document.createDocumentFragment(),cs=part.map(u=>{const c=card(u);fr.appendChild(c);return c});L.appendChild(fr);fitAll(cs);
   upd();
 }
 function upd(){
@@ -1026,7 +1023,7 @@ $('save').onclick=async()=>{
   if(mode==='strings'){out=buildStrings();outName='strings-'+$('tl').value+'.xml'}
   else{
   const starts=[];const re=/<(trans-unit|unit)\b/g;let m;
-  while((m=re.exec(raw)))starts.push([m.index,m[1]]);
+  for(const mr=maskRaw(raw);(m=re.exec(mr));)starts.push([m.index,m[1]]);
   out=raw;
   const ed=units.filter(changed).sort((x,y)=>y.idx-x.idx);
   for(const u of ed){
@@ -1052,5 +1049,10 @@ $('save').onclick=async()=>{
   if(chk.querySelector('parsererror')){alert('Your edits make the XML invalid (e.g. a bare & or < instead of &amp; / &lt;). Not saved.');return}
   await shareFile(outName,out);
 };
+[['q','Search'],['sz','Units per page'],['sa','Select all shown'],['tl','Target language'],['so','Sort order']].forEach(([i,t])=>$(i).setAttribute('aria-label',t));
+document.querySelectorAll('.dlg').forEach(d=>{d.setAttribute('role','dialog');d.setAttribute('aria-modal','true')});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const [d,b] of [['sf','sf-c'],['ip','ip-c'],['rp','rp-c'],['bm','bclose'],['cfg','c-cancel']])if(!$(d).hidden){e.preventDefault();$(b).click();return}});
+addEventListener('beforeunload',e=>{if(doc&&edited()){e.preventDefault();e.returnValue=''}});
+let lastW=innerWidth,rz;addEventListener('resize',()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(rz);rz=setTimeout(()=>fitAll([...document.querySelectorAll('#list .u')]),150)});
 render();
 </script></body></html>
