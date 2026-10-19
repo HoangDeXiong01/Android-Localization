@@ -33,6 +33,7 @@ jobs:
           java-version: 17
       - run: npm install
       - run: npx cap add android
+      - run: python3 scripts/add-file-saver.py
       - run: node scripts/make-icons.js
       - name: Set version
         run: |
