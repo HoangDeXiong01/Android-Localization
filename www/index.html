@@ -571,7 +571,7 @@ $('f').onchange=async e=>{
       const ty=ga(cm[1],'context-type')||'context',tx=cm[2];u.ctx.push(ty+': '+tx);
       if(ty==='x-crowdin-label'&&tx.trim())u.labels.push(tx.trim());
     }
-    u.ct=crowdin?u.ctx.filter(x=>!x.startsWith('x-crowdin-label: ')&&!x.startsWith('source: ')).join('\n'):''});
+    u.ct=crowdin?ctxLines(u).join('\n'):''});
   fillSort();fchips();render();e.target.value='';
 };
 $('close').onclick=()=>{
@@ -615,6 +615,7 @@ $('sz').onchange=()=>{size=+$('sz').value;page=0;render()};
 $('prev').onclick=()=>{if(page>0){page--;render();scrollTo(0,0)}};
 $('next').onclick=()=>{if(page<pages-1){page++;render();scrollTo(0,0)}};
 
+const ctxLines=u=>u.ctx.filter(x=>!x.startsWith('x-crowdin-label: ')).map(x=>x.replace(/^source: /,'')).filter(x=>x.trim()&&!/^[\w:-]+: $/.test(x));
 const hesc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const pcls=m=>m[0]==='%'||m[0]==='{'?'ph':(m[0]==='<'||m[0]==='&')?'tg':'es';
 function hlight(t){
@@ -635,8 +636,7 @@ function card(u){
   q('.lb').textContent=u.labels.length?'Label: '+u.labels.join(', '):'';q('.lb').hidden=!u.labels.length;
   q('.src').innerHTML=hlight(u.rs);
   q('.sc').textContent=clen(u.rs)+' chars';
-  {const ls=u.ctx.filter(x=>!x.startsWith('x-crowdin-label: ')&&!x.startsWith('source: '));
-    cxt.textContent=crowdin?(ls.join('\n')||'No context'):'For Crowdin Only'}
+  cxt.textContent=crowdin?(ctxLines(u).join('\n')||'No context'):'For Crowdin Only'
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
   const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=clen(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars';tc.classList.toggle('over',!!u.max&&n>u.max)};
   const setText=v=>{ta.value=v;paint();fit()};
@@ -742,7 +742,8 @@ async function gemini(src,u,sl,tl){
   const info=['Key: '+(mode==='strings'?u.id:(u.rn||u.id))];
   if(u.kind==='p')info.push('Plural quantity: '+u.sub);
   if(u.kind==='a')info.push('Array item index: '+u.sub);
-  if(crowdin&&u.ctx&&u.ctx.length)info.push('Context: '+u.ctx.join('; '));
+  if(crowdin&&ctxLines(u).length)info.push('Context: '+ctxLines(u).join('; '));
+  if(u.labels&&u.labels.length)info.push('Label: '+u.labels.join(', '));
   if(u.max)info.push('Maximum length of the translation: '+u.max+' characters (hard limit)');
   const gh=glossHits(src).slice(0,40);
   if(gh.length)info.push('Glossary (use exactly these translations for these terms):\n'+gh.map(h=>'- '+h.s+' => '+h.t).join('\n'));
@@ -802,7 +803,7 @@ async function shareFile(fname,text){
 
 /* ---------- Repair ---------- */
 const HTMLENT={nbsp:160,copy:169,reg:174,hellip:8230,mdash:8212,ndash:8211,laquo:171,raquo:187,trade:8482,euro:8364,lsquo:8216,rsquo:8217,ldquo:8220,rdquo:8221,bull:8226,middot:183,times:215,deg:176,larr:8592,rarr:8594};
-const KMSG={lead:'Whitespace before the XML declaration (removed)',amp:'Bare "&" (written as &amp;)',ent:'Entities not defined in XML',lt:'Stray "<" in text (written as &lt;)',stray:'Closing tags without an opening tag (removed)',unclosed:'Missing closing tags (added)',eof:'Missing closing tags at the end of the file (added)',attr:'Unquoted attribute values (quoted)',ctrl:'Invalid control characters (removed)',apos:"Unescaped apostrophes (written as \\')"};
+const KMSG={lead:'Whitespace before the XML declaration (removed)',amp:'Bare "&" (written as &amp;)',ent:'Entities not defined in XML',lt:'Stray "<" in text (written as &lt;)',stray:'Closing tags without an opening tag (removed)',unclosed:'Missing closing tags (added)',tagtext:'Unclosed or stray tags that are literal text (written as &lt;…&gt;)',eof:'Missing closing tags at the end of the file (added)',attr:'Unquoted attribute values (quoted)',ctrl:'Invalid control characters (removed)',apos:"Unescaped apostrophes (written as \\')"};
 function fixAttrs(tag){
   const m=/^<([A-Za-z_:][\w:.-]*)/.exec(tag);let p=m[0].length,res=m[0];const ch=[];
   const end=tag.endsWith('/>')?'/>':'>',stop=tag.length-end.length;
@@ -817,12 +818,21 @@ function fixAttrs(tag){
   }
   return {text:res+end,ch};
 }
+const INLT=['g','x','bx','ex','ph','bpt','ept','it','mrk','sub'];
+const CONTT=['string','item','source','target'];
 function repairText(txt){
   const fixes=[],P=[],stack=[],n=txt.length;
   const nl=[];for(let i=0;i<n;i++)if(txt.charCodeAt(i)===10)nl.push(i);
   const lineAt=p=>{let lo=0,hi=nl.length;while(lo<hi){const m=(lo+hi)>>1;if(nl[m]<p)lo=m+1;else hi=m}return lo+1};
   const snip=p=>txt.slice(Math.max(0,p-15),p+25).replace(/\s+/g,' ');
   const fix=(k,msg,p)=>fixes.push({k,msg,line:lineAt(p),sn:snip(p)});
+  const container=()=>{for(let k=stack.length-1;k>=0;k--)if(CONTT.includes(stack[k]))return stack[k];return null};
+  const literalOpen=(nm,j)=>{
+    const c=container();if(!c||INLT.includes(nm)||CONTT.includes(nm))return false;
+    const ce=txt.indexOf('</'+c,j),seg=ce<0?txt.slice(j):txt.slice(j,ce);
+    return !new RegExp('</'+nm.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*>').test(seg);
+  };
+  const lit=t=>'&lt;'+t.slice(1,-1).replace(/&(?!(?:#\d+|#x[0-9A-Fa-f]+|[A-Za-z]+);)/g,'&amp;')+'&gt;';
   let i=0,ctrl=0,ctrlAt=0;
   const lead=/^[\s\uFEFF]*/.exec(txt)[0];
   if(/[^\uFEFF]/.test(lead)&&/^<\?xml/.test(txt.slice(lead.length))){fix('lead','Whitespace before the XML declaration will be removed',0);i=lead.length}
@@ -852,7 +862,10 @@ function repairText(txt){
       const m=/^<\/([A-Za-z_:][\w:.-]*)\s*>/.exec(txt.slice(i,i+200));
       if(!m){fix('lt','"<" in text will be written as &lt;',i);P.push('&lt;');i++;continue}
       const k=stack.lastIndexOf(m[1]);
-      if(k<0){fix('stray','Closing tag </'+m[1]+'> has no opening tag and will be removed',i);i+=m[0].length;continue}
+      if(k<0){
+        if(container()&&!INLT.includes(m[1])&&!CONTT.includes(m[1])){fix('tagtext','Closing tag '+m[0]+' has no opening tag; it is literal text and will be written as '+lit(m[0]),i);P.push(lit(m[0]));i+=m[0].length;continue}
+        fix('stray','Closing tag </'+m[1]+'> has no opening tag and will be removed',i);i+=m[0].length;continue;
+      }
       while(stack.length-1>k){const x=stack.pop();fix('unclosed','Closing tag </'+x+'> will be added',i);P.push('</'+x+'>')}
       stack.pop();P.push(m[0]);i+=m[0].length;continue;
     }
@@ -861,6 +874,10 @@ function repairText(txt){
       while(j<n){const d=txt[j];if(q){if(d===q)q=null}else if(d==='"'||d==="'")q=d;else if(d==='>'||d==='<')break;j++}
       if(j>=n||txt[j]!=='>'){fix('lt','"<" in text (unterminated tag) will be written as &lt;',i);P.push('&lt;');i++;continue}
       const tag=txt.slice(i,j+1),nm=/^<([A-Za-z_:][\w:.-]*)/.exec(tag)[1];
+      if(!tag.endsWith('/>')&&literalOpen(nm,j+1)){
+        fix('tagtext','Tag '+tag+' has no closing tag in this text; it is literal text and will be written as '+lit(tag),i);
+        P.push(lit(tag));i=j+1;continue;
+      }
       if(stack[0]==='resources'){
         if(['string','plurals','string-array'].includes(nm)||(nm==='item'&&stack[stack.length-1]==='item')){
           const cl=nm==='item'?['item']:['string','plurals','string-array','item'];
