@@ -32,6 +32,7 @@ button.on{background:var(--ac)!important;color:var(--bg)!important}
 #imp{height:36px}
 body.sm .ap,body.sm .hd,body.sm .cx{display:none}
 body.sm #fl [data-f=rn],body.sm #fl [data-f=ctx],body.sm #fl [data-f=lbl]{display:none}
+body.nc #fl [data-f=ctx],body.nc #fl [data-f=lbl]{display:none}
 .cxt{font-size:13px;color:var(--mut);white-space:pre-wrap;word-break:break-word;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--bg)}
 #fl{display:none;flex-wrap:wrap}
 #fl.show{display:flex}
@@ -714,6 +715,7 @@ function card(u){
 }
 function render(){
   const L=$('list');L.innerHTML='';
+  const nc=!!doc&&mode==='xliff'&&!crowdin;document.body.classList.toggle('nc',nc);
   if(!doc){shown=[];L.innerHTML='<div id="empty">Tap the folder icon to open a .xlf / .xliff or strings.xml file</div>';pages=1;page=0;upd();return}
   const qs=$('q').value;let bad=false,hit;
   if(RX&&qs){let re;try{re=new RegExp(qs,'i')}catch(e){bad=true}
@@ -721,7 +723,7 @@ function render(){
   else{const ql=qs.toLowerCase();hit=v=>(v||'').toLowerCase().includes(ql)}
   $('q').classList.toggle('bad',bad);
   const q=qs;
-  let f=units.filter(u=>!q||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(F.ctx&&hit(u.ct))||(F.lbl&&hit((u.labels||[]).join(' ')))||(F.tgt&&hit(cur(u))));
+  let f=units.filter(u=>!q||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(!nc&&F.ctx&&hit(u.ct))||(!nc&&F.lbl&&hit((u.labels||[]).join(' ')))||(F.tgt&&hit(cur(u))));
   const sk=$('so').value;
   if(sk!=='none')f=f.map((u,i)=>[u,i,sortKey(sk,u)]).sort((a,b)=>a[2]-b[2]||a[1]-b[1]).map(x=>x[0]);
   pages=size>0?Math.max(1,Math.ceil(f.length/size)):1;
