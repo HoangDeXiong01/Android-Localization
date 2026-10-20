@@ -1728,7 +1728,6 @@ function buildXlf2(){
       }
       const tg=rTag.exec(blk),st=(tg&&ga(tg[0],'state'))||'initial';let ns=null;
       if(u.ap!==undefined)ns=u.ap?'final':(cur(u).trim()?'translated':'initial');
-      else if(u.val!==undefined&&u.val.trim()&&st==='initial')ns='translated';
       if(ns&&ns!==st)blk=blk.replace(rTag,t=>setAttr(t,'state',ns));
       ops.push({s:a+sa,e:a+se,t:blk});
       if(u.tr!==undefined&&!u.ntr){const sm=START.exec(raw.slice(a,e2));if(sm)ops.push({s:a,e:a+sm[0].length,t:setAttr(sm[0],'translate',u.tr)})}
