@@ -16,7 +16,14 @@ button:disabled{opacity:.35}
 svg{width:22px;height:22px;fill:currentColor}
 input[type=search]{flex:1;min-width:0;height:40px;padding:0 10px;border-radius:10px;border:1px solid var(--card);background:var(--card);color:var(--fg);font-size:16px}
 #selc,#info{flex:1;min-width:0;font-size:13px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#pg{font-size:14px;min-width:48px;text-align:center}
+#pg{font-size:14px;min-width:24px;text-align:left;white-space:nowrap}
+#pgi{width:52px;height:40px;padding:0 4px;text-align:center;border-radius:10px;border:1px solid var(--card);background:var(--card);color:var(--fg);font-size:16px;-moz-appearance:textfield;appearance:textfield}
+#pgi::-webkit-outer-spin-button,#pgi::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+#pgi:disabled{opacity:.35}
+#pgw{display:inline-flex;align-items:center;gap:4px}
+#sb{position:fixed;right:env(safe-area-inset-right,0px);width:20px;z-index:3;touch-action:none;user-select:none;-webkit-user-select:none}
+#sb i{position:absolute;right:3px;width:8px;border-radius:4px;background:var(--mut);opacity:.5;transition:opacity .15s,width .15s,right .15s}
+#sb.act i,#sb:hover i{opacity:.9;width:12px;right:1px;background:var(--ac)}
 .u{background:var(--card);margin:10px;padding:10px 12px;border-radius:12px;border:2px solid transparent}
 .u.ch{border-color:var(--ac)}
 .id{font-size:12px;color:var(--mut);word-break:break-all}
@@ -96,24 +103,30 @@ body.sm .mi.x{display:none}
 .clr{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:14px}
 .clr span{flex:1;min-width:0;word-break:break-word}
 .clr button{height:34px;min-width:34px;padding:0}
+#list{position:relative}
+#list.mn{overflow-anchor:none}
+#list.vs .u{position:absolute;left:0;right:0;margin:10px 10px 0}
+#list.wait{opacity:.55;transition:opacity .15s .2s}
+body.busy,body.busy *{cursor:progress}
 </style></head><body>
 <header>
 <div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div><div id="selc" hidden></div></div><select id="tl" title="Target language" hidden></select><button id="cfgb" title="Settings" aria-label="Settings"></button><button id="imp" title="Import translations (XLIFF or strings.xml)" aria-label="Import translations" hidden></button></div>
 <div class="row">
 <button id="open" class="p" title="Open file" aria-label="Open file"></button>
-<button id="save" title="Save / Share" aria-label="Save / Share"></button>
+<button id="save" title="Download" aria-label="Download"></button>
 <button id="close" title="Close file" aria-label="Close file"></button>
 <input id="q" type="search" placeholder="Search"><button id="flt" title="Search in…" aria-label="Search in"></button>
 <input id="f" type="file" accept="*/*" hidden><input id="f2" type="file" accept="*/*" hidden></div>
 <div class="row" id="fl"><button data-f="id">ID</button><button data-f="rn">Name</button><button data-f="src">Source</button><button data-f="ctx">Context</button><button data-f="lbl">Label</button><button data-f="tgt">Target</button><button id="rx" type="button" title="Regex search" aria-label="Regex search">.*</button><select id="so" title="Show first"></select></div>
 <div class="row">
-<label id="sw" title="Select all shown"><input id="sa" type="checkbox"></label><button id="bulk" title="Actions for selected units" aria-label="Actions for selected units" disabled></button><button id="cbclr" type="button" title="Clear all clipboards" aria-label="Clear all clipboards" disabled></button>
+<label id="sw" title="Select all shown"><input id="sa" type="checkbox"></label><button id="bulk" title="Actions for selected units" aria-label="Actions for selected units" disabled></button>
 <select id="sz" title="Units per page"><option>10</option><option selected>20</option><option>50</option><option>100</option><option value="0">∞</option></select>
 <button id="prev" title="Previous page" aria-label="Previous page"></button>
-<span id="pg">–</span>
+<span id="pgw"><input id="pgi" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" title="Go to page" aria-label="Go to page" disabled><span id="pg">–</span></span>
 <button id="next" title="Next page" aria-label="Next page"></button>
 </div>
 </header>
+<div id="sb" hidden><i></i></div>
 <div id="cfg" hidden><div class="dlg">
 <h3>Settings</h3>
 <label>Auto-translate engine<select id="c-eng"><option value="free">Free (Google / MyMemory)</option><option value="gemini">Gemini (AI, uses context)</option></select></label>
@@ -173,7 +186,7 @@ next:'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z',
 clip:'M19 2h-4.18C14.4.84 13.3 0 12 0S9.6.84 9.18 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z',
 trash:'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z'};
 const ic=k=>'<svg viewBox="0 0 24 24"><path d="'+IC[k]+'"/></svg>';
-['open','save','close','prev','next','flt','imp','cfg','bulk','trash'].forEach(k=>$(k==='cfg'?'cfgb':k==='trash'?'cbclr':k).innerHTML=ic(k));
+['open','save','close','prev','next','flt','imp','cfg','bulk'].forEach(k=>$(k==='cfg'?'cfgb':k).innerHTML=ic(k));
 
 let shown=[],doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,crowdin=false,mode='xliff',svT=0;
 let RX=false;
@@ -376,9 +389,9 @@ function tcls(t){
   return '';
 }
 function qaOf(u){
-  const c=cur(u),k=c+'\u0001'+QV+mode+(u.tr!==undefined?u.tr:u.oTr);
-  if(u._qk===k)return u._qa;
-  const out=[],tr=u.tr!==undefined?u.tr:u.oTr;
+  const c=cur(u),tr=u.tr!==undefined?u.tr:u.oTr;
+  if(u._qa&&u._qv===QV&&u._qm===mode&&u._qt===tr&&u._qc===c)return u._qa;
+  const out=[];
   if(c.trim()&&(tr!=='no'||CFG.qa.hid)){
     const Q=CFG.qa,s=u.rs;
     if(Q.ph){const a=tokCount(s),b=tokCount(c),miss=[],extra=[];
@@ -398,7 +411,7 @@ function qaOf(u){
     if(Q.len&&u.max){const cl=clen(CFG.pv?pvDec(c):c);if(cl>u.max)out.push('Over max length ('+cl+'/'+u.max+')')}
     if(Q.apo&&!CFG.pv&&mode==='strings'&&!/CDATA/.test(c)&&/(?<!\\)['"]/.test(c.replace(/<[^>]+>/g,'')))out.push('Unescaped quote');
   }
-  u._qk=k;u._qa=out;return out;
+  u._qv=QV;u._qm=mode;u._qt=tr;u._qc=c;u._qa=out;return out;
 }
 const lastReq={};let onNet=null;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -509,26 +522,19 @@ function buildStrings(){
 const ckey=u=>u.kind==='s'?u.name:u.kind==='p'?u.name+':'+u.sub:u.name+'['+u.sub+']';
 const maskRaw=s=>s.replace(/<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>/g,x=>' '.repeat(x.length));
 const grabTag=(b,n)=>{const r=new RegExp('<'+n+'\\b[^>]*?(?:\\/>|>([\\s\\S]*?)<\\/'+n+'>)').exec(b);return r?(r[1]||''):''};
-function readTranslations(txt){
-  const d=new DOMParser().parseFromString(txt,'application/xml');
-  if(d.querySelector('parsererror'))return null;
-  const mp=new Map();
-  if(d.documentElement.localName==='resources'){
-    parseStrings(txt).forEach(x=>{if(x.rs.trim())mp.set(ckey(x),x.rs)});
-  }else{
-    const re=/<(trans-unit|unit)\b[\s\S]*?<\/\1>/g;let m;
-    while((m=re.exec(txt))){
-      const b=m[0],st=START.exec(b),tg=st?st[0]:'';
-      const k=ga(tg,'resname')||ga(tg,'name')||ga(tg,'id'),v=grabTag(b,'target');
-      if(k&&v.trim()&&!mp.has(k))mp.set(k,v);
-    }
-  }
-  return mp;
+async function readTranslations(txt){
+  if(new DOMParser().parseFromString(txt,'application/xml').querySelector('parsererror'))return null;
+  let pairs;
+  try{pairs=(await wCall({t:'trans',txt})).pairs}catch(e){pairs=W_trans(txt)}
+  return new Map(pairs);
 }
 $('imp').onclick=()=>$('f2').click();
 $('f2').onchange=async e=>{
   const file=e.target.files[0];e.target.value='';if(!file||!doc)return;
-  const txt=await file.text(),mp=readTranslations(txt);
+  if(!fileOk(file))return;
+  let txt;try{txt=await readText(file)}catch(err){alert(err.message);return}
+  busy('Reading\u2026');
+  const mp=await readTranslations(txt);busy('');upd(true);
   if(!mp){await errorFlow(file.name,txt);return}
   const kOf=u=>mode==='strings'?ckey(u):(mp.has(u.rn)?u.rn:u.id);
   const hits=[],matched=new Set();
@@ -543,7 +549,7 @@ $('f2').onchange=async e=>{
   const todo=plan.filter(p=>p.k==='fill'||(choice==='all'&&p.k==='over'));
   todo.forEach(p=>setVal(p.u,p.v));
   units.forEach(u=>delete u.sel);todo.forEach(p=>p.u.sel=true);
-  $('q').value='';$('so').value='mod';page=0;fchips();render();
+  $('q').value='';$('so').value='mod';page=0;fchips();render(1);
 };
 function previewImport(plan,nf,no,same,skipped){
   return new Promise(res=>{
@@ -655,7 +661,7 @@ $('c-test').onclick=async()=>{
   catch(e){alert('Failed: '+e.message)}
   b.disabled=false;
 };
-const BM=[['mt','Machine translate selected','mt',0],['check','Approve selected','ap',1],['close','Unapprove selected','un',1],['eyeoff','Hide selected','hd',1],['eye','Unhide selected','sh',1],['copy','Copy source to selected','cs',0],['undo','Undo changes in selected','ud',0],['clip','Save to clipboard','cb',0],['close','Clear selection','cl',0]];
+const BM=[['mt','Machine translate selected','mt',0],['check','Approve selected','ap',1],['close','Unapprove selected','un',1],['eyeoff','Hide selected','hd',1],['eye','Unhide selected','sh',1],['copy','Copy source to selected','cs',0],['undo','Undo changes in selected','ud',0],['clip','Save to clipboard','cb',0],['trash','Clear clipboard of selected','cc',0],['close','Clear selection','cl',0]];
 $('bl').innerHTML=BM.map(([i,t,a,x])=>'<button class="mi'+(x?' x':'')+'" data-a="'+a+'" type="button">'+ic(i)+'<span>'+t+'</span></button>').join('');
 $('bl').querySelectorAll('.mi').forEach(b=>b.onclick=()=>{$('bm').hidden=true;bulk(b.dataset.a)});
 $('bulk').onclick=()=>{$('bm').hidden=false};
@@ -703,6 +709,12 @@ async function bulk(a){
       if(cbAdd(u))n++});
     alert('Saved '+n+' to clipboard'+(same?'; '+same+' already saved':'')+(full?'; '+full+' full ('+CB_MAX+'/'+CB_MAX+')':'')+(skip?'; '+skip+' unchanged or empty':''));
     render();return;
+  }
+  if(a==='cc'){
+    const n=sel.filter(cbHas).length;
+    if(!n){alert('No saved clipboards in the selected units');return}
+    if(!confirm('Delete the saved clipboards of '+n+' selected units?'))return;
+    sel.forEach(u=>delete u.cb);render();return;
   }
   if(a==='mt'){await bulkMT(sel);return}
   if(a==='cs'){
@@ -763,55 +775,71 @@ $('open').onclick=()=>{
   if(doc&&edited()&&!confirm('Open another file? Unsaved changes will be lost.'))return;
   $('f').click();
 };
+const FILE_RX=/\.(xlf|xliff|xml)$/i,MAX_BYTES=100*1024*1024;
+// The file pickers accept any type, because Android pickers often hide .xlf files; the extension is checked here instead.
+function fileOk(file){
+  if(!file)return false;
+  if(!FILE_RX.test(file.name)){alert('Unsupported file type: "'+file.name+'"\n\nPlease choose a .xlf, .xliff or .xml file.');return false}
+  if(!file.size){alert('"'+file.name+'" is empty.');return false}
+  if(file.size>MAX_BYTES){alert('"'+file.name+'" is too large ('+(file.size/1048576).toFixed(1)+' MB). The limit is '+(MAX_BYTES/1048576)+' MB.');return false}
+  return true;
+}
+async function readText(file){
+  const buf=await file.arrayBuffer(),v=new Uint8Array(buf,0,Math.min(2,buf.byteLength));
+  if(v.length===2&&((v[0]===0xFF&&v[1]===0xFE)||(v[0]===0xFE&&v[1]===0xFF)))
+    throw new Error('"'+file.name+'" is encoded as UTF-16. Please convert it to UTF-8 and open it again.');
+  const t=new TextDecoder('utf-8').decode(buf);
+  if(t.indexOf('\u0000')>=0)throw new Error('"'+file.name+'" does not look like a text file.');
+  return t;
+}
 $('f').onchange=async e=>{
-  const file=e.target.files[0];if(!file)return;
-  const txt=await file.text();
-  await loadText(txt,file.name);e.target.value='';
+  const file=e.target.files[0];e.target.value='';
+  if(!fileOk(file))return;
+  let txt;try{txt=await readText(file)}catch(err){alert(err.message);return}
+  await loadText(txt,file.name);
 };
+let LSEQ=0,WSYNC=false;
+const busy=msg=>{document.body.classList.toggle('busy',!!msg);if(msg)$('info').textContent=msg};
+function parseLocal(txt){const out=[];const info=W_parse(txt,c=>{for(const u of c)out.push(u)});info.units=out;return info}
 async function loadText(txt,fname,pre){
-  const d=new DOMParser().parseFromString(txt,'application/xml');
-  if(d.querySelector('parsererror')){await errorFlow(fname,txt);return false}
-  if(d.documentElement.localName==='resources'){
-    name=fname;raw=txt;doc=d;page=0;$('q').value='';units=parseStrings(txt);
-    setMode('strings');if(pre)pre();render();sessNew();return true}
-  setMode('xliff');
-  name=fname;raw=txt;doc=d;units=[];page=0;$('q').value='';
-  let k=0;
-  doc.querySelectorAll('*').forEach(el=>{
-    if(el.localName==='trans-unit'||el.localName==='unit'){
-      const idx=k++;let host=el;
-      if(el.localName==='unit'){host=byLocal(el,'segment')||el}
-      if(!byLocal(host,'source'))return;
-      units.push({host,idx,id:el.getAttribute('id')||''});
-    }});
-  crowdin=/tool-id="crowdin"|tool-name="crowdin"/i.test(raw);
-  const st=[];const re=/<(trans-unit|unit)\b/g;let m;
-  for(const mr=maskRaw(raw);(m=re.exec(mr));)st.push([m.index,m[1]]);
-  units.forEach(u=>{const[a,tag]=st[u.idx];const e2=raw.indexOf('</'+tag+'>',a);
-    const b=raw.slice(a,e2<0?undefined:e2);u.rs=grabTag(b,'source');u.rt=grabTag(b,'target');
-    const sm=START.exec(b);const stg=sm?sm[0]:'';
-    u.is12=tag==='trans-unit';u.rn=ga(stg,'resname')||ga(stg,'name')||'';
-    u.oAp=ga(stg,'approved')==='yes';u.oTr=ga(stg,'translate')==='no'?'no':'yes';
-    u.ctx=[];u.labels=[];u.max=0;
-    {const mw=ga(stg,'maxwidth');if(ga(stg,'size-unit')==='char'&&/^\d+$/.test(mw||''))u.max=+mw}
-    const cr=/<context(?=[\s>])([^>]*)>([\s\S]*?)<\/context>/g;let cm;
-    while((cm=cr.exec(b))){
-      const ty=ga(cm[1],'context-type')||'context',tx=cm[2];u.ctx.push(ty+': '+tx);
-      if(ty==='x-crowdin-label'&&tx.trim())u.labels.push(tx.trim());
-    }
-    u.ct=crowdin?ctxLines(u).join('\n'):''});
-  fillSort();fchips();if(pre){pre();fchips()}render();sessNew();return true;
+  const my=++LSEQ;
+  busy('Opening\u2026');
+  const acc=[];let job=null;
+  if(wInit()){
+    job=wCall({t:'parse',txt},c=>{if(my!==LSEQ)return;for(const u of c)acc.push(u);busy('Opening\u2026 '+acc.length)});
+    job.catch(()=>{});
+  }
+  await new Promise(r=>setTimeout(r,20));
+  /* the browser's own strict parser stays the authority on "is this valid XML" (it runs while the worker parses) */
+  const bad=!!new DOMParser().parseFromString(txt,'application/xml').querySelector('parsererror');
+  if(my!==LSEQ){wCancel(job);return false}
+  if(bad){wCancel(job);busy('');upd(true);await errorFlow(fname,txt);return false}
+  let info=null;
+  if(job){try{info=await job}catch(e){info=null}}
+  if(my!==LSEQ)return false;
+  let list=acc,sync=true;
+  if(!info||info.total!==acc.length){const l=parseLocal(txt);info=l;list=l.units;sync=false}
+  if(info.mode==='other'){busy('');upd(true);alert('This XML file is neither an XLIFF nor an Android strings.xml file (root element: <'+(info.root||'?')+'>).');return false}
+  if(!list.length){busy('');upd(true);alert(info.mode==='strings'?'No translatable strings were found in this file.':'No translation units were found in this XLIFF file.');return false}
+  GEN++;qaJob++;qaN=0;
+  name=fname;raw=txt;doc={mode:info.mode};units=list;crowdin=!!info.crowdin;WSYNC=sync;
+  units.forEach(u=>{u._gen=GEN});
+  page=0;$('q').value='';
+  setMode(info.mode);
+  if(pre){pre();fchips()}
+  busy('');
+  render(1);sessNew();return true;
 }
 $('close').onclick=()=>{
   if(!doc)return;
   if(edited()&&!confirm('Close this file? Unsaved changes will not be saved.'))return;
-  doc=null;raw='';units=[];page=0;$('q').value='';setMode('xliff');sessClear();render();
+  LSEQ++;GEN++;qaJob++;qaN=0;qaBusy=false;WSYNC=false;wDrop();
+  doc=null;raw='';units=[];crowdin=false;page=0;$('q').value='';setMode('xliff');sessClear();render();
 };
-let qt;$('q').oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{page=0;render()},150)};
-$('rx').onclick=()=>{RX=!RX;fchips();page=0;render()};
+let qt;$('q').oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{page=0;render(1)},150)};
+$('rx').onclick=()=>{RX=!RX;fchips();page=0;render(1)};
 $('flt').onclick=()=>$('fl').classList.toggle('show');
-$('cbclr').onclick=()=>{const n=units.filter(cbHas).length;if(!n)return;if(!confirm('Delete all saved clipboards ('+n+' units) for this session?'))return;units.forEach(u=>delete u.cb);render()};
-document.querySelectorAll('#fl button[data-f]').forEach(b=>b.onclick=()=>{F[b.dataset.f]=F[b.dataset.f]?0:1;fchips();page=0;render()});
+document.querySelectorAll('#fl button[data-f]').forEach(b=>b.onclick=()=>{F[b.dataset.f]=F[b.dataset.f]?0:1;fchips();page=0;render(1)});
 function fchips(){document.querySelectorAll('#fl button[data-f]').forEach(b=>b.classList.toggle('on',!!F[b.dataset.f]));
   $('rx').classList.toggle('on',RX);$('q').placeholder=RX?'Regex':'Search';
   $('flt').classList.toggle('on',Object.values(F).some(v=>!v)||$('so').value!=='none'||RX)}
@@ -821,7 +849,7 @@ function fillSort(){
   so.innerHTML=SORTS.filter(x=>(!x[2]||mode==='xliff')&&(!x[3]||units.some(u=>x[3]==='labels'?u.labels&&u.labels.length:u.max))).map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');
   so.value=[...so.options].some(o=>o.value===v)?v:'none';
 }
-$('so').onchange=()=>{page=0;fchips();render()};
+$('so').onchange=()=>{page=0;fchips();render(1)};
 const sortKey=(k,u)=>{
   const ap=u.ap!==undefined?u.ap:u.oAp,tr=u.tr!==undefined?u.tr:u.oTr,c=cur(u);
   switch(k){
@@ -841,7 +869,53 @@ const sortKey=(k,u)=>{
   return 0;
 };
 fillSort();fchips();
-$('sz').onchange=()=>{size=+$('sz').value;page=0;render()};
+$('sz').onchange=()=>{size=+$('sz').value;page=0;render(1)};
+/* ---- jump to page ---- */
+function goPage(){
+  const el=$('pgi');if(el.disabled)return;
+  const n=parseInt(el.value,10);
+  if(!isNaN(n)){const t=Math.min(pages,Math.max(1,n))-1;if(t!==page){page=t;render();scrollTo(0,0)}}
+  el.value=page+1;
+}
+$('pgi').oninput=e=>{e.target.value=e.target.value.replace(/\D/g,'')};
+$('pgi').onfocus=e=>e.target.select();
+$('pgi').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();goPage();e.target.blur()}else if(e.key==='Escape'){e.target.value=page+1;e.target.blur()}};
+$('pgi').onblur=goPage;
+/* ---- right-hand scrollbar (paged mode only; hidden in the \u221e view) ---- */
+const SB=$('sb'),SBT=SB.firstElementChild;let sbDrag=null,sbRaf=0;
+function sbGeom(){
+  const hb=document.querySelector('header').getBoundingClientRect().bottom,top=Math.max(0,Math.round(hb)),th=innerHeight-top;
+  const sh=document.documentElement.scrollHeight,max=Math.max(0,sh-innerHeight);
+  const len=Math.max(44,Math.min(th,th*innerHeight/sh));
+  return{top,th,max,len,room:th-len}
+}
+function sbUpd(){
+  if(sbRaf)return;
+  sbRaf=requestAnimationFrame(()=>{
+    sbRaf=0;
+    const on=!!doc&&size>0&&document.documentElement.scrollHeight>innerHeight+2;
+    SB.hidden=!on;if(!on)return;
+    const g=sbGeom();
+    SB.style.top=g.top+'px';SB.style.height=g.th+'px';
+    SBT.style.height=g.len+'px';
+    SBT.style.top=(g.max?g.room*Math.min(1,scrollY/g.max):0)+'px';
+  });
+}
+SB.onpointerdown=e=>{
+  const g=sbGeom(),r=SB.getBoundingClientRect(),t=SBT.getBoundingClientRect();
+  let grab=e.clientY-t.top;
+  if(e.clientY<t.top||e.clientY>t.bottom){grab=g.len/2;window.scrollTo(0,g.room?g.max*Math.min(1,Math.max(0,(e.clientY-r.top-grab)/g.room)):0)}
+  sbDrag={grab};SB.classList.add('act');SB.setPointerCapture(e.pointerId);e.preventDefault();
+};
+SB.onpointermove=e=>{
+  if(!sbDrag)return;
+  const g=sbGeom(),r=SB.getBoundingClientRect();
+  window.scrollTo(0,g.room?g.max*Math.min(1,Math.max(0,(e.clientY-r.top-sbDrag.grab)/g.room)):0);
+};
+const sbEnd=()=>{sbDrag=null;SB.classList.remove('act')};
+SB.onpointerup=SB.onpointercancel=sbEnd;
+addEventListener('scroll',sbUpd,{passive:true});addEventListener('resize',sbUpd);
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(sbUpd).observe(document.body);
 $('prev').onclick=()=>{if(page>0){page--;render();scrollTo(0,0)}};
 $('next').onclick=()=>{if(page<pages-1){page++;render();scrollTo(0,0)}};
 
@@ -881,12 +955,12 @@ function card(u){
     hd.innerHTML=ic(t==='yes'?'eye':'eyeoff');hd.classList.toggle('on',t==='yes');
     hd.title=t==='yes'?'translate=yes (tap to hide)':'translate=no (tap to unhide)';
     ap.disabled=hd.disabled=!u.is12;
-    const qe=q('.qa'),iss=qaOf(u);qe.hidden=!iss.length;qe.textContent=iss.map(x=>'\u26a0 '+x).join('\n');
+    const qe=q('.qa'),iss=qaOf(u);qaSet(u,iss.length>0);qe.hidden=!iss.length;qe.textContent=iss.map(x=>'\u26a0 '+x).join('\n');
     cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;
     const nb=(u.cb||[]).length,ct='Clipboard'+(nb?' ('+nb+'/'+CB_MAX+')':'');
     clb.classList.toggle('on',nb>0);clb.title=ct;clb.setAttribute('aria-label',ct);
   };
-  const sync=()=>{refresh();upd()};
+  const sync=()=>{refresh();upd();vsNudge()};
   ta.oninput=()=>{setVal(u,fromTa(ta.value));paint();fit();sync()};
   cp.onclick=()=>{setText(u.rs);setVal(u,u.rs);sync()};
   clb.onclick=()=>openClip(u,v=>{setText(v);setVal(u,v);sync()},sync);
@@ -902,45 +976,378 @@ function card(u){
       if(r.warn)alert(r.msg)}
     catch(e){alert('Translation failed: '+e.message)}
     mtb.classList.remove('on');mtb.disabled=false;sync()};
-  cx.onclick=()=>{u.showCtx=!u.showCtx;refresh()};
+  cx.onclick=()=>{u.showCtx=!u.showCtx;refresh();vsNudge()};
   refresh();d._fit=fit;
   return d;
 }
+/* ---------- Pure code shared by the Web Worker and the main-thread fallback ---------- */
+const W_dec=s=>s.replace(/&(?:#(\d+)|#x([0-9a-fA-F]+)|(lt|gt|amp|quot|apos));/g,(m,d,h,n)=>{
+  if(n)return {lt:'<',gt:'>',amp:'&',quot:'"',apos:"'"}[n];
+  try{return String.fromCodePoint(d!==undefined?+d:parseInt(h,16))}catch(e){return m}});
+/* local name of the root element (skips BOM, <?xml?>, comments, DOCTYPE) */
+function W_root(t){
+  let i=0;const n=t.length;
+  for(;;){
+    while(i<n&&(t.charCodeAt(i)<=32||t.charCodeAt(i)===0xFEFF))i++;
+    if(t.startsWith('<?',i)){const e=t.indexOf('?>',i+2);if(e<0)return '';i=e+2;continue}
+    if(t.startsWith('<!--',i)){const e=t.indexOf('-->',i+4);if(e<0)return '';i=e+3;continue}
+    if(t.startsWith('<!',i)){
+      let e=t.indexOf('>',i);const b=t.indexOf('[',i);
+      if(b>=0&&(e<0||b<e)){const be=t.indexOf(']',b);e=be<0?-1:t.indexOf('>',be)}
+      if(e<0)return '';i=e+1;continue}
+    break;
+  }
+  const m=/^<(?:[\w.\-]+:)?([\w.\-]+)/.exec(t.slice(i,i+200));
+  return m?m[1]:'';
+}
+/* file text -> unit data (plain objects, no DOM). emit(chunk) is called every 3000 units */
+function W_parse(txt,emit){
+  const root=W_root(txt);
+  if(root==='resources'){
+    const all=parseStrings(txt);
+    for(let i=0;i<all.length;i+=3000)emit(all.slice(i,i+3000));
+    return {root,mode:'strings',crowdin:false,total:all.length};
+  }
+  if(root!=='xliff')return {root,mode:'other',crowdin:false,total:0};
+  const crowdin=/tool-id="crowdin"|tool-name="crowdin"/i.test(txt);
+  const mr=maskRaw(txt),re=/<(trans-unit|unit)\b/g;
+  const rSrcTag=/<source(?=[\s>\/])/,rSeg=/<segment(?=[\s>])[\s\S]*?<source(?=[\s>\/])/;
+  const rSrc=/<source\b[^>]*?(?:\/>|>([\s\S]*?)<\/source>)/,rTgt=/<target\b[^>]*?(?:\/>|>([\s\S]*?)<\/target>)/;
+  const rCx=/<context(?=[\s>])([^>]*)>([\s\S]*?)<\/context>/g;
+  let m,k=0,total=0,buf=[];
+  while((m=re.exec(mr))){
+    const a=m.index,tag=m[1],idx=k++,e2=txt.indexOf('</'+tag+'>',a),end=e2<0?undefined:e2;
+    let bm=mr.slice(a,end);
+    if(bm.indexOf('<alt-trans')>=0)bm=bm.replace(/<alt-trans\b[\s\S]*?<\/alt-trans>/g,'');
+    if(!(tag==='unit'?rSeg:rSrcTag).test(bm))continue;   /* units without a <source> are skipped, but still counted in idx */
+    const b=txt.slice(a,end),sm=START.exec(b),stg=sm?sm[0]:'';
+    const s1=rSrc.exec(b),t1=rTgt.exec(b);
+    const u={idx,id:W_dec(ga(stg,'id')||''),rs:s1?(s1[1]||''):'',rt:t1?(t1[1]||''):'',is12:tag==='trans-unit',
+      rn:ga(stg,'resname')||ga(stg,'name')||'',oAp:ga(stg,'approved')==='yes',oTr:ga(stg,'translate')==='no'?'no':'yes',
+      ctx:[],labels:[],max:0,ct:''};
+    const mw=ga(stg,'maxwidth');if(ga(stg,'size-unit')==='char'&&/^\d+$/.test(mw||''))u.max=+mw;
+    if(b.indexOf('<context')>=0){
+      rCx.lastIndex=0;let cm;
+      while((cm=rCx.exec(b))){
+        const ty=ga(cm[1],'context-type')||'context',tx=cm[2];u.ctx.push(ty+': '+tx);
+        if(ty==='x-crowdin-label'&&tx.trim())u.labels.push(tx.trim());
+      }
+    }
+    u.ct=crowdin?ctxLines(u).join('\n'):'';
+    buf.push(u);total++;
+    if(buf.length>=3000){emit(buf);buf=[]}
+  }
+  if(buf.length)emit(buf);
+  return {root,mode:'xliff',crowdin,total};
+}
+/* translations of a file chosen with "Import": [[key,text],...] */
+function W_trans(txt){
+  const mp=new Map();
+  if(W_root(txt)==='resources'){
+    parseStrings(txt).forEach(x=>{if(x.rs.trim())mp.set(ckey(x),x.rs)});
+  }else{
+    const re=/<(trans-unit|unit)\b[\s\S]*?<\/\1>/g;let m;
+    while((m=re.exec(txt))){
+      const b=m[0],st=START.exec(b),tg=st?st[0]:'';
+      const k=ga(tg,'resname')||ga(tg,'name')||W_dec(ga(tg,'id')||''),v=grabTag(b,'target');
+      if(k&&v.trim()&&!mp.has(k))mp.set(k,v);
+    }
+  }
+  return [...mp];
+}
+/* search + sort over the worker's copy of the units. p.dyn lists the units edited on the main thread. */
+function W_query(U,LC,p){
+  const n=U.length,q=p.q,F=p.F,D=new Map();
+  p.dyn.forEach(d=>D.set(d.p,d));
+  const curOf=i=>{const d=D.get(i);return d&&d.v!==undefined?d.v:U[i].rt};
+  let idx=[];
+  if(!q){for(let i=0;i<n;i++)idx.push(i)}
+  else{
+    const fctx=!p.nc&&F.ctx,flbl=!p.nc&&F.lbl;
+    if(p.rx){
+      let re;try{re=new RegExp(q,'i')}catch(e){return {bad:true,idx:new Int32Array(0)}}
+      for(let i=0;i<n;i++){const u=U[i];
+        if((F.id&&re.test(u.id||''))||(F.rn&&re.test(u.rn||''))||(F.src&&re.test(u.rs||''))||(fctx&&re.test(u.ct||''))||(flbl&&re.test(u.labels.join(' ')))||(F.tgt&&re.test(curOf(i)||'')))idx.push(i)}
+    }else{
+      const ql=q.toLowerCase();
+      const low=(k,f)=>LC[k]||(LC[k]=U.map(u=>(f(u)||'').toLowerCase()));
+      const Lid=F.id?low('id',u=>u.id):null,Lrn=F.rn?low('rn',u=>u.rn):null,Lrs=F.src?low('rs',u=>u.rs):null,
+        Lct=fctx?low('ct',u=>u.ct):null,Llb=flbl?low('lb',u=>u.labels.join(' ')):null,Lrt=F.tgt?low('rt',u=>u.rt):null;
+      for(let i=0;i<n;i++){
+        let ok=(Lid&&Lid[i].includes(ql))||(Lrn&&Lrn[i].includes(ql))||(Lrs&&Lrs[i].includes(ql))||(Lct&&Lct[i].includes(ql))||(Llb&&Llb[i].includes(ql));
+        if(!ok&&F.tgt){const d=D.get(i);ok=d&&d.v!==undefined?(d.v||'').toLowerCase().includes(ql):Lrt[i].includes(ql)}
+        if(ok)idx.push(i);
+      }
+    }
+  }
+  const sk=p.sk;
+  if(sk&&sk!=='none'){
+    const key=i=>{
+      const u=U[i],d=D.get(i)||null,ap=d&&d.a!==undefined?d.a:u.oAp,tr=d&&d.r!==undefined?d.r:u.oTr,c=curOf(i);
+      switch(sk){
+        case 'mod':return d&&(d.v!==undefined||d.a!==undefined||d.r!==undefined)?0:1;
+        case 'cb':return d&&d.c?0:1;
+        case 'unap':return u.is12&&!ap?0:1;
+        case 'hid':return u.is12&&tr==='no'?0:1;
+        case 'untr':return c.trim()===''?0:1;
+        case 'same':return c!==''&&c===u.rs?0:1;
+        case 'over':return u.max&&clen(c)>u.max?0:1;
+        case 'lsrc':return -clen(u.rs);
+        case 'ssrc':return clen(u.rs);
+        case 'ltgt':return -clen(c);
+        case 'stgt':return clen(c);
+      }
+      return 0;
+    };
+    const kk=new Float64Array(idx.length),ord=new Array(idx.length);
+    for(let j=0;j<idx.length;j++){kk[j]=key(idx[j]);ord[j]=j}
+    ord.sort((a,b)=>kk[a]-kk[b]||a-b);
+    idx=ord.map(j=>idx[j]);
+  }
+  return {bad:false,idx:Int32Array.from(idx)};
+}
+function W_main(){
+  let U=[],LC={};
+  onmessage=function(e){
+    const m=e.data;
+    try{
+      if(m.t==='parse'){
+        const all=[];
+        const info=W_parse(m.txt,function(c){for(let i=0;i<c.length;i++)all.push(c[i]);postMessage({t:'chunk',id:m.id,units:c})});
+        U=all;LC={};
+        postMessage({t:'done',id:m.id,root:info.root,mode:info.mode,crowdin:info.crowdin,total:info.total});
+      }else if(m.t==='query'){
+        const r=W_query(U,LC,m);
+        postMessage({t:'qres',id:m.id,bad:r.bad,idx:r.idx},[r.idx.buffer]);
+      }else if(m.t==='trans'){
+        postMessage({t:'done',id:m.id,pairs:W_trans(m.txt)});
+      }else if(m.t==='check'){
+        postMessage({t:'done',id:m.id,errs:checkXml(m.txt)});
+      }else if(m.t==='drop'){U=[];LC={}}
+    }catch(err){postMessage({t:'err',id:m.id,msg:String(err&&err.message||err)})}
+  };
+}
+const workerSrc=()=>[
+  'const ga='+ga,'const START='+START,'const maskRaw='+maskRaw,'const clen='+clen,'const ctxLines='+ctxLines,
+  'const ckey='+ckey,'const grabTag='+grabTag,'const W_dec='+W_dec,
+  parseStrings,W_root,W_parse,W_trans,W_query,
+  'const XNAME='+JSON.stringify(XNAME),'const NAME_RX='+NAME_RX,'const CLOSE_RX='+CLOSE_RX,'const ATTR_RX='+ATTR_RX,'const validCP='+validCP,
+  checkXml,'('+W_main+')()'
+].join(';\n');
+
+/* ---------- Web Worker plumbing (falls back to the main thread when a Worker is unavailable) ---------- */
+let WK=null,WSEQ=0;const WP=new Map();
+function wFail(){const w=WK;WK=false;try{w&&w.terminate&&w.terminate()}catch(e){}const ps=[...WP.values()];WP.clear();ps.forEach(p=>p.rej(new Error('worker')))}
+function wInit(){
+  if(WK!==null)return WK;
+  try{
+    if(typeof Worker==='undefined'||typeof Blob==='undefined'||!window.URL||!URL.createObjectURL)throw new Error('unsupported');
+    const w=new Worker(URL.createObjectURL(new Blob([workerSrc()],{type:'text/javascript'})));
+    w.onmessage=e=>{
+      const m=e.data,p=WP.get(m.id);if(!p)return;
+      if(m.t==='chunk'){if(p.onChunk)p.onChunk(m.units);return}
+      WP.delete(m.id);
+      if(m.t==='err')p.rej(new Error(m.msg));else p.res(m);
+    };
+    w.onerror=ev=>{if(ev&&ev.preventDefault)ev.preventDefault();wFail()};
+    w.onmessageerror=wFail;
+    WK=w;
+  }catch(e){WK=false}
+  return WK;
+}
+function wCall(msg,onChunk,transfer){
+  const w=wInit();if(!w)return Promise.reject(new Error('no worker'));
+  let id=0;
+  const p=new Promise((res,rej)=>{id=++WSEQ;msg.id=id;WP.set(id,{res,rej,onChunk});try{w.postMessage(msg,transfer||[])}catch(e){WP.delete(id);rej(e)}});
+  p.id=id;return p;
+}
+const wCancel=p=>{if(p&&p.id)WP.delete(p.id)};
+const wDrop=()=>{if(WK)try{WK.postMessage({t:'drop'})}catch(e){}};
+/* edits that live only on the main thread, sent along with every query */
+function wDyn(){
+  const out=[];
+  for(let i=0;i<units.length;i++){const u=units[i],cb=u.cb&&u.cb.length;
+    if(u.val!==undefined||u.ap!==undefined||u.tr!==undefined||cb){
+      const d={p:i};if(u.val!==undefined)d.v=u.val;if(u.ap!==undefined)d.a=u.ap;if(u.tr!==undefined)d.r=u.tr;if(cb)d.c=1;out.push(d)}}
+  return out;
+}
+
+/* ---------- QA count: cached per unit, scanned in small time slices so the UI never freezes ---------- */
+let qaN=0,qaJob=0,qaBusy=false,GEN=0;
+const qaSet=(u,h)=>{if(u._gen!==GEN)return;if(!!u._qb!==h){qaN+=h?1:-1;u._qb=h}};
+function qaScan(done){
+  const job=++qaJob,n=units.length;let i=0;qaBusy=n>0;
+  const step=()=>{
+    if(job!==qaJob)return;
+    const t=performance.now();
+    while(i<n&&performance.now()-t<10){const u=units[i++];qaSet(u,qaOf(u).length>0)}
+    if(i<n){setTimeout(step,0);return}
+    qaBusy=false;upd(true);if(done)done();
+  };
+  step();
+}
+
+/* ---------- Virtual scrolling (used when the page size is \u221e) ---------- */
+const VS={on:false,items:[],h:null,off:null,nodes:new Map(),est:300,sum:0,cnt:0,W:0,raf:0,sraf:0,ro:null,
+  native:false};   /* the browser's own scroll anchoring does not follow absolutely positioned cards, so the position is corrected manually */
+const VS_GAP=10,VS_MAXN=100000;let vsCap=0;
+const vsEst=()=>{if(VS.cnt<60)VS.est=VS.cnt?VS.sum/VS.cnt:300};
+const vsListTop=()=>$('list').getBoundingClientRect().top+scrollY;
+function vsOffsets(){const n=VS.items.length,off=VS.off,h=VS.h,e=VS.est;let y=0;for(let i=0;i<n;i++){off[i]=y;y+=h[i]||e}off[n]=y}
+function vsFind(y){const off=VS.off;let lo=0,hi=VS.items.length-1;while(lo<hi){const m=(lo+hi+1)>>1;if(off[m]<=y)lo=m;else hi=m-1}return lo}
+function vsClear(){if(VS.ro)VS.ro.disconnect();VS.nodes.forEach(el=>el.remove());VS.nodes.clear()}
+function vsOff(){
+  if(!VS.on)return;
+  vsClear();VS.on=false;VS.items=[];VS.h=VS.off=null;
+  const L=$('list');L.classList.remove('vs');L.style.height='';
+}
+/* returns true when the stored height of a rendered card changed */
+function vsMeasure(el){
+  const i=el._vi;if(i===undefined||!VS.on||VS.nodes.get(i)!==el)return false;
+  const h=el.offsetHeight+VS_GAP,old=VS.h[i];
+  if(Math.abs(h-old)<0.5)return false;
+  if(old)VS.sum+=h-old;else{VS.sum+=h;VS.cnt++}
+  VS.h[i]=h;const u=VS.items[i];u._h=h;u._hw=VS.W;
+  return true;
+}
+function vsSched(){if(VS.raf)return;VS.raf=requestAnimationFrame(()=>{VS.raf=0;vsRelayout()})}
+/* recompute positions after heights changed, keeping the card at the top of the screen where it is */
+function vsRelayout(){
+  if(!VS.on)return;
+  const L=$('list'),lt=vsListTop(),y0=scrollY-lt,n=VS.items.length;
+  const ai=vsFind(Math.max(0,y0)),rel=VS.off[ai]-y0;
+  vsEst();vsOffsets();
+  L.style.height=(VS.off[n]+VS_GAP)+'px';
+  VS.nodes.forEach((el,i)=>{el.style.top=VS.off[i]+'px'});
+  if(!VS.native&&y0>0){const want=lt+VS.off[ai]-rel;if(Math.abs(want-scrollY)>=1)window.scrollTo(0,want)}
+  vsUpdate();
+}
+function vsNudge(){if(!VS.on||VS.ro)return;let ch=false;VS.nodes.forEach(el=>{if(vsMeasure(el))ch=true});if(ch)vsSched()}
+/* create the cards that are near the screen and remove the others */
+function vsUpdate(){
+  if(!VS.on)return;
+  const L=$('list'),n=VS.items.length,y0=scrollY-vsListTop(),vh=innerHeight,off=VS.off;
+  const a=vsFind(Math.max(0,y0-vh)),lim=y0+vh*2;let b=a;
+  while(b<n&&off[b]<lim)b++;
+  let pin=-1;const ae=document.activeElement;
+  if(ae&&ae.closest){const c=ae.closest('#list .u');if(c&&VS.nodes.get(c._vi)===c)pin=c._vi}
+  [...VS.nodes].forEach(([i,el])=>{if((i<a||i>=b)&&i!==pin){if(VS.ro)VS.ro.unobserve(el);el.remove();VS.nodes.delete(i)}});
+  const fresh=new Set();
+  for(let i=a;i<b;i++)if(!VS.nodes.has(i)){const el=card(VS.items[i]);el._vi=i;VS.nodes.set(i,el);fresh.add(el)}
+  if(fresh.size){
+    const keys=[...VS.nodes.keys()].sort((x,y)=>y-x);let nx=null;
+    for(const k of keys){const el=VS.nodes.get(k);if(fresh.has(el))L.insertBefore(el,nx);nx=el}
+  }
+  VS.nodes.forEach((el,i)=>{el.style.top=off[i]+'px'});
+  if(fresh.size){
+    const fl=[...fresh];fitAll(fl);let ch=false;
+    fl.forEach(el=>{if(vsMeasure(el))ch=true;if(VS.ro)VS.ro.observe(el)});
+    if(ch)vsSched();
+  }
+}
+function vsOn(items,top){
+  const L=$('list');let keep=null;
+  if(VS.on&&!top&&VS.nodes.size){const y0=scrollY-vsListTop(),i=vsFind(Math.max(0,y0));keep={u:VS.items[i],rel:VS.off[i]-y0}}
+  if(!VS.on)L.innerHTML='';
+  vsClear();
+  if(!VS.ro&&typeof ResizeObserver!=='undefined')VS.ro=new ResizeObserver(es=>{let ch=false;es.forEach(e=>{if(vsMeasure(e.target))ch=true});if(ch)vsSched()});
+  VS.on=true;L.classList.add('vs');L.classList.toggle('mn',!VS.native);VS.items=items;
+  const n=items.length;VS.h=new Float32Array(n);VS.off=new Float64Array(n+1);
+  VS.W=L.clientWidth;VS.sum=0;VS.cnt=0;
+  for(let i=0;i<n;i++){const u=items[i];if(u._hw===VS.W&&u._h){VS.h[i]=u._h;VS.sum+=u._h;VS.cnt++}}
+  vsEst();vsOffsets();
+  L.style.height=(VS.off[n]+VS_GAP)+'px';
+  if(top)window.scrollTo(0,0);
+  else if(keep){const j=items.indexOf(keep.u);if(j>=0)window.scrollTo(0,vsListTop()+VS.off[j]-keep.rel)}
+  vsUpdate();
+}
+addEventListener('scroll',()=>{if(VS.on&&!VS.sraf)VS.sraf=requestAnimationFrame(()=>{VS.sraf=0;vsUpdate()})},{passive:true});
+function vsResize(){
+  VS.W=$('list').clientWidth;VS.h.fill(0);VS.sum=0;VS.cnt=0;
+  const els=[...VS.nodes.values()];fitAll(els);els.forEach(vsMeasure);vsRelayout();
+}
 const fitAll=cs=>{const t=cs.map(c=>c.querySelector('textarea'));t.forEach(x=>x.style.height='auto');const h=t.map(x=>x.scrollHeight);t.forEach((x,i)=>x.style.height=Math.max(70,h[i]+2)+'px')};
-function render(){
-  const L=$('list');L.innerHTML='';
+let RSEQ=0;const BIGN=2500;
+const sortByQa=f=>f.map((u,i)=>[u,i,-qaOf(u).length]).sort((a,b)=>a[2]-b[2]||a[1]-b[1]).map(x=>x[0]);
+/* top=true: the search / filter / sort / page size changed, so start again from the top */
+function render(top){
+  const seq=++RSEQ,L=$('list');
   const nc=!!doc&&mode==='xliff'&&!crowdin;document.body.classList.toggle('nc',nc);
-  if(!doc){shown=[];L.innerHTML='<div id="empty">Tap the folder icon to open a .xlf / .xliff or strings.xml file</div>';pages=1;page=0;upd();return}
-  const qs=$('q').value;let bad=false,hit;
-  if(RX&&qs){let re;try{re=new RegExp(qs,'i')}catch(e){bad=true}
-    hit=v=>!bad&&re.test(v||'')}
-  else{const ql=qs.toLowerCase();hit=v=>(v||'').toLowerCase().includes(ql)}
+  if(!doc){
+    vsOff();L.classList.remove('wait');shown=[];vsCap=0;
+    L.innerHTML='<div id="empty">Tap the folder icon to open a .xlf / .xliff or strings.xml file</div>';pages=1;page=0;upd();return;
+  }
+  const qs=$('q').value,sk=$('so').value;let bad=false,re=null;
+  if(RX&&qs){try{re=new RegExp(qs,'i')}catch(e){bad=true}}
   $('q').classList.toggle('bad',bad);
-  const q=qs,sv=t=>CFG.pv?pvDec(t):t;
-  let f=units.filter(u=>!q||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(sv(u.rs)))||(!nc&&F.ctx&&hit(u.ct))||(!nc&&F.lbl&&hit((u.labels||[]).join(' ')))||(F.tgt&&hit(sv(cur(u)))));
-  const sk=$('so').value;
-  if(sk!=='none')f=f.map((u,i)=>[u,i,sortKey(sk,u)]).sort((a,b)=>a[2]-b[2]||a[1]-b[1]).map(x=>x[0]);
+  const done=f=>{if(seq!==RSEQ)return;L.classList.remove('wait');paintList(f,bad,top)};
+  if(bad){done([]);return}
+  const big=units.length>=BIGN;
+  /* main-thread search + sort (small files, "Edit on preview" on, or no Worker) */
+  const local=()=>{
+    const go=()=>{
+      if(seq!==RSEQ)return;
+      const sv=t=>CFG.pv?pvDec(t):t;
+      let hit;
+      if(re)hit=v=>re.test(v||'');
+      else{const ql=qs.toLowerCase();hit=v=>(v||'').toLowerCase().includes(ql)}
+      let f=units.filter(u=>!qs||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(sv(u.rs)))||(!nc&&F.ctx&&hit(u.ct))||(!nc&&F.lbl&&hit((u.labels||[]).join(' ')))||(F.tgt&&hit(sv(cur(u)))));
+      if(sk!=='none')f=f.map((u,i)=>[u,i,sortKey(sk,u)]).sort((a,b)=>a[2]-b[2]||a[1]-b[1]).map(x=>x[0]);
+      done(f);
+    };
+    if(sk==='qa'&&big){L.classList.add('wait');qaScan(go)}else go();
+  };
+  if(big&&WSYNC&&!CFG.pv&&wInit()){
+    L.classList.add('wait');
+    wCall({t:'query',q:qs,rx:!!(RX&&qs),F:Object.assign({},F),nc,sk:sk==='qa'?'none':sk,dyn:wDyn()}).then(m=>{
+      if(seq!==RSEQ)return;
+      const f=Array.from(m.idx,i=>units[i]);
+      if(sk==='qa')qaScan(()=>{if(seq===RSEQ)done(sortByQa(f))});else done(f);
+    }).catch(()=>{if(seq===RSEQ){WSYNC=false;local()}});
+  }else local();
+}
+function paintList(f,bad,top){
+  const L=$('list');
   pages=size>0?Math.max(1,Math.ceil(f.length/size)):1;
   if(page>=pages)page=pages-1;
-  const part=size>0?f.slice(page*size,page*size+size):f;
-  shown=part;
-  if(!part.length)L.innerHTML='<div id="empty">'+(bad?'Invalid regular expression':'No matches')+'</div>';
-  const fr=document.createDocumentFragment(),cs=part.map(u=>{const c=card(u);fr.appendChild(c);return c});L.appendChild(fr);fitAll(cs);
-  upd();
+  const msg='<div id="empty">'+(bad?'Invalid regular expression':'No matches')+'</div>';
+  vsCap=0;
+  if(size>0){
+    vsOff();
+    const part=f.slice(page*size,page*size+size);shown=part;
+    L.innerHTML='';
+    if(!part.length)L.innerHTML=msg;
+    const fr=document.createDocumentFragment(),cs=part.map(u=>{const c=card(u);fr.appendChild(c);return c});L.appendChild(fr);fitAll(cs);
+  }else{
+    if(f.length>VS_MAXN){vsCap=VS_MAXN;f=f.slice(0,VS_MAXN)}   /* browsers cap the height of an element */
+    shown=f;
+    if(!f.length){vsOff();L.innerHTML=msg}
+    else vsOn(f,top);
+  }
+  qaScan();upd();
 }
-function upd(){
-  sessDirty();
+function upd(quiet){
+  if(!quiet)sessDirty();
   $('fn').textContent=doc?name:'No file';
   $('imp').hidden=!doc;
-  const nsel=units.filter(x=>x.sel).length;
-  const nqa=doc?units.filter(u=>qaOf(u).length).length:0;
-  $('info').textContent=!doc?'':(mode==='strings'?`${units.filter(u=>cur(u).trim()).length} / ${units.length} done`:`${edited()} edited / ${units.length}`)+(nqa?` \u00b7 ${nqa} QA issues`:''); 
+  let ne=0,nsel=0,ncb=0,nd=0;
+  if(doc){const sm=mode==='strings';
+    for(let i=0;i<units.length;i++){const x=units[i];
+      if(x.val!==undefined||x.ap!==undefined||x.tr!==undefined)ne++;
+      if(x.sel)nsel++;if(x.cb&&x.cb.length)ncb++;
+      if(sm&&cur(x).trim())nd++}}
+  const nqa=doc?qaN:0;
+  $('info').textContent=!doc?'':(mode==='strings'?`${nd} / ${units.length} done`:`${ne} edited / ${units.length}`)+(nqa?` \u00b7 ${nqa}${qaBusy?'+':''} QA issues`:'')+(vsCap?` \u00b7 first ${vsCap.toLocaleString()} shown`:'');
   $('selc').textContent=nsel+' selected';$('selc').hidden=!doc||!nsel;
   $('bulk').disabled=!nsel;
-  const ncb=doc?units.filter(cbHas).length:0;$('cbclr').disabled=!ncb;$('cbclr').title=ncb?'Clear all clipboards ('+ncb+' units)':'Clear all clipboards';
   const sc=shown.filter(x=>x.sel).length;
   $('sa').checked=shown.length>0&&sc===shown.length;$('sa').indeterminate=sc>0&&sc<shown.length;$('sa').disabled=!shown.length;
-  $('pg').textContent=doc&&size>0?`${page+1}/${pages}`:'–';
+  const pgOn=doc&&size>0,pgi=$('pgi');
+  $('pg').textContent=pgOn?`/ ${pages}`:'\u2013';
+  pgi.disabled=!pgOn;pgi.maxLength=String(pages).length;
+  if(document.activeElement!==pgi)pgi.value=pgOn?page+1:'';
+  pgi.style.width=Math.max(44,String(pages).length*11+28)+'px';
+  sbUpd();
   $('prev').disabled=!doc||size===0||page<=0;
   $('next').disabled=!doc||size===0||page>=pages-1;
 }
@@ -1028,18 +1435,28 @@ async function machine(src,u){
   return {text:out,warn:used.size<toks.length,msg:'Some placeholders may be missing from the translation. Please review it.'};
 }
 
-async function shareFile(fname,text,mime){
+/* Saves by downloading: a normal browser download in the browser / WebView, or a file written to the
+   device's Documents folder in the Capacitor app (WebViews there cannot handle blob downloads). */
+async function saveFile(fname,text,mime){
   try{
-    const P=window.Capacitor&&window.Capacitor.Plugins;
-    if(P&&P.Filesystem&&P.Share){
-      const r=await P.Filesystem.writeFile({path:fname,data:text,directory:'CACHE',encoding:'utf8'});
-      await P.Share.share({title:fname,url:r.uri,dialogTitle:'Save '+fname});
-    }else{
-      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime||'application/octet-stream'}));
-      a.download=fname;a.click();
+    const P=window.Capacitor&&window.Capacitor.Plugins,native=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+    if(native&&P&&P.Filesystem){
+      try{
+        await P.Filesystem.writeFile({path:fname,data:text,directory:'DOCUMENTS',encoding:'utf8',recursive:true});
+        alert('Downloaded: Documents/'+fname);return;
+      }catch(e){
+        if(!(P.Share&&P.Filesystem))throw e;
+        /* storage not writable (e.g. permission denied): fall back to the share sheet */
+        const r=await P.Filesystem.writeFile({path:fname,data:text,directory:'CACHE',encoding:'utf8'});
+        await P.Share.share({title:fname,url:r.uri,dialogTitle:'Save '+fname});return;
+      }
     }
+    const url=URL.createObjectURL(new Blob([text],{type:mime||'application/octet-stream'}));
+    const a=document.createElement('a');a.href=url;a.download=fname;a.rel='noopener';a.style.display='none';
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
   }catch(e){if(!String(e).includes('cancel'))alert('Save failed: '+e)}
 }
+const shareFile=saveFile;
 
 /* ---------- XML error report ---------- */
 const XNAME='[A-Za-z_:\\u00C0-\\uFFFF][\\w:.\\-\\u00B7\\u00C0-\\uFFFF]*';
@@ -1132,7 +1549,7 @@ function checkXml(txt){
     i=ref.e;
   }
   stack.forEach(o=>add(o.p,'Tag <'+o.name+'> is never closed (if it is meant as text, write &lt;'+o.name+'&gt;)'));
-  const pe=new DOMParser().parseFromString(txt,'application/xml').querySelector('parsererror');
+  const pe=typeof DOMParser==='undefined'?null:new DOMParser().parseFromString(txt,'application/xml').querySelector('parsererror');
   if(pe){
     const t=pe.textContent.replace(/This page contains the following errors:|Below is a rendering of the page up to the first error\./g,'').replace(/\s+/g,' ').trim();
     const lm=/line\s*(?:number\s*)?(\d+)(?:\D+?(?:column|col)\D*(\d+))?/i.exec(t);
@@ -1161,7 +1578,11 @@ function showErrors(name,lines){
   });
 }
 async function errorFlow(name,txt){
-  const errs=checkXml(txt);
+  busy('Checking\u2026');
+  let errs=null;
+  try{errs=(await wCall({t:'check',txt})).errs}catch(e){errs=null}
+  if(!errs||!errs.length)errs=checkXml(txt);   /* second pass on the main thread also reports the browser parser's message */
+  busy('');upd(true);
   if(!errs.length){alert('This file is not valid XML, but the problem could not be located.');return}
   const lines=errLines(errs);
   if(await showErrors(name,lines))await shareFile(name.replace(/\.[^.]*$/,'')+'-errors.txt',lines.join('\n')+'\n','text/plain');
@@ -1173,12 +1594,14 @@ async function exportStrings(){
   const parse=x=>new DOMParser().parseFromString(wrap(x),'application/xml');
   const items=[],seen=new Set();
   let empty=0,hidden=0,dup=0,kept=0,tags=0,quoted=0;const badName=[],badXml=[];
-  units.forEach(u=>{
-    if((u.tr!==undefined?u.tr:u.oTr)==='no'){hidden++;return}
-    const c=cur(u);if(!c.trim()){empty++;return}
-    if(!/^[A-Za-z_][A-Za-z0-9_.]*$/.test(u.rn||'')){badName.push(u.rn||u.id);return}
-    if(seen.has(u.rn)){dup++;return}
-    const d=parse(c);if(d.querySelector('parsererror')){badXml.push(u.rn);return}
+  let nIt=0;
+  for(const u of units){
+    if(++nIt%300===0){busy('Preparing export\u2026 '+nIt+' / '+units.length);await new Promise(r=>setTimeout(r,0))}
+    if((u.tr!==undefined?u.tr:u.oTr)==='no'){hidden++;continue}
+    const c=cur(u);if(!c.trim()){empty++;continue}
+    if(!/^[A-Za-z_][A-Za-z0-9_.]*$/.test(u.rn||'')){badName.push(u.rn||u.id);continue}
+    if(seen.has(u.rn)){dup++;continue}
+    const d=parse(c);if(d.querySelector('parsererror')){badXml.push(u.rn);continue}
     let text=c;
     if(crowdin){
       if(d.documentElement.children.length)tags++;
@@ -1187,7 +1610,8 @@ async function exportStrings(){
     }
     if(CFG.pv){const t2=pvToAndroid(text);if(t2!==text){quoted++;text=t2}}
     seen.add(u.rn);items.push([u.rn,text]);
-  });
+  }
+  busy('');upd(true);
   if(!items.length){alert('Nothing to export: no translated, visible unit has a valid resname.');return}
   const lines=[items.length+' strings will be exported.'];
   if(empty)lines.push('Skipped (empty translation): '+empty);
@@ -1225,12 +1649,12 @@ $('save').onclick=async()=>{
   else{
   const starts=[];const re=/<(trans-unit|unit)\b/g;let m;
   for(const mr=maskRaw(raw);(m=re.exec(mr));)starts.push([m.index,m[1]]);
-  out=raw;
-  const ed=units.filter(changed).sort((x,y)=>y.idx-x.idx);
+  const ed=units.filter(changed).sort((x,y)=>x.idx-y.idx),parts=[];let pos=0;
   for(const u of ed){
-    const [st,tag]=starts[u.idx];
-    let en=out.indexOf('</'+tag+'>',st);if(en<0)continue;
-    let blk=out.slice(st,en);
+    const sx=starts[u.idx];if(!sx)continue;
+    const [st,tag]=sx;
+    let en=raw.indexOf('</'+tag+'>',st);if(en<0)continue;
+    let blk=raw.slice(st,en);
     if(u.val!==undefined){
     const tre=/<target\b([^>]*?)\s*(?:\/>|>[\s\S]*?<\/target>)/;
     if(tre.test(blk)){
@@ -1243,8 +1667,9 @@ $('save').onclick=async()=>{
       if(u.ap!==undefined)t=setAttr(t,'approved',u.ap?'yes':'no');
       if(u.tr!==undefined)t=setAttr(t,'translate',u.tr);
       return t});
-    out=out.slice(0,st)+blk+out.slice(en);
+    parts.push(raw.slice(pos,st),blk);pos=en;
   }
+  parts.push(raw.slice(pos));out=parts.join('');
   }
   const chk=new DOMParser().parseFromString(out,'application/xml');
   if(chk.querySelector('parsererror')){alert('Your edits make the XML invalid (e.g. a bare & or < instead of &amp; / &lt;). Not saved.');return}
@@ -1255,6 +1680,6 @@ document.querySelectorAll('.dlg').forEach(d=>{d.setAttribute('role','dialog');d.
 document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const [d,b] of [['cm','cm-c'],['gm','gm-c'],['sf','sf-c'],['ip','ip-c'],['rp','rp-c'],['bm','bclose'],['cfg','c-cancel']])if(!$(d).hidden){e.preventDefault();$(b).click();return}});
 addEventListener('beforeunload',e=>{if(doc&&edited()){e.preventDefault();e.returnValue=''}});
 sessCheck();
-let lastW=innerWidth,rz;addEventListener('resize',()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(rz);rz=setTimeout(()=>fitAll([...document.querySelectorAll('#list .u')]),150)});
+let lastW=innerWidth,rz;addEventListener('resize',()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(rz);rz=setTimeout(()=>{if(VS.on)vsResize();else fitAll([...document.querySelectorAll('#list .u')])},150)});
 render();
 </script></body></html>
