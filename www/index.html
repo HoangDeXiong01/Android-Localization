@@ -657,7 +657,7 @@ $('c-test').onclick=async()=>{
   if(CFG.eng!=='gemini'){alert('Select the Gemini engine to test it');return}
   if(!CFG.gkey){alert('Enter your Gemini API key first');return}
   const b=$('c-test');b.disabled=true;
-  try{const t=await gemini('Hello, %s!',{id:'test',rn:'',ctx:[]},'en',lc($('tl').value)||'vi');alert('OK: '+t)}
+  try{const t=await geminiTest();alert(t)}
   catch(e){alert('Failed: '+e.message)}
   b.disabled=false;
 };
@@ -1408,6 +1408,21 @@ async function gemini(src,u,sl,tl){
   if(!t.trim())throw new Error(j.promptFeedback&&j.promptFeedback.blockReason?'Blocked: '+j.promptFeedback.blockReason:'Empty response'+(c&&c.finishReason?' ('+c.finishReason+')':''));
   t=t.trim().replace(/^```[a-z]*\n?/i,'').replace(/\n?```$/,'').replace(/^<<<\n?/,'').replace(/\n?>>>$/,'').trim();
   return /^\s*/.exec(src)[0]+t+/\s*$/.exec(src)[0];
+}
+async function geminiTest(){
+  const model=(CFG.gmodel||DEFMODEL).trim();
+  const url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent';
+  const headers={'Content-Type':'application/json','x-goog-api-key':CFG.gkey.trim()};
+  const base={contents:[{role:'user',parts:[{text:'You are the AI model "'+model+'". Reply with exactly this one sentence and nothing else: Hello! I am '+model+', let\'s start translating!'}]}]};
+  const send=b=>net(async()=>{const r=await fetch(url,{method:'POST',headers,body:JSON.stringify(b)});if(retryable(r.status))throw httpErr(r);return r});
+  let r=await send({...base,generationConfig:{thinkingConfig:{thinkingLevel:'low'}}});
+  if(r.status===400)r=await send(base);
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
+  const c=j.candidates&&j.candidates[0];
+  const t=c&&c.content&&c.content.parts?c.content.parts.filter(p=>!p.thought).map(p=>p.text||'').join('').trim():'';
+  if(!t)throw new Error(j.promptFeedback&&j.promptFeedback.blockReason?'Blocked: '+j.promptFeedback.blockReason:'Empty response');
+  return t;
 }
 const tokCount=t=>{const m=new Map();(t.match(TOK)||[]).forEach(x=>m.set(x,(m.get(x)||0)+1));return m};
 async function machine(src,u){
