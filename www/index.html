@@ -70,7 +70,7 @@ mark.es{background:rgba(102,187,106,.42)}
 .dr{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 .dr button{padding:0 16px}
 #fnw{flex:1;min-width:0}
-#bm,#prog,#ip,#rp,#sf,#gm{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
+#bm,#prog,#ip,#rp,#sf,#gm,#cm{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
 #sw{width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex:none}
 .sel,#sa{width:20px;height:20px;accent-color:var(--ac);margin:2px 0 0;flex:none}
 #sa{margin:0}
@@ -80,6 +80,7 @@ mark.es{background:rgba(102,187,106,.42)}
 body.sm .mi.x{display:none}
 #pt{padding:8px 0;font-size:16px}
 #ipl,#rpl{max-height:45vh;overflow:auto;margin-top:8px}
+#cm-l{margin-top:8px}.cbi{display:flex;gap:6px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--card)}.cbi .t{flex:1;min-width:0;font-size:13px;white-space:pre-wrap;word-break:break-word;max-height:7.5em;overflow:auto}.cbi button{height:32px;font-size:13px}
 #gm-p{overflow-x:auto;margin-top:10px}#gm-p table{border-collapse:collapse;font-size:12px}#gm-p td{padding:3px 6px;border-bottom:1px solid var(--card);white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}#gm-p td.sel{background:var(--card)}#gm-p tr.h td{font-weight:700;color:var(--mut)}
 .pi{padding:8px 0;border-top:1px solid var(--card);font-size:13px;word-break:break-word}
 .pk{font-size:12px;color:var(--mut);margin-bottom:2px}
@@ -106,7 +107,7 @@ body.sm .mi.x{display:none}
 <input id="f" type="file" accept="*/*" hidden><input id="f2" type="file" accept="*/*" hidden></div>
 <div class="row" id="fl"><button data-f="id">ID</button><button data-f="rn">Name</button><button data-f="src">Source</button><button data-f="ctx">Context</button><button data-f="lbl">Label</button><button data-f="tgt">Target</button><button id="rx" type="button" title="Regex search" aria-label="Regex search">.*</button><select id="so" title="Show first"></select></div>
 <div class="row">
-<label id="sw" title="Select all shown"><input id="sa" type="checkbox"></label><button id="bulk" title="Actions for selected units" aria-label="Actions for selected units" disabled></button>
+<label id="sw" title="Select all shown"><input id="sa" type="checkbox"></label><button id="bulk" title="Actions for selected units" aria-label="Actions for selected units" disabled></button><button id="cbclr" type="button" title="Clear all clipboards" aria-label="Clear all clipboards" disabled></button>
 <select id="sz" title="Units per page"><option>10</option><option selected>20</option><option>50</option><option>100</option><option value="0">∞</option></select>
 <button id="prev" title="Previous page" aria-label="Previous page"></button>
 <span id="pg">–</span>
@@ -142,6 +143,7 @@ body.sm .mi.x{display:none}
 <div id="bm" hidden><div class="dlg"><h3>Selected units</h3><div id="bl"></div><div class="dr"><button id="bclose" type="button">Close</button></div></div></div>
 <div id="ip" hidden><div class="dlg"><h3>Import preview</h3><div id="ips" class="hint"></div><div id="ipl"></div><div class="dr"><button id="ip-c" type="button">Cancel</button><button id="ip-fill" type="button"></button><button id="ip-all" type="button" class="p"></button></div></div></div>
 <div id="rp" hidden><div class="dlg"><h3>XML errors</h3><div id="rps" class="hint"></div><div id="rpl"></div><div class="dr"><button id="rp-c" type="button">No</button><button id="rp-a" type="button" class="p">Save as .txt</button></div></div></div>
+<div id="cm" hidden><div class="dlg"><h3 id="cm-h">Clipboard</h3><div id="cm-i" class="hint"></div><div id="cm-l"></div><div class="dr"><button id="cm-c" type="button">Close</button><button id="cm-s" type="button" class="p">Save current</button></div></div></div>
 <div id="gm" hidden><div class="dlg"><h3>Glossary columns</h3><div id="gm-i" class="hint"></div><label>Delimiter<select id="gm-d"><option value="&#9;">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label><label class="ck"><input type="checkbox" id="gm-h"> First row is a header</label><label>Source column<select id="gm-s"></select></label><label>Target column<select id="gm-t"></select></label><div id="gm-p"></div><div class="dr"><button id="gm-c" type="button">Cancel</button><button id="gm-ok" type="button" class="p">Import</button></div></div></div>
 <div id="sf" hidden><div class="dlg"><h3>Save as</h3><button class="mi" data-f="xliff" type="button"></button><button class="mi" data-f="strings" type="button"></button><div class="dr"><button id="sf-c" type="button">Cancel</button></div></div></div>
 <div id="prog" hidden><div class="dlg"><div id="pt"></div><div class="dr"><button id="pstop" type="button">Stop</button></div></div></div>
@@ -166,9 +168,11 @@ bulk:'M22 7h-9v2h9V7zm0 8h-9v2h9v-2zM5.54 11 2 7.46l1.41-1.41 2.12 2.12 4.24-4.2
 edit:'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z',
 refresh:'M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z',
 prev:'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z',
-next:'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z'};
+next:'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z',
+clip:'M19 2h-4.18C14.4.84 13.3 0 12 0S9.6.84 9.18 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z',
+trash:'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z'};
 const ic=k=>'<svg viewBox="0 0 24 24"><path d="'+IC[k]+'"/></svg>';
-['open','save','close','prev','next','flt','imp','cfg','bulk'].forEach(k=>$(k==='cfg'?'cfgb':k).innerHTML=ic(k));
+['open','save','close','prev','next','flt','imp','cfg','bulk','trash'].forEach(k=>$(k==='cfg'?'cfgb':k==='trash'?'cbclr':k).innerHTML=ic(k));
 
 let shown=[],doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,crowdin=false,mode='xliff';
 let RX=false;
@@ -184,6 +188,33 @@ const byLocal=(p,n)=>[...p.children].find(c=>c.localName===n);
 const cur=u=>u.val!==undefined?u.val:u.rt;
 const edited=()=>units.filter(changed).length;
 const setVal=(u,v)=>{if(v===u.rt)delete u.val;else u.val=v};
+
+// Clipboard: up to 3 backup versions of a unit's translation, kept for this session only (u.cb, newest first)
+const CB_MAX=3;
+const cbHas=u=>!!(u.cb&&u.cb.length);
+const cbCan=u=>{const c=cur(u);return c.trim()!==''&&c!==u.rt&&!(u.cb||[]).includes(c)};
+const cbAdd=u=>{if(!cbCan(u)||(u.cb||[]).length>=CB_MAX)return false;(u.cb=u.cb||[]).unshift(cur(u));return true};
+function openClip(u,apply,done){
+  const dlg=$('cm'),list=$('cm-l'),info=$('cm-i'),sv=$('cm-s'),show=t=>CFG.pv?pvDec(t):t;
+  $('cm-h').textContent='Clipboard \u00b7 '+(u.rn||u.id);
+  const draw=()=>{
+    const cb=u.cb||[];list.textContent='';
+    cb.forEach((t,i)=>{
+      const r=document.createElement('div');r.className='cbi';
+      const x=document.createElement('div');x.className='t';const v=show(t);x.textContent=v.length>240?v.slice(0,240)+'\u2026':v;
+      const use=document.createElement('button');use.type='button';use.textContent='Use';
+      use.onclick=()=>{if(cbCan(u)&&!confirm('Replace the current translation? It is not saved in the clipboard.'))return;dlg.hidden=true;apply(t)};
+      const del=document.createElement('button');del.type='button';del.textContent='Delete';
+      del.onclick=()=>{cb.splice(i,1);if(!cb.length)delete u.cb;done();draw()};
+      r.append(x,use,del);list.appendChild(r)});
+    const c=cur(u),full=cb.length>=CB_MAX,can=cbCan(u);
+    sv.disabled=!can||full;
+    info.textContent=cb.length+' / '+CB_MAX+' saved. '+(full?'Delete one to save another.':c.trim()===''?'The translation is empty.':c===u.rt?'Edit the translation first to save a backup.':cb.includes(c)?'This text is already saved.':'Save the current translation as a backup.');
+  };
+  sv.onclick=()=>{if(cbAdd(u)){done();draw()}};
+  $('cm-c').onclick=()=>{dlg.hidden=true};
+  draw();dlg.hidden=false;
+}
 
 // Edit on preview: raw XML content <-> text shown to the translator
 const PV_TAG=/<!\[CDATA\[[\s\S]*?\]\]>|<!--[\s\S]*?-->|<\/?[A-Za-z_][^<>]*>/;
@@ -623,7 +654,7 @@ $('c-test').onclick=async()=>{
   catch(e){alert('Failed: '+e.message)}
   b.disabled=false;
 };
-const BM=[['mt','Machine translate selected','mt',0],['check','Approve selected','ap',1],['close','Unapprove selected','un',1],['eyeoff','Hide selected','hd',1],['eye','Unhide selected','sh',1],['copy','Copy source to selected','cs',0],['undo','Undo changes in selected','ud',0],['close','Clear selection','cl',0]];
+const BM=[['mt','Machine translate selected','mt',0],['check','Approve selected','ap',1],['close','Unapprove selected','un',1],['eyeoff','Hide selected','hd',1],['eye','Unhide selected','sh',1],['copy','Copy source to selected','cs',0],['undo','Undo changes in selected','ud',0],['clip','Save to clipboard','cb',0],['close','Clear selection','cl',0]];
 $('bl').innerHTML=BM.map(([i,t,a,x])=>'<button class="mi'+(x?' x':'')+'" data-a="'+a+'" type="button">'+ic(i)+'<span>'+t+'</span></button>').join('');
 $('bl').querySelectorAll('.mi').forEach(b=>b.onclick=()=>{$('bm').hidden=true;bulk(b.dataset.a)});
 $('bulk').onclick=()=>{$('bm').hidden=false};
@@ -661,6 +692,16 @@ async function bulk(a){
     if(!n){alert('No changes in the selected units');return}
     if(!confirm('Discard the changes in '+n+' selected units?'))return;
     sel.forEach(u=>{delete u.val;delete u.ap;delete u.tr});render();return;
+  }
+  if(a==='cb'){
+    let n=0,same=0,full=0,skip=0;
+    sel.forEach(u=>{const c=cur(u);
+      if(c.trim()===''||c===u.rt){skip++;return}
+      if((u.cb||[]).includes(c)){same++;return}
+      if((u.cb||[]).length>=CB_MAX){full++;return}
+      if(cbAdd(u))n++});
+    alert('Saved '+n+' to clipboard'+(same?'; '+same+' already saved':'')+(full?'; '+full+' full ('+CB_MAX+'/'+CB_MAX+')':'')+(skip?'; '+skip+' unchanged or empty':''));
+    render();return;
   }
   if(a==='mt'){await bulkMT(sel);return}
   if(a==='cs'){
@@ -722,11 +763,12 @@ $('close').onclick=()=>{
 let qt;$('q').oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{page=0;render()},150)};
 $('rx').onclick=()=>{RX=!RX;fchips();page=0;render()};
 $('flt').onclick=()=>$('fl').classList.toggle('show');
+$('cbclr').onclick=()=>{const n=units.filter(cbHas).length;if(!n)return;if(!confirm('Delete all saved clipboards ('+n+' units) for this session?'))return;units.forEach(u=>delete u.cb);render()};
 document.querySelectorAll('#fl button[data-f]').forEach(b=>b.onclick=()=>{F[b.dataset.f]=F[b.dataset.f]?0:1;fchips();page=0;render()});
 function fchips(){document.querySelectorAll('#fl button[data-f]').forEach(b=>b.classList.toggle('on',!!F[b.dataset.f]));
   $('rx').classList.toggle('on',RX);$('q').placeholder=RX?'Regex':'Search';
   $('flt').classList.toggle('on',Object.values(F).some(v=>!v)||$('so').value!=='none'||RX)}
-const SORTS=[['none','Original order',0],['mod','Edited first',0],['qa','QA issues first',0],['unap','Unapproved first',1],['hid','Hidden first',1],['untr','Untranslated first',0],['same','Same as source first',0],['lsrc','Longest source first',0],['ssrc','Shortest source first',0],['ltgt','Longest target first',0],['stgt','Shortest target first',0],['over','Over max length first',0,'max']];
+const SORTS=[['none','Original order',0],['mod','Edited first',0],['qa','QA issues first',0],['cb','Clipboard first',0],['unap','Unapproved first',1],['hid','Hidden first',1],['untr','Untranslated first',0],['same','Same as source first',0],['lsrc','Longest source first',0],['ssrc','Shortest source first',0],['ltgt','Longest target first',0],['stgt','Shortest target first',0],['over','Over max length first',0,'max']];
 function fillSort(){
   const so=$('so'),v=so.value||'none';
   so.innerHTML=SORTS.filter(x=>(!x[2]||mode==='xliff')&&(!x[3]||units.some(u=>x[3]==='labels'?u.labels&&u.labels.length:u.max))).map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');
@@ -738,6 +780,7 @@ const sortKey=(k,u)=>{
   switch(k){
     case 'mod':return changed(u)?0:1;
     case 'qa':return -qaOf(u).length;
+    case 'cb':return cbHas(u)?0:1;
     case 'unap':return u.is12&&!ap?0:1;
     case 'hid':return u.is12&&tr==='no'?0:1;
     case 'untr':return c.trim()===''?0:1;
@@ -766,10 +809,10 @@ function hlight(t){
 const clen=t=>[...t].length;
 function card(u){
   const d=document.createElement('div');d.className='u';
-  d.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div><div class="lb" hidden></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="mt"></button><button class="cp"></button><button class="un"></button></div><div class="cxt" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="cnt tc"></div><div class="qa" hidden></div>';
+  d.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div><div class="lb" hidden></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button></div><div class="cxt" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="cnt tc"></div><div class="qa" hidden></div>';
   const q=s=>d.querySelector(s);
-  const mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
-  mtb.innerHTML=ic('mt');ap.innerHTML=ic('check');cx.innerHTML=ic('help');cp.innerHTML=ic('copy');un.innerHTML=ic('undo');
+  const clb=q('.cb'),mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
+  mtb.innerHTML=ic('mt');ap.innerHTML=ic('check');cx.innerHTML=ic('help');cp.innerHTML=ic('copy');un.innerHTML=ic('undo');clb.innerHTML=ic('clip');
   [[ap,'Approve'],[hd,'Visible'],[cx,'Context'],[mtb,'Machine translate · '+engName()],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
   const cb=q('.sel');cb.setAttribute('aria-label','Select unit');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
   q('.id').textContent=u.id;q('.rn').textContent=u.rn;q('.rn').hidden=!u.rn;
@@ -793,10 +836,13 @@ function card(u){
     ap.disabled=hd.disabled=!u.is12;
     const qe=q('.qa'),iss=qaOf(u);qe.hidden=!iss.length;qe.textContent=iss.map(x=>'\u26a0 '+x).join('\n');
     cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;
+    const nb=(u.cb||[]).length,ct='Clipboard'+(nb?' ('+nb+'/'+CB_MAX+')':'');
+    clb.classList.toggle('on',nb>0);clb.title=ct;clb.setAttribute('aria-label',ct);
   };
   const sync=()=>{refresh();upd()};
   ta.oninput=()=>{setVal(u,fromTa(ta.value));paint();fit();sync()};
   cp.onclick=()=>{setText(u.rs);setVal(u,u.rs);sync()};
+  clb.onclick=()=>openClip(u,v=>{setText(v);setVal(u,v);sync()},sync);
   un.onclick=()=>{setText(u.rt);delete u.val;delete u.ap;delete u.tr;sync()};
   ap.onclick=()=>{setAp(u,!(u.ap!==undefined?u.ap:u.oAp));sync()};
   hd.onclick=()=>{setTr(u,(u.tr!==undefined?u.tr:u.oTr)==='yes'?'no':'yes');sync()};
@@ -843,6 +889,7 @@ function upd(){
   $('info').textContent=!doc?'':(mode==='strings'?`${units.filter(u=>cur(u).trim()).length} / ${units.length} done`:`${edited()} edited / ${units.length}`)+(nqa?` \u00b7 ${nqa} QA issues`:''); 
   $('selc').textContent=nsel+' selected';$('selc').hidden=!doc||!nsel;
   $('bulk').disabled=!nsel;
+  const ncb=doc?units.filter(cbHas).length:0;$('cbclr').disabled=!ncb;$('cbclr').title=ncb?'Clear all clipboards ('+ncb+' units)':'Clear all clipboards';
   const sc=shown.filter(x=>x.sel).length;
   $('sa').checked=shown.length>0&&sc===shown.length;$('sa').indeterminate=sc>0&&sc<shown.length;$('sa').disabled=!shown.length;
   $('pg').textContent=doc&&size>0?`${page+1}/${pages}`:'–';
@@ -1157,7 +1204,7 @@ $('save').onclick=async()=>{
 };
 [['q','Search'],['sz','Units per page'],['sa','Select all shown'],['tl','Target language'],['so','Sort order']].forEach(([i,t])=>$(i).setAttribute('aria-label',t));
 document.querySelectorAll('.dlg').forEach(d=>{d.setAttribute('role','dialog');d.setAttribute('aria-modal','true')});
-document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const [d,b] of [['gm','gm-c'],['sf','sf-c'],['ip','ip-c'],['rp','rp-c'],['bm','bclose'],['cfg','c-cancel']])if(!$(d).hidden){e.preventDefault();$(b).click();return}});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const [d,b] of [['cm','cm-c'],['gm','gm-c'],['sf','sf-c'],['ip','ip-c'],['rp','rp-c'],['bm','bclose'],['cfg','c-cancel']])if(!$(d).hidden){e.preventDefault();$(b).click();return}});
 addEventListener('beforeunload',e=>{if(doc&&edited()){e.preventDefault();e.returnValue=''}});
 let lastW=innerWidth,rz;addEventListener('resize',()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(rz);rz=setTimeout(()=>fitAll([...document.querySelectorAll('#list .u')]),150)});
 render();
