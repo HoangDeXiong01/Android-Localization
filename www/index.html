@@ -496,8 +496,8 @@ function readTranslations(txt){
 $('imp').onclick=()=>$('f2').click();
 $('f2').onchange=async e=>{
   const file=e.target.files[0];e.target.value='';if(!file||!doc)return;
-  const mp=readTranslations(await file.text());
-  if(!mp){alert('Not a valid XLIFF or strings.xml file');return}
+  const txt=await file.text(),mp=readTranslations(txt);
+  if(!mp){await errorFlow(file.name,txt);return}
   const kOf=u=>mode==='strings'?ckey(u):(mp.has(u.rn)?u.rn:u.id);
   const hits=[],matched=new Set();
   units.forEach(u=>{const k=kOf(u);if(mp.has(k)){hits.push([u,mp.get(k)]);matched.add(k)}});
@@ -587,7 +587,10 @@ function applyCfg(){
   saveCfg();
 }
 $('qac').innerHTML=QALAB.map(([k,t])=>'<label class="ck"><input type="checkbox" data-q="'+k+'"> '+t+'</label>').join('');
-function pvUi(){const x=document.querySelector('#qac input[data-q="xml"]');if(x){x.disabled=$('c-pv').checked;x.parentElement.style.opacity=x.disabled?.5:''}}
+function pvUi(){
+  const off={xml:$('c-pv').checked,len:mode==='strings',hid:mode==='strings'};
+  document.querySelectorAll('#qac input').forEach(x=>{const d=!!off[x.dataset.q];x.disabled=d;x.parentElement.style.opacity=d?.5:''});
+}
 $('c-pv').onchange=pvUi;
 function glInfo(){$('g-info').textContent=GL.length?GL.length+' terms \u00b7 e.g. '+GL.slice(0,2).map(e=>e.s+' \u2192 '+e.t).join(', '):'No glossary loaded'}
 $('g-imp').onclick=()=>$('f3').click();
