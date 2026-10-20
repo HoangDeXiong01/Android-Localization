@@ -182,8 +182,8 @@ const edited=()=>units.filter(changed).length;
 const setVal=(u,v)=>{if(v===u.rt)delete u.val;else u.val=v};
 
 const DEFMODEL='gemini-3.6-flash';
-const QALAB=[['ph','Placeholders & tags'],['ws','Spaces & line breaks'],['dsp','Double spaces'],['pu','End punctuation'],['num','Numbers'],['xml','Valid XML'],['gl','Glossary terms'],['apo','Unescaped quotes (strings.xml)'],['len','Max length']];
-const QADEF={ph:1,ws:1,dsp:1,pu:1,num:1,xml:1,gl:1,apo:1,len:1};
+const QALAB=[['ph','Placeholders & tags'],['ws','Spaces & line breaks'],['dsp','Double spaces'],['pu','End punctuation'],['num','Numbers'],['xml','Valid XML'],['gl','Glossary terms'],['apo','Unescaped quotes (strings.xml)'],['len','Max length'],['hid','Also check hidden units (translate=no)']];
+const QADEF={ph:1,ws:1,dsp:1,pu:1,num:1,xml:1,gl:1,apo:1,len:1,hid:1};
 let QV=0;
 const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],gnotes:'',rpmG:10,rpmF:30,qa:{}};
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
@@ -252,7 +252,7 @@ function qaOf(u){
   const c=cur(u),k=c+'\u0001'+QV+mode+(u.tr!==undefined?u.tr:u.oTr);
   if(u._qk===k)return u._qa;
   const out=[],tr=u.tr!==undefined?u.tr:u.oTr;
-  if(c.trim()&&tr!=='no'){
+  if(c.trim()&&(tr!=='no'||CFG.qa.hid)){
     const Q=CFG.qa,s=u.rs;
     if(Q.ph){const a=tokCount(s),b=tokCount(c),miss=[],extra=[];
       a.forEach((n,t)=>{if((b.get(t)||0)<n)miss.push(t)});
@@ -836,7 +836,7 @@ async function shareFile(fname,text,mime){
       const r=await P.Filesystem.writeFile({path:fname,data:text,directory:'CACHE',encoding:'utf8'});
       await P.Share.share({title:fname,url:r.uri,dialogTitle:'Save '+fname});
     }else{
-      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime||'application/xml'}));
+      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime||'application/octet-stream'}));
       a.download=fname;a.click();
     }
   }catch(e){if(!String(e).includes('cancel'))alert('Save failed: '+e)}
