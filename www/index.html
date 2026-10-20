@@ -537,8 +537,10 @@ async function readTranslations(txt){
   if(new DOMParser().parseFromString(txt,'application/xml').querySelector('parsererror'))return null;
   let pairs;
   try{pairs=(await wCall({t:'trans',txt})).pairs}catch(e){pairs=W_trans(txt)}
-  return new Map(pairs);
+  const mp=new Map(pairs);mp.strings=W_root(txt)==='resources';return mp;
 }
+/* strings.xml escapes quotes as \' and \"; XLIFF text holds them unescaped. Removes the backslash of an escaped quote. */
+function unescQ(t){let o='',bs=0;for(const c of t){if(c==='\\'){bs++;o+=c;continue}if((c==="'"||c==='"')&&bs%2===1)o=o.slice(0,-1)+c;else o+=c;bs=0}return o}
 $('imp').onclick=()=>$('f2').click();
 $('f2').onchange=async e=>{
   const file=e.target.files[0];e.target.value='';if(!file||!doc)return;
@@ -548,9 +550,17 @@ $('f2').onchange=async e=>{
   const mp=await readTranslations(txt);busy('');upd(true);
   if(!mp){await errorFlow(file.name,txt);return}
   const kOf=u=>mode==='strings'?ckey(u):(mp.has(u.rn)?u.rn:u.id);
-  const hits=[],matched=new Set();
-  units.forEach(u=>{const k=kOf(u);if(mp.has(k)){hits.push([u,mp.get(k)]);matched.add(k)}});
-  const skipped=mp.size-matched.size;
+  /* between formats the quote escaping differs: XLIFF -> strings.xml escapes quotes; strings.xml -> XLIFF unescapes them
+     (unless that XLIFF keeps \' in its own source texts); XLIFF inline codes (<ph/>, <pc>...) cannot go into strings.xml */
+  const inl=/<(?:[\w.\-]+:)?(?:ph|pc|sc|ec|sm|em|cp|mrk)(?=[\s\/>])/;
+  let adj=v=>v,noInl=false;
+  if(mode==='strings'&&!mp.strings){adj=pvToAndroid;noInl=true}
+  else if(mode!=='strings'&&mp.strings&&!units.some(u=>/\\['"]/.test(u.rs)))adj=unescQ;
+  const hits=[],matched=new Set();let nInl=0;
+  units.forEach(u=>{const k=kOf(u);if(mp.has(k)){const v0=mp.get(k);matched.add(k);
+    if(noInl&&inl.test(v0)){nInl++;return}
+    hits.push([u,adj(v0)])}});
+  const skipped=mp.size-matched.size+nInl;
   const plan=hits.map(([u,v])=>({u,v,k:cur(u)===v?'same':cur(u).trim()?'over':'fill'}));
   const nf=plan.filter(p=>p.k==='fill').length,no=plan.filter(p=>p.k==='over').length,same=plan.length-nf-no;
   const nm=skipped?', '+skipped+(mode==='strings'?' not in source':' with no match'):'';
@@ -1066,7 +1076,7 @@ function W_parse(txt,emit){
     if(rAlt0.test(bm))bm=bm.replace(rAlt,'');
     if(!(tag==='unit'?rSeg:rSrcTag).test(bm))continue;   /* units without a <source> are skipped, but still counted in idx */
     const b=txt.slice(a,end),sm=START.exec(b),stg=sm?sm[0]:'';
-    const s1=rSrc.exec(b),t1=rTgt.exec(b);
+    const bn=rAlt0.test(b)?b.replace(rAlt,''):b,s1=rSrc.exec(bn),t1=rTgt.exec(bn);
     const u={idx,id:W_dec(ga(stg,'id')||''),rs:s1?(s1[1]||''):'',rt:t1?(t1[1]||''):'',is12:tag==='trans-unit',
       rn:ga(stg,'resname')||ga(stg,'name')||'',oAp:ga(stg,'approved')==='yes',oTr:ga(stg,'translate')==='no'?'no':'yes',
       ctx:[],labels:[],max:0,ct:''};
@@ -1125,11 +1135,24 @@ function W_trans(txt){
   if(W_root(txt)==='resources'){
     parseStrings(txt).forEach(x=>{if(x.rs.trim())mp.set(ckey(x),x.rs)});
   }else{
-    const re=/<((?:[\w.\-]+:)?(?:trans-unit|unit))\b[\s\S]*?<\/\1>/g;let m;
+    const re=/<((?:[\w.\-]+:)?(?:trans-unit|unit))\b[\s\S]*?<\/\1>/g,reSg=/<((?:[\w.\-]+:)?)segment\b(?:"[^"]*"|'[^']*'|[^>"'])*>/g,
+      rAlt=/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans>/g;
+    let m;
     while((m=re.exec(txt))){
       const b=m[0],st=START.exec(b),tg=st?st[0]:'';
-      const k=ga(tg,'resname')||ga(tg,'name')||W_dec(ga(tg,'id')||''),v=grabTag(b,'target');
-      if(k&&v.trim()&&!mp.has(k))mp.set(k,v);
+      const kn=ga(tg,'resname')||ga(tg,'name'),id=W_dec(ga(tg,'id')||''),k=kn||id;
+      if(/(?:^|:)unit$/.test(m[1])){
+        /* XLIFF 2.x: one entry per <segment>; a unit with several segments is keyed name#segmentId (as when it is opened) */
+        const sgs=[];let sg;reSg.lastIndex=0;
+        while((sg=reSg.exec(b))){const sa=sg.index,se=b.indexOf('</'+sg[1]+'segment>',sa);if(se<0)break;sgs.push([sg[0],b.slice(sa,se)]);reSg.lastIndex=se}
+        sgs.forEach(([t,body],i)=>{
+          const v=grabTag(body,'target'),key=sgs.length>1?(kn||id)+'#'+(ga(t,'id')||String(i+1)):k;
+          if(key&&v.trim()&&!mp.has(key))mp.set(key,v);
+        });
+      }else{
+        const v=grabTag(b.replace(rAlt,''),'target');
+        if(k&&v.trim()&&!mp.has(k))mp.set(k,v);
+      }
     }
   }
   return [...mp];
@@ -1534,8 +1557,10 @@ async function geminiTest(){
 let _nsRaw=null,_nsDecl='';
 function xmlWrap(x){
   if(_nsRaw!==raw){
-    _nsRaw=raw;const t=/<(?:[\w.\-]+:)?xliff\b(?:"[^"]*"|'[^']*'|[^>"'])*>/.exec(raw||''),d=[];
-    if(t){const rx=/\sxmlns:([\w.\-]+)\s*=\s*("[^"]*"|'[^']*')/g;let m;while((m=rx.exec(t[0])))d.push('xmlns:'+m[1]+'='+m[2])}
+    _nsRaw=raw;const r0=raw||'',ui=r0.search(/<(?:[\w.\-]+:)?(?:trans-unit|unit)\b/),head=r0.slice(0,ui<0?200000:ui),d=[],seen=new Set();
+    /* every prefix declared before the first unit (on <xliff>, <file>, ...), once each, so inline markup such as <mrk its:term> checks correctly */
+    const rx=/\sxmlns:([\w.\-]+)\s*=\s*("[^"]*"|'[^']*')/g;let m;
+    while((m=rx.exec(head)))if(m[1]!=='xml'&&m[1]!=='xmlns'&&!seen.has(m[1])){seen.add(m[1]);d.push('xmlns:'+m[1]+'='+m[2])}
     if(!d.some(a=>a.startsWith('xmlns:xliff=')))d.push('xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2"');
     _nsDecl=d.join(' ');
   }
@@ -1821,8 +1846,9 @@ $('save').onclick=async()=>{
     let blk=raw.slice(st,en);
     if(u.val!==undefined){
     const tre=/<((?:[\w.\-]+:)?)target\b([^>]*?)\s*(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?target>)/;
-    if(tre.test(blk)){
-      blk=blk.replace(tre,(_,pf,at)=>'<'+pf+'target'+at+'>'+u.val+'</'+pf+'target>');
+    const mk=blk.replace(/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans>/g,x=>' '.repeat(x.length)),tm=tre.exec(mk);
+    if(tm){
+      blk=blk.slice(0,tm.index)+'<'+tm[1]+'target'+tm[2]+'>'+u.val+'</'+tm[1]+'target>'+blk.slice(tm.index+tm[0].length);
     }else{
       blk=blk.replace(/([ \t]*)<((?:[\w.\-]+:)?)source\b[^>]*?(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?source>)/,
         (x,ind,pf)=>x+'\n'+ind+'<'+pf+'target>'+u.val+'</'+pf+'target>');
