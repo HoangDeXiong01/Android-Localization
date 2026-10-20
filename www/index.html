@@ -70,7 +70,7 @@ mark.es{background:rgba(102,187,106,.42)}
 .dr{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 .dr button{padding:0 16px}
 #fnw{flex:1;min-width:0}
-#bm,#prog,#ip,#rp,#sf{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
+#bm,#prog,#ip,#rp,#sf,#gm{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
 #sw{width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex:none}
 .sel,#sa{width:20px;height:20px;accent-color:var(--ac);margin:2px 0 0;flex:none}
 #sa{margin:0}
@@ -80,6 +80,7 @@ mark.es{background:rgba(102,187,106,.42)}
 body.sm .mi.x{display:none}
 #pt{padding:8px 0;font-size:16px}
 #ipl,#rpl{max-height:45vh;overflow:auto;margin-top:8px}
+#gm-p{overflow-x:auto;margin-top:10px}#gm-p table{border-collapse:collapse;font-size:12px}#gm-p td{padding:3px 6px;border-bottom:1px solid var(--card);white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}#gm-p td.sel{background:var(--card)}#gm-p tr.h td{font-weight:700;color:var(--mut)}
 .pi{padding:8px 0;border-top:1px solid var(--card);font-size:13px;word-break:break-word}
 .pk{font-size:12px;color:var(--mut);margin-bottom:2px}
 .po{color:var(--mut);text-decoration:line-through}
@@ -139,6 +140,7 @@ body.sm .mi.x{display:none}
 <div id="bm" hidden><div class="dlg"><h3>Selected units</h3><div id="bl"></div><div class="dr"><button id="bclose" type="button">Close</button></div></div></div>
 <div id="ip" hidden><div class="dlg"><h3>Import preview</h3><div id="ips" class="hint"></div><div id="ipl"></div><div class="dr"><button id="ip-c" type="button">Cancel</button><button id="ip-fill" type="button"></button><button id="ip-all" type="button" class="p"></button></div></div></div>
 <div id="rp" hidden><div class="dlg"><h3>XML errors</h3><div id="rps" class="hint"></div><div id="rpl"></div><div class="dr"><button id="rp-c" type="button">No</button><button id="rp-a" type="button" class="p">Save as .txt</button></div></div></div>
+<div id="gm" hidden><div class="dlg"><h3>Glossary columns</h3><div id="gm-i" class="hint"></div><label>Delimiter<select id="gm-d"><option value="&#9;">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label><label class="ck"><input type="checkbox" id="gm-h"> First row is a header</label><label>Source column<select id="gm-s"></select></label><label>Target column<select id="gm-t"></select></label><div id="gm-p"></div><div class="dr"><button id="gm-c" type="button">Cancel</button><button id="gm-ok" type="button" class="p">Import</button></div></div></div>
 <div id="sf" hidden><div class="dlg"><h3>Save as</h3><button class="mi" data-f="xliff" type="button"></button><button class="mi" data-f="strings" type="button"></button><div class="dr"><button id="sf-c" type="button">Cancel</button></div></div></div>
 <div id="prog" hidden><div class="dlg"><div id="pt"></div><div class="dr"><button id="pstop" type="button">Stop</button></div></div></div>
 <div id="list"></div>
@@ -236,6 +238,59 @@ function parseGlossary(txt){
   const hdr=r=>/^(source|src|term|english|en|target|translation|tgt)$/i.test(r[0].trim())||/^(target|translation|tgt)$/i.test(r[1].trim());
   if(rows.length&&hdr(rows[0]))rows=rows.slice(1);
   return rows.map(r=>[r[0],r[1]]);
+}
+function glMap(txt){
+  return new Promise(res=>{
+    const first=txt.split(/\r?\n/).find(l=>l.trim())||'';
+    const cnt=c=>first.split(c).length-1;
+    const KW=/^(source|src|term|english|en|original|target|translation|tgt)$/i;
+    let tl='';try{tl=((mode==='strings'?lc($('tl').value):(doc?langs().tl:''))||'').split('-')[0].toLowerCase()}catch(e){}
+    const dlg=$('gm'),sd=$('gm-d'),hc=$('gm-h'),ss=$('gm-s'),st=$('gm-t'),pv=$('gm-p'),inf=$('gm-i'),ok=$('gm-ok');
+    let rows=[],nc=1;
+    const parse=()=>{rows=parseCSV(txt,sd.value);nc=Math.max(1,...rows.slice(0,200).map(r=>r.length))};
+    const labels=()=>{
+      const h=(hc.checked&&rows[0])||[],keepS=ss.value,keepT=st.value;
+      const opts=Array.from({length:nc},(_,i)=>'<option value="'+i+'">'+(i+1)+(h[i]&&h[i].trim()?': '+h[i].trim().slice(0,24).replace(/&/g,'&amp;').replace(/</g,'&lt;'):'')+'</option>').join('');
+      ss.innerHTML=opts;st.innerHTML=opts;
+      if(keepS!==''&&+keepS<nc)ss.value=keepS;
+      if(keepT!==''&&+keepT<nc)st.value=keepT;
+    };
+    const guess=()=>{
+      const h=rows[0]||[];let si=0,ti=Math.min(1,nc-1);
+      if(hc.checked){
+        const a=h.findIndex(x=>/^(source|src|term|english|en|original)\b/i.test(x.trim()));
+        let b=h.findIndex(x=>/^(target|translation|tgt)\b/i.test(x.trim()));
+        if(b<0&&tl)b=h.findIndex((x,i)=>i!==a&&x.trim().toLowerCase().split(/[-_]/)[0]===tl);
+        if(a>=0)si=a;
+        if(b>=0)ti=b;else if(a>=0)ti=a===0?Math.min(1,nc-1):0;
+        if(b>=0&&a<0)si=b===0?Math.min(1,nc-1):0;
+      }
+      ss.value=si;st.value=ti;
+    };
+    const preview=()=>{
+      const s=+ss.value,t=+st.value,h=hc.checked;
+      pv.textContent='';const tb=document.createElement('table');
+      rows.slice(0,6).forEach((r,ri)=>{
+        const tr=document.createElement('tr');if(h&&ri===0)tr.className='h';
+        for(let i=0;i<nc;i++){const td=document.createElement('td');td.textContent=r[i]||'';if(i===s||i===t)td.className='sel';tr.appendChild(td)}
+        tb.appendChild(tr)});
+      pv.appendChild(tb);
+      const n=Math.max(0,rows.length-(h?1:0));
+      inf.textContent=nc<2?'Only one column found. Try another delimiter.':n+' rows. Highlighted columns are imported as source and target.';
+      ok.disabled=nc<2||s===t;
+      if(nc>=2&&s===t)inf.textContent='Source and target must be different columns.';
+    };
+    const close=v=>{dlg.hidden=true;res(v)};
+    sd.value=cnt('\t')?'\t':cnt(';')>cnt(',')?';':',';
+    parse();hc.checked=!!(rows[0]&&rows[0].some(x=>KW.test(x.trim())));
+    labels();guess();preview();
+    sd.onchange=()=>{parse();hc.checked=!!(rows[0]&&rows[0].some(x=>KW.test(x.trim())));ss.innerHTML='';st.innerHTML='';labels();guess();preview()};
+    hc.onchange=()=>{labels();preview()};
+    ss.onchange=st.onchange=preview;
+    $('gm-c').onclick=()=>close(null);
+    ok.onclick=()=>{const s=+ss.value,t=+st.value;close(rows.slice(hc.checked?1:0).map(r=>[r[s]||'',r[t]||'']))};
+    dlg.hidden=false;
+  });
 }
 function tcls(t){
   t=t.replace(/\s+$/,'');if(!t)return '';
@@ -496,7 +551,8 @@ function glInfo(){$('g-info').textContent=GL.length?GL.length+' terms \u00b7 e.g
 $('g-imp').onclick=()=>$('f3').click();
 $('f3').onchange=async e=>{
   const file=e.target.files[0];e.target.value='';if(!file)return;
-  let pairs;try{pairs=parseGlossary(await file.text())}catch(err){alert('Could not read the glossary: '+err.message);return}
+  let pairs;try{const txt=(await file.text()).replace(/^\uFEFF/,'');pairs=txt.trimStart().startsWith('<')?parseGlossary(txt):await glMap(txt)}catch(err){alert('Could not read the glossary: '+err.message);return}
+  if(pairs===null)return;
   if(!pairs.length){alert('No terms found. Use a CSV / TSV with source and target columns, or a TBX file.');return}
   const old=GL.map(x=>[x.s,x.t]);
   const replace=!old.length||confirm('The glossary already has '+old.length+' terms. OK = replace it, Cancel = merge the new terms into it.');
@@ -1051,7 +1107,7 @@ $('save').onclick=async()=>{
 };
 [['q','Search'],['sz','Units per page'],['sa','Select all shown'],['tl','Target language'],['so','Sort order']].forEach(([i,t])=>$(i).setAttribute('aria-label',t));
 document.querySelectorAll('.dlg').forEach(d=>{d.setAttribute('role','dialog');d.setAttribute('aria-modal','true')});
-document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const [d,b] of [['sf','sf-c'],['ip','ip-c'],['rp','rp-c'],['bm','bclose'],['cfg','c-cancel']])if(!$(d).hidden){e.preventDefault();$(b).click();return}});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const [d,b] of [['gm','gm-c'],['sf','sf-c'],['ip','ip-c'],['rp','rp-c'],['bm','bclose'],['cfg','c-cancel']])if(!$(d).hidden){e.preventDefault();$(b).click();return}});
 addEventListener('beforeunload',e=>{if(doc&&edited()){e.preventDefault();e.returnValue=''}});
 let lastW=innerWidth,rz;addEventListener('resize',()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(rz);rz=setTimeout(()=>fitAll([...document.querySelectorAll('#list .u')]),150)});
 render();
