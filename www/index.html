@@ -129,14 +129,14 @@ body.busy,body.busy *{cursor:progress}
 <div id="sb" hidden><i></i></div>
 <div id="cfg" hidden><div class="dlg">
 <h3>Settings</h3>
-<label>Auto-translate engine<select id="c-eng"><option value="free">Free (Google / MyMemory)</option><option value="gemini">Gemini (AI, uses context)</option></select></label>
+<label>Auto-translate engine<select id="c-eng"><option value="free">Free (Google / MyMemory)</option><option value="gemini">Gemini (AI, uses context)</option><option value="groq">Groq (AI, uses context)</option></select></label>
 <div id="gf">
-<label>Gemini API key<div class="kr"><input id="c-key" type="password" autocomplete="off" spellcheck="false" placeholder="AIza..."><button id="c-eye" type="button" title="Show / hide key" aria-label="Show or hide key"></button></div></label>
+<label><span id="c-klab">Gemini API key</span><div class="kr"><input id="c-key" type="password" autocomplete="off" spellcheck="false" placeholder="AIza..."><button id="c-eye" type="button" title="Show / hide key" aria-label="Show or hide key"></button></div></label>
 <label>Model<div class="kr"><select id="c-model"></select><button id="c-ref" type="button" title="Load models from server" aria-label="Load models from server"></button></div></label>
 <div class="hint" id="c-mhint" style="margin-top:4px"></div>
 <label>Notes for the AI (optional)<textarea id="c-notes" placeholder="e.g. Music player app. Informal tone. Keep 'Playlist' untranslated."></textarea></label>
 <label>Rate limit (requests / minute, 0 = none)<input id="c-rpmg" type="number" min="0" inputmode="numeric"></label>
-<div class="hint">The key is stored only on this device and sent only to Google. Get one at aistudio.google.com/apikey</div>
+<div class="hint" id="c-ghint">The key is stored only on this device and sent only to Google. Get one at aistudio.google.com/apikey</div>
 </div>
 <div id="ff"><label>Rate limit (requests / minute, 0 = none)<input id="c-rpmf" type="number" min="0" inputmode="numeric"></label></div>
 <label>Glossary</label>
@@ -272,11 +272,22 @@ const DEFMODEL='gemini-3.6-flash';
 const QALAB=[['ph','Placeholders & tags'],['ws','Spaces & line breaks'],['dsp','Double spaces'],['pu','End punctuation'],['num','Numbers'],['xml','Valid XML'],['gl','Glossary terms'],['apo','Unescaped quotes (strings.xml)'],['len','Max length'],['hid','Also check hidden units (translate=no)']];
 const QADEF={ph:1,ws:1,dsp:1,pu:1,num:1,xml:1,gl:1,apo:1,len:1,hid:1};
 let QV=0;
-const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],gnotes:'',rpmG:10,rpmF:30,pv:0,qa:{}};
+const GQDEF='llama-3.3-70b-versatile';
+const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,pv:0,qa:{}};
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
 CFG.qa=Object.assign({},QADEF,CFG.qa||{});
 const saveCfg=()=>{try{localStorage.setItem('cfg',JSON.stringify(CFG))}catch(e){}};
-const engName=()=>CFG.eng==='gemini'?'Gemini':'Google';
+/* AI engines: Gemini and Groq share the notes, glossary, prompt and checks; each has its own key, model list and rate limit */
+const AIF={
+  gemini:{name:'Gemini',key:'gkey',model:'gmodel',models:'gmodels',rpm:'rpmG',rpmDef:10,def:DEFMODEL,ph:'AIza...',
+    hint:'The key is stored only on this device and sent only to Google. Get one at aistudio.google.com/apikey'},
+  groq:{name:'Groq',key:'qkey',model:'qmodel',models:'qmodels',rpm:'rpmQ',rpmDef:30,def:GQDEF,ph:'gsk_...',
+    hint:'The key is stored only on this device and sent only to Groq. Get one at console.groq.com/keys'}
+};
+const aiOn=e=>!!AIF[e];
+const aiKey=()=>aiOn(CFG.eng)?String(CFG[AIF[CFG.eng].key]||'').trim():'';
+const rpmOf=()=>aiOn(CFG.eng)?CFG[AIF[CFG.eng].rpm]:CFG.rpmF;
+const engName=()=>aiOn(CFG.eng)?AIF[CFG.eng].name:'Google';
 const escRe=t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 let GL=[];
 function setGlossary(pairs){
@@ -416,7 +427,7 @@ function qaOf(u){
 const lastReq={};let onNet=null;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function throttle(){
-  const e=CFG.eng,rpm=e==='gemini'?CFG.rpmG:CFG.rpmF;
+  const e=CFG.eng,rpm=rpmOf();
   if(!(rpm>0))return;
   const gap=60000/rpm,now=Date.now(),at=Math.max(now,(lastReq[e]||0)+gap);
   lastReq[e]=at;if(at>now)await sleep(at-now);
@@ -575,52 +586,82 @@ function previewImport(plan,nf,no,same,skipped){
     $('ip').hidden=false;
   });
 }
+let uiEng='',draft={};   /* the engine shown in the dialog, and unsaved per-engine field values */
 function fillModels(cur){
-  cur=cur||$('c-model').value||CFG.gmodel||DEFMODEL;
+  const f=AIF[uiEng]||AIF.gemini;
+  cur=cur||$('c-model').value||CFG[f.model]||f.def;
   const sel=$('c-model');sel.innerHTML='';
-  [...new Set([...(CFG.gmodels||[]),cur])].forEach(m=>sel.add(new Option(m,m)));
+  [...new Set([...(CFG[f.models]||[]),cur])].forEach(m=>sel.add(new Option(m,m)));
   sel.value=cur;
 }
 function showModelHint(msg){
-  const n=(CFG.gmodels||[]).length,cur=$('c-model').value;
-  $('c-mhint').textContent=msg||(n?(n+' models from the server'+(CFG.gmodels.includes(cur)?'':' \u00b7 "'+cur+'" is not in the list')+'. Tap \u21bb to refresh.'):'Enter your API key, then tap \u21bb to load the available models.');
+  const f=AIF[uiEng]||AIF.gemini,L=CFG[f.models]||[],n=L.length,cur=$('c-model').value;
+  $('c-mhint').textContent=msg||(n?(n+' models from the server'+(L.includes(cur)?'':' \u00b7 "'+cur+'" is not in the list')+'. Tap \u21bb to refresh.'):'Enter your API key, then tap \u21bb to load the available models.');
 }
+async function listGemini(key){
+  const out=[];let tok='';
+  for(let i=0;i<10;i++){
+    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000'+(tok?'&pageToken='+encodeURIComponent(tok):''),{headers:{'x-goog-api-key':key}});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
+    (j.models||[]).forEach(m=>{
+      const id=String(m.name||'').replace(/^models\//,'');
+      if(/^gemini/i.test(id)&&(m.supportedGenerationMethods||[]).includes('generateContent'))out.push(id);
+    });
+    tok=j.nextPageToken;if(!tok)break;
+  }
+  return out;
+}
+async function listGroq(key){
+  const r=await fetch('https://api.groq.com/openai/v1/models',{headers:{'Authorization':'Bearer '+key}});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
+  /* chat models only: skip speech, text-to-speech and safety classifiers */
+  return (j.data||[]).filter(m=>m.active!==false&&!/whisper|tts|orpheus|guard|embed/i.test(m.id||'')).map(m=>m.id).sort();
+}
+AIF.gemini.list=listGemini;AIF.groq.list=listGroq;
 let loadingModels=false;
 async function loadModels(){
+  const e=uiEng,f=AIF[e];if(!f)return;
   const key=$('c-key').value.trim(),b=$('c-ref');
   if(!key){showModelHint();return}
   if(loadingModels)return;
   loadingModels=true;b.disabled=true;showModelHint('Loading models...');
   try{
-    const out=[];let tok='';
-    for(let i=0;i<10;i++){
-      const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000'+(tok?'&pageToken='+encodeURIComponent(tok):''),{headers:{'x-goog-api-key':key}});
-      const j=await r.json().catch(()=>({}));
-      if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
-      (j.models||[]).forEach(m=>{
-        const id=String(m.name||'').replace(/^models\//,'');
-        if(/^gemini/i.test(id)&&(m.supportedGenerationMethods||[]).includes('generateContent'))out.push(id);
-      });
-      tok=j.nextPageToken;if(!tok)break;
-    }
+    const out=await f.list(key);
     if(!out.length)throw new Error('The server returned no usable models');
-    CFG.gmodels=[...new Set(out)];saveCfg();
-    fillModels($('c-model').value);showModelHint();
-  }catch(e){showModelHint('Could not load models: '+e.message)}
+    CFG[f.models]=[...new Set(out)];saveCfg();
+    if(uiEng===e){fillModels($('c-model').value);showModelHint()}
+  }catch(err){if(uiEng===e)showModelHint('Could not load models: '+err.message)}
   loadingModels=false;b.disabled=false;
 }
-const gfShow=()=>{const g=$('c-eng').value==='gemini';$('gf').hidden=!g;$('ff').hidden=g};
+/* keep what is typed for the engine being left, then show the fields of the chosen one */
+function aiStash(){
+  const f=AIF[uiEng];if(!f)return;
+  draft[uiEng]={key:$('c-key').value.trim(),model:$('c-model').value||f.def,rpm:$('c-rpmg').value};
+}
+function aiShow(e){
+  uiEng=e;const f=AIF[e];
+  $('gf').hidden=!f;$('ff').hidden=!!f;
+  if(!f)return;
+  const d=draft[e]||{key:CFG[f.key]||'',model:CFG[f.model]||f.def,rpm:CFG[f.rpm]};
+  $('c-klab').textContent=f.name+' API key';$('c-key').placeholder=f.ph;
+  $('c-key').value=d.key;$('c-key').type='password';
+  $('c-rpmg').value=d.rpm;$('c-ghint').textContent=f.hint;
+  fillModels(d.model);showModelHint();
+  if(d.key.trim()&&!(CFG[f.models]||[]).length)loadModels();
+}
 function openCfg(){
-  $('c-eng').value=CFG.eng;$('c-key').value=CFG.gkey;fillModels(CFG.gmodel||DEFMODEL);$('c-notes').value=CFG.gnotes;
-  $('c-rpmg').value=CFG.rpmG;$('c-rpmf').value=CFG.rpmF;
+  draft={};uiEng='';
+  $('c-eng').value=CFG.eng;$('c-notes').value=CFG.gnotes;$('c-rpmf').value=CFG.rpmF;
   document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);$('c-pv').checked=!!CFG.pv;pvUi();glInfo();clRender();clReset();
-  $('c-key').type='password';gfShow();$('cfg').hidden=false;
-  if(CFG.gkey.trim()&&!(CFG.gmodels||[]).length)loadModels();else showModelHint();
+  $('cfg').hidden=false;aiShow(CFG.eng);
 }
 function applyCfg(){
-  CFG.eng=$('c-eng').value;CFG.gkey=$('c-key').value.trim();CFG.gmodel=$('c-model').value||DEFMODEL;CFG.gnotes=$('c-notes').value;
-  const rp=(id,d)=>{const v=$(id).value.trim();return v===''?d:Math.max(0,Math.floor(+v)||0)};
-  CFG.rpmG=rp('c-rpmg',10);CFG.rpmF=rp('c-rpmf',30);
+  CFG.eng=$('c-eng').value;aiStash();CFG.gnotes=$('c-notes').value;
+  const rp=(v,d)=>{v=String(v==null?'':v).trim();return v===''?d:Math.max(0,Math.floor(+v)||0)};
+  for(const e in AIF){const f=AIF[e],d=draft[e];if(!d)continue;CFG[f.key]=d.key;CFG[f.model]=d.model||f.def;CFG[f.rpm]=rp(d.rpm,f.rpmDef)}
+  CFG.rpmF=rp($('c-rpmf').value,30);
   document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);CFG.pv=$('c-pv').checked?1:0;QV++;
   saveCfg();
 }
@@ -648,16 +689,16 @@ $('c-ref').onclick=loadModels;
 $('c-key').onchange=()=>{if($('c-key').value.trim())loadModels()};
 $('c-model').onchange=()=>showModelHint();
 $('c-eye').onclick=()=>{const k=$('c-key');k.type=k.type==='password'?'text':'password'};
-$('c-eng').onchange=gfShow;
+$('c-eng').onchange=()=>{aiStash();aiShow($('c-eng').value)};
 $('cfgb').onclick=openCfg;
 $('c-cancel').onclick=()=>{$('cfg').hidden=true};
 $('c-save').onclick=()=>{applyCfg();$('cfg').hidden=true;render()};
 $('c-test').onclick=async()=>{
   applyCfg();
-  if(CFG.eng!=='gemini'){alert('Select the Gemini engine to test it');return}
-  if(!CFG.gkey){alert('Enter your Gemini API key first');return}
+  if(!aiOn(CFG.eng)){alert('Select an AI engine (Gemini or Groq) to test it');return}
+  if(!aiKey()){alert('Enter your '+engName()+' API key first');return}
   const b=$('c-test');b.disabled=true;
-  try{const t=await geminiTest();alert(t)}
+  try{const t=await (CFG.eng==='groq'?groqTest():geminiTest());alert(t)}
   catch(e){alert('Failed: '+e.message)}
   b.disabled=false;
 };
@@ -669,14 +710,14 @@ $('bclose').onclick=()=>{$('bm').hidden=true};
 $('sa').onchange=()=>{const v=$('sa').checked;shown.forEach(u=>u.sel=v);document.querySelectorAll('.u .sel').forEach(c=>c.checked=v);upd()};
 async function bulkMT(sel){
   const todo=sel.filter(u=>u.rs.trim());
-  if(CFG.eng==='gemini'&&!CFG.gkey.trim()){alert('Enter your Gemini API key in the settings first');openCfg();return}
+  if(aiOn(CFG.eng)&&!aiKey()){alert('Enter your '+engName()+' API key in the settings first');openCfg();return}
   const have=todo.filter(u=>cur(u).trim()).length;
   let list=todo;
   if(have&&!confirm(have+' selected units already have a translation. OK = overwrite them, Cancel = translate empty ones only.'))list=todo.filter(u=>!cur(u).trim());
   if(!list.length){alert('Nothing to translate');return}
   let stop=false,done=0,warn=0,err=null;
   $('pstop').onclick=()=>{stop=true;$('pt').textContent='Stopping...'};
-  const rpm=CFG.eng==='gemini'?CFG.rpmG:CFG.rpmF;
+  const rpm=rpmOf();
   onNet=m=>{$('pt').textContent=m};
   $('prog').hidden=false;
   for(const u of list){
@@ -972,7 +1013,7 @@ function card(u){
   mtb.onclick=async()=>{
     if(!u.rs.trim())return;
     if(u.val!==undefined&&!confirm('Replace your edit with machine translation?'))return;
-    if(CFG.eng==='gemini'&&!CFG.gkey.trim()){alert('Enter your Gemini API key in the settings first');openCfg();return}
+    if(aiOn(CFG.eng)&&!aiKey()){alert('Enter your '+engName()+' API key in the settings first');openCfg();return}
     mtb.disabled=true;mtb.classList.add('on');
     try{const r=await machine(u.rs,u);setText(r.text);setVal(u,r.text);
       if(r.warn)alert(r.msg)}
@@ -1413,7 +1454,7 @@ async function mym(q,sl,tl){
   const t=document.createElement('textarea');t.innerHTML=j.responseData.translatedText;return t.value;
 }
 const lname=c=>{const l=allLangs().find(x=>x[0].toLowerCase()===String(c).toLowerCase());return l?(l[1]?l[1]+' ('+l[0]+')':l[0]):c};
-async function gemini(src,u,sl,tl){
+function mtPrompt(src,u,sl,tl){
   const sys=['You are a professional software localizer for an Android app. Translate the given UI string.',
     'Rules:',
     '- Output ONLY the translation: no quotes, no notes, no code fences.',
@@ -1433,6 +1474,15 @@ async function gemini(src,u,sl,tl){
   const gh=glossHits(src).slice(0,40);
   if(gh.length)info.push('Glossary (use exactly these translations for these terms):\n'+gh.map(h=>'- '+h.s+' => '+h.t).join('\n'));
   const prompt=info.join('\n')+'\n\nSource text'+(sl&&sl!=='auto'?' ('+lname(sl)+')':'')+':\n<<<\n'+src+'\n>>>\n\nTranslate into '+lname(tl)+'. Output only the translation.';
+  return {sys,prompt};
+}
+/* strips code fences / delimiters the model may add, and restores the source's leading and trailing whitespace */
+function mtClean(t,src){
+  t=t.trim().replace(/^```[a-z]*\n?/i,'').replace(/\n?```$/,'').replace(/^<<<\n?/,'').replace(/\n?>>>$/,'').trim();
+  return /^\s*/.exec(src)[0]+t+/\s*$/.exec(src)[0];
+}
+async function gemini(src,u,sl,tl){
+  const {sys,prompt}=mtPrompt(src,u,sl,tl);
   const url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent((CFG.gmodel||DEFMODEL).trim())+':generateContent';
   const headers={'Content-Type':'application/json','x-goog-api-key':CFG.gkey.trim()};
   const base={system_instruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:prompt}]}]};
@@ -1444,8 +1494,26 @@ async function gemini(src,u,sl,tl){
   const c=j.candidates&&j.candidates[0];
   let t=c&&c.content&&c.content.parts?c.content.parts.filter(p=>!p.thought).map(p=>p.text||'').join(''):'';
   if(!t.trim())throw new Error(j.promptFeedback&&j.promptFeedback.blockReason?'Blocked: '+j.promptFeedback.blockReason:'Empty response'+(c&&c.finishReason?' ('+c.finishReason+')':''));
-  t=t.trim().replace(/^```[a-z]*\n?/i,'').replace(/\n?```$/,'').replace(/^<<<\n?/,'').replace(/\n?>>>$/,'').trim();
-  return /^\s*/.exec(src)[0]+t+/\s*$/.exec(src)[0];
+  return mtClean(t,src);
+}
+async function groqChat(messages){
+  const model=(CFG.qmodel||GQDEF).trim();
+  const headers={'Content-Type':'application/json','Authorization':'Bearer '+CFG.qkey.trim()};
+  const r=await net(async()=>{const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers,body:JSON.stringify({model,messages,temperature:0.2})});if(retryable(r.status))throw httpErr(r);return r});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
+  const c=j.choices&&j.choices[0];
+  const t=String((c&&c.message&&c.message.content)||'').replace(/<think>[\s\S]*?<\/think>/g,'').trim();   /* reasoning models may print their thinking */
+  if(!t)throw new Error('Empty response'+(c&&c.finish_reason?' ('+c.finish_reason+')':''));
+  return t;
+}
+async function groq(src,u,sl,tl){
+  const {sys,prompt}=mtPrompt(src,u,sl,tl);
+  return mtClean(await groqChat([{role:'system',content:sys},{role:'user',content:prompt}]),src);
+}
+async function groqTest(){
+  const model=(CFG.qmodel||GQDEF).trim();
+  return groqChat([{role:'user',content:'You are the AI model "'+model+'". Reply with exactly this one sentence and nothing else: Hello! I am '+model+', let\'s start translating!'}]);
 }
 async function geminiTest(){
   const model=(CFG.gmodel||DEFMODEL).trim();
@@ -1479,8 +1547,8 @@ async function machine(src,u){
   if(!tl)throw new Error('Target language not found in file');
   if(src.length>1500)throw new Error('Source too long');
   const quotes=t=>mode==='strings'?t.replace(/(?<!\\)(['"])/g,'\\$1'):t;
-  if(CFG.eng==='gemini'){
-    const out=quotes(await gemini(src,u,sl,mode==='strings'?$('tl').value:tl));
+  if(aiOn(CFG.eng)){
+    const out=quotes(await (CFG.eng==='groq'?groq:gemini)(src,u,sl,mode==='strings'?$('tl').value:tl));
     const a=tokCount(src),b=tokCount(out);let miss=false;a.forEach((n,k)=>{if((b.get(k)||0)!==n)miss=true});
     const bad=new DOMParser().parseFromString(xmlWrap(out),'application/xml').querySelector('parsererror');
     return {text:out,warn:miss||!!bad,msg:bad?'The translation may not be valid XML (check &, < and tags). Please review it.':'Some placeholders differ from the source. Please review the translation.'};
