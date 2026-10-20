@@ -70,7 +70,7 @@ mark.es{background:rgba(102,187,106,.42)}
 .dr{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 .dr button{padding:0 16px}
 #fnw{flex:1;min-width:0}
-#bm,#prog,#ip,#rp,#sf,#gm,#cm{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
+#bm,#prog,#ip,#rp,#sf,#gm,#cm,#sr{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
 #sw{width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex:none}
 .sel,#sa{width:20px;height:20px;accent-color:var(--ac);margin:2px 0 0;flex:none}
 #sa{margin:0}
@@ -143,6 +143,7 @@ body.sm .mi.x{display:none}
 <div id="bm" hidden><div class="dlg"><h3>Selected units</h3><div id="bl"></div><div class="dr"><button id="bclose" type="button">Close</button></div></div></div>
 <div id="ip" hidden><div class="dlg"><h3>Import preview</h3><div id="ips" class="hint"></div><div id="ipl"></div><div class="dr"><button id="ip-c" type="button">Cancel</button><button id="ip-fill" type="button"></button><button id="ip-all" type="button" class="p"></button></div></div></div>
 <div id="rp" hidden><div class="dlg"><h3>XML errors</h3><div id="rps" class="hint"></div><div id="rpl"></div><div class="dr"><button id="rp-c" type="button">No</button><button id="rp-a" type="button" class="p">Save as .txt</button></div></div></div>
+<div id="sr" hidden><div class="dlg"><h3>Restore previous session?</h3><div id="sr-i" class="hint"></div><div class="hint">Your edits, approvals and clipboards from the last session were kept on this device.</div><div class="dr"><button id="sr-d" type="button">Discard</button><button id="sr-r" type="button" class="p">Restore</button></div></div></div>
 <div id="cm" hidden><div class="dlg"><h3 id="cm-h">Clipboard</h3><div id="cm-i" class="hint"></div><div id="cm-l"></div><div class="dr"><button id="cm-c" type="button">Close</button><button id="cm-s" type="button" class="p">Save current</button></div></div></div>
 <div id="gm" hidden><div class="dlg"><h3>Glossary columns</h3><div id="gm-i" class="hint"></div><label>Delimiter<select id="gm-d"><option value="&#9;">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label><label class="ck"><input type="checkbox" id="gm-h"> First row is a header</label><label>Source column<select id="gm-s"></select></label><label>Target column<select id="gm-t"></select></label><div id="gm-p"></div><div class="dr"><button id="gm-c" type="button">Cancel</button><button id="gm-ok" type="button" class="p">Import</button></div></div></div>
 <div id="sf" hidden><div class="dlg"><h3>Save as</h3><button class="mi" data-f="xliff" type="button"></button><button class="mi" data-f="strings" type="button"></button><div class="dr"><button id="sf-c" type="button">Cancel</button></div></div></div>
@@ -174,7 +175,7 @@ trash:'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h1
 const ic=k=>'<svg viewBox="0 0 24 24"><path d="'+IC[k]+'"/></svg>';
 ['open','save','close','prev','next','flt','imp','cfg','bulk','trash'].forEach(k=>$(k==='cfg'?'cfgb':k==='trash'?'cbclr':k).innerHTML=ic(k));
 
-let shown=[],doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,crowdin=false,mode='xliff';
+let shown=[],doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,crowdin=false,mode='xliff',svT=0;
 let RX=false;
 const F={id:1,rn:1,src:1,ctx:1,lbl:1,tgt:1};
 const ga=(t,n)=>{const r=new RegExp('\\s'+n+'=(?:"([^"]*)"|\'([^\']*)\')').exec(t);return r?(r[1]!==undefined?r[1]:r[2]):null};
@@ -715,6 +716,49 @@ async function bulk(a){
   }
   render();
 }
+// ---- Session persistence (IndexedDB): the open file + edits survive the app being closed or killed
+const sIdb=()=>new Promise((res,rej)=>{const r=indexedDB.open('xlfSession',1);r.onupgradeneeded=()=>r.result.createObjectStore('s');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+async function sPut(k,v){try{const db=await sIdb();await new Promise((res,rej)=>{const t=db.transaction('s','readwrite');t.objectStore('s').put(v,k);t.oncomplete=res;t.onerror=t.onabort=()=>rej(t.error)});db.close()}catch(e){}}
+async function sGet(k){try{const db=await sIdb();const v=await new Promise((res,rej)=>{const r=db.transaction('s').objectStore('s').get(k);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});db.close();return v}catch(e){return undefined}}
+async function sessClear(){clearTimeout(svT);try{const db=await sIdb();await new Promise((res,rej)=>{const t=db.transaction('s','readwrite');t.objectStore('s').clear();t.oncomplete=res;t.onerror=()=>rej(t.error)});db.close()}catch(e){}}
+function sessSnap(){
+  const d={};
+  units.forEach((u,i)=>{const o={};
+    if(u.val!==undefined)o.v=u.val;if(u.ap!==undefined)o.a=u.ap?1:0;if(u.tr!==undefined)o.r=u.tr;
+    if(cbHas(u))o.c=u.cb;if(u.sel)o.s=1;if(u.showCtx)o.x=1;
+    if(Object.keys(o).length)d[i]=o});
+  return {t:Date.now(),name,n:units.length,d,ui:{q:$('q').value,F:Object.assign({},F),rx:RX,sz:$('sz').value,so:$('so').value,page}};
+}
+async function sessSave(){if(!doc)return;await sPut('state',sessSnap())}
+function sessDirty(){if(!doc)return;clearTimeout(svT);svT=setTimeout(sessSave,1000)}
+async function sessNew(){await sPut('file',{name,raw,mode});await sessSave()}
+addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&doc){clearTimeout(svT);sessSave()}});
+addEventListener('pagehide',()=>{if(doc){clearTimeout(svT);sessSave()}});
+async function sessCheck(){
+  if(doc)return;
+  const f=await sGet('file'),st=await sGet('state');
+  if(!f||!f.raw||doc)return;
+  const ok=st&&st.name===f.name&&st.d;
+  const ne=ok?Object.values(st.d).filter(o=>o.v!==undefined||o.a!==undefined||o.r!==undefined).length:0;
+  $('sr-i').textContent=f.name+' \u00b7 '+ne+' edited'+(ok?' \u00b7 saved '+new Date(st.t).toLocaleString():'');
+  $('sr-d').onclick=async()=>{$('sr').hidden=true;await sessClear()};
+  $('sr-r').onclick=async()=>{
+    $('sr').hidden=true;
+    const good=await loadText(f.raw,f.name,()=>{
+      if(!ok||st.n!==units.length)return;
+      units.forEach((u,i)=>{const o=st.d[i];if(!o)return;
+        if(o.v!==undefined)u.val=o.v;if(o.a!==undefined)u.ap=!!o.a;if(o.r!==undefined)u.tr=o.r;
+        if(o.c)u.cb=o.c;if(o.s)u.sel=true;if(o.x)u.showCtx=true});
+      const ui=st.ui||{};
+      $('q').value=ui.q||'';Object.assign(F,ui.F||{});RX=!!ui.rx;
+      if(ui.sz!==undefined&&[...$('sz').options].some(o=>o.value===ui.sz)){$('sz').value=ui.sz;size=+ui.sz}
+      if(ui.so&&[...$('so').options].some(o=>o.value===ui.so))$('so').value=ui.so;
+      page=ui.page||0;
+    });
+    if(!good)await sessClear();
+  };
+  $('sr').hidden=false;
+}
 $('open').onclick=()=>{
   if(doc&&edited()&&!confirm('Open another file? Unsaved changes will be lost.'))return;
   $('f').click();
@@ -722,13 +766,16 @@ $('open').onclick=()=>{
 $('f').onchange=async e=>{
   const file=e.target.files[0];if(!file)return;
   const txt=await file.text();
+  await loadText(txt,file.name);e.target.value='';
+};
+async function loadText(txt,fname,pre){
   const d=new DOMParser().parseFromString(txt,'application/xml');
-  if(d.querySelector('parsererror')){e.target.value='';await errorFlow(file.name,txt);return}
+  if(d.querySelector('parsererror')){await errorFlow(fname,txt);return false}
   if(d.documentElement.localName==='resources'){
-    name=file.name;raw=txt;doc=d;page=0;$('q').value='';units=parseStrings(txt);
-    setMode('strings');render();e.target.value='';return}
+    name=fname;raw=txt;doc=d;page=0;$('q').value='';units=parseStrings(txt);
+    setMode('strings');if(pre)pre();render();sessNew();return true}
   setMode('xliff');
-  name=file.name;raw=txt;doc=d;units=[];page=0;$('q').value='';
+  name=fname;raw=txt;doc=d;units=[];page=0;$('q').value='';
   let k=0;
   doc.querySelectorAll('*').forEach(el=>{
     if(el.localName==='trans-unit'||el.localName==='unit'){
@@ -753,12 +800,12 @@ $('f').onchange=async e=>{
       if(ty==='x-crowdin-label'&&tx.trim())u.labels.push(tx.trim());
     }
     u.ct=crowdin?ctxLines(u).join('\n'):''});
-  fillSort();fchips();render();e.target.value='';
-};
+  fillSort();fchips();if(pre){pre();fchips()}render();sessNew();return true;
+}
 $('close').onclick=()=>{
   if(!doc)return;
   if(edited()&&!confirm('Close this file? Unsaved changes will not be saved.'))return;
-  doc=null;raw='';units=[];page=0;$('q').value='';setMode('xliff');render();
+  doc=null;raw='';units=[];page=0;$('q').value='';setMode('xliff');sessClear();render();
 };
 let qt;$('q').oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{page=0;render()},150)};
 $('rx').onclick=()=>{RX=!RX;fchips();page=0;render()};
@@ -882,6 +929,7 @@ function render(){
   upd();
 }
 function upd(){
+  sessDirty();
   $('fn').textContent=doc?name:'No file';
   $('imp').hidden=!doc;
   const nsel=units.filter(x=>x.sel).length;
@@ -1206,6 +1254,7 @@ $('save').onclick=async()=>{
 document.querySelectorAll('.dlg').forEach(d=>{d.setAttribute('role','dialog');d.setAttribute('aria-modal','true')});
 document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const [d,b] of [['cm','cm-c'],['gm','gm-c'],['sf','sf-c'],['ip','ip-c'],['rp','rp-c'],['bm','bclose'],['cfg','c-cancel']])if(!$(d).hidden){e.preventDefault();$(b).click();return}});
 addEventListener('beforeunload',e=>{if(doc&&edited()){e.preventDefault();e.returnValue=''}});
+sessCheck();
 let lastW=innerWidth,rz;addEventListener('resize',()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(rz);rz=setTimeout(()=>fitAll([...document.querySelectorAll('#list .u')]),150)});
 render();
 </script></body></html>
