@@ -188,13 +188,13 @@ trash:'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h1
 const ic=k=>'<svg viewBox="0 0 24 24"><path d="'+IC[k]+'"/></svg>';
 ['open','save','close','prev','next','flt','imp','cfg','bulk'].forEach(k=>$(k==='cfg'?'cfgb':k).innerHTML=ic(k));
 
-let shown=[],doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,crowdin=false,mode='xliff',svT=0;
+let shown=[],doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,crowdin=false,v2=false,mode='xliff',svT=0;
 let RX=false;
 const F={id:1,rn:1,src:1,ctx:1,lbl:1,tgt:1};
 const ga=(t,n)=>{const r=new RegExp('\\s'+n+'=(?:"([^"]*)"|\'([^\']*)\')').exec(t);return r?(r[1]!==undefined?r[1]:r[2]):null};
 const setAttr=(t,n,v)=>{const re=new RegExp('(\\s'+n+'=)(?:"[^"]*"|\'[^\']*\')');
   return re.test(t)?t.replace(re,'$1"'+v+'"'):t.replace(/\s*(\/?>)$/,' '+n+'="'+v+'"$1')};
-const START=/^<(?:trans-unit|unit)\b(?:"[^"]*"|'[^']*'|[^>"'])*>/;
+const START=/^<(?:[\w.\-]+:)?(?:trans-unit|unit)\b(?:"[^"]*"|'[^']*'|[^>"'])*>/;
 const setAp=(u,n)=>{if(n===u.oAp)delete u.ap;else u.ap=n};
 const setTr=(u,n)=>{if(n===u.oTr)delete u.tr;else u.tr=n};
 const changed=u=>u.val!==undefined||u.ap!==undefined||u.tr!==undefined;
@@ -406,7 +406,7 @@ function qaOf(u){
     if(Q.pu&&tcls(s)!==tcls(c))out.push('End punctuation differs');
     if(Q.num){const n1=(s.replace(TOK,' ').match(/\d+/g)||[]).sort().join(),n2=(c.replace(TOK,' ').match(/\d+/g)||[]).sort().join();
       if(n1!==n2)out.push('Numbers differ')}
-    if(Q.xml&&!CFG.pv&&/[<&\x00-\x08\x0B\x0C\x0E-\x1F]/.test(c)&&new DOMParser().parseFromString('<r xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">'+c+'</r>','application/xml').querySelector('parsererror'))out.push('Invalid XML');
+    if(Q.xml&&!CFG.pv&&/[<&\x00-\x08\x0B\x0C\x0E-\x1F]/.test(c)&&new DOMParser().parseFromString(xmlWrap(c),'application/xml').querySelector('parsererror'))out.push('Invalid XML');
     if(Q.gl&&GL.length){const lcc=c.toLowerCase();glossHits(s).forEach(h=>{if(!lcc.includes(h.t.toLowerCase()))out.push('Glossary: '+h.s+' \u2192 '+h.t)})}
     if(Q.len&&u.max){const cl=clen(CFG.pv?pvDec(c):c);if(cl>u.max)out.push('Over max length ('+cl+'/'+u.max+')')}
     if(Q.apo&&!CFG.pv&&mode==='strings'&&!/CDATA/.test(c)&&/(?<!\\)['"]/.test(c.replace(/<[^>]+>/g,'')))out.push('Unescaped quote');
@@ -521,7 +521,7 @@ function buildStrings(){
 }
 const ckey=u=>u.kind==='s'?u.name:u.kind==='p'?u.name+':'+u.sub:u.name+'['+u.sub+']';
 const maskRaw=s=>s.replace(/<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>/g,x=>' '.repeat(x.length));
-const grabTag=(b,n)=>{const r=new RegExp('<'+n+'\\b[^>]*?(?:\\/>|>([\\s\\S]*?)<\\/'+n+'>)').exec(b);return r?(r[1]||''):''};
+const grabTag=(b,n)=>{const r=new RegExp('<(?:[\\w.\\-]+:)?'+n+'\\b[^>]*?(?:\\/>|>([\\s\\S]*?)<\\/(?:[\\w.\\-]+:)?'+n+'>)').exec(b);return r?(r[1]||''):''};
 async function readTranslations(txt){
   if(new DOMParser().parseFromString(txt,'application/xml').querySelector('parsererror'))return null;
   let pairs;
@@ -722,8 +722,9 @@ async function bulk(a){
     if(diff&&!confirm('Replace '+diff+' existing translations with the source text?'))return;
     sel.forEach(u=>setVal(u,u.rs));
   }else{
-    sel.forEach(u=>{if(!u.is12)return;
+    sel.forEach(u=>{if(!(u.is12||u.v2))return;
       if(a==='ap')setAp(u,true);else if(a==='un')setAp(u,false);
+      else if(u.ntr)return;
       else if(a==='hd')setTr(u,'no');else if(a==='sh')setTr(u,'yes')});
   }
   render();
@@ -822,7 +823,7 @@ async function loadText(txt,fname,pre){
   if(info.mode==='other'){busy('');upd(true);alert('This XML file is neither an XLIFF nor an Android strings.xml file (root element: <'+(info.root||'?')+'>).');return false}
   if(!list.length){busy('');upd(true);alert(info.mode==='strings'?'No translatable strings were found in this file.':'No translation units were found in this XLIFF file.');return false}
   GEN++;qaJob++;qaN=0;
-  name=fname;raw=txt;doc={mode:info.mode};units=list;crowdin=!!info.crowdin;WSYNC=sync;
+  name=fname;raw=txt;doc={mode:info.mode};units=list;crowdin=!!info.crowdin;v2=!!info.v2;WSYNC=sync;
   units.forEach(u=>{u._gen=GEN});
   page=0;$('q').value='';
   setMode(info.mode);
@@ -834,7 +835,7 @@ $('close').onclick=()=>{
   if(!doc)return;
   if(edited()&&!confirm('Close this file? Unsaved changes will not be saved.'))return;
   LSEQ++;GEN++;qaJob++;qaN=0;qaBusy=false;WSYNC=false;wDrop();
-  doc=null;raw='';units=[];crowdin=false;page=0;$('q').value='';setMode('xliff');sessClear();render();
+  doc=null;raw='';units=[];crowdin=false;v2=false;page=0;$('q').value='';setMode('xliff');sessClear();render();
 };
 let qt;$('q').oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{page=0;render(1)},150)};
 $('rx').onclick=()=>{RX=!RX;fchips();page=0;render(1)};
@@ -856,8 +857,8 @@ const sortKey=(k,u)=>{
     case 'mod':return changed(u)?0:1;
     case 'qa':return -qaOf(u).length;
     case 'cb':return cbHas(u)?0:1;
-    case 'unap':return u.is12&&!ap?0:1;
-    case 'hid':return u.is12&&tr==='no'?0:1;
+    case 'unap':return (u.is12||u.v2)&&!ap?0:1;
+    case 'hid':return (u.is12||(u.v2&&!u.ntr))&&tr==='no'?0:1;
     case 'untr':return c.trim()===''?0:1;
     case 'same':return c!==''&&c===u.rs?0:1;
     case 'over':return u.max&&clen(c)>u.max?0:1;
@@ -941,7 +942,7 @@ function card(u){
   const sv=CFG.pv?pvDec(u.rs):u.rs;
   q('.src').innerHTML=hlight(sv);
   q('.sc').textContent=clen(sv)+' chars';
-  cxt.textContent=crowdin?(ctxLines(u).join('\n')||'No context'):'For Crowdin Only'
+  cxt.textContent=(crowdin||v2)?(ctxLines(u).join('\n')||(v2?'No notes':'No context')):'For Crowdin Only'
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
   const allow=CFG.pv?pvAllow(u.rs,u.rt,cur(u)):null,P=!!CFG.pv&&pvSafe(cur(u),allow);
   const toTa=r=>P?pvDec(r):r,fromTa=v=>P?pvEnc(v,allow):v;
@@ -954,7 +955,8 @@ function card(u){
     ap.classList.toggle('on',a);ap.title=a?'Approved':'Not approved';
     hd.innerHTML=ic(t==='yes'?'eye':'eyeoff');hd.classList.toggle('on',t==='yes');
     hd.title=t==='yes'?'translate=yes (tap to hide)':'translate=no (tap to unhide)';
-    ap.disabled=hd.disabled=!u.is12;
+    ap.disabled=!(u.is12||u.v2);hd.disabled=!(u.is12||(u.v2&&!u.ntr));
+    if(u.v2)ap.title=a?'state="final" (tap to unapprove)':'Approve (sets state="final")';
     const qe=q('.qa'),iss=qaOf(u);qaSet(u,iss.length>0);qe.hidden=!iss.length;qe.textContent=iss.map(x=>'\u26a0 '+x).join('\n');
     cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;
     const nb=(u.cb||[]).length,ct='Clipboard'+(nb?' ('+nb+'/'+CB_MAX+')':'');
@@ -1009,16 +1011,18 @@ function W_parse(txt,emit){
     return {root,mode:'strings',crowdin:false,total:all.length};
   }
   if(root!=='xliff')return {root,mode:'other',crowdin:false,total:0};
+  const xr=/<(?:[\w.\-]+:)?xliff\b(?:"[^"]*"|'[^']*'|[^>"'])*>/.exec(txt);
+  if(xr&&(/^2/.test(ga(xr[0],'version')||'')||/xliff:document:2\./.test(xr[0])))return W_parse2(txt,emit);
   const crowdin=/tool-id="crowdin"|tool-name="crowdin"/i.test(txt);
-  const mr=maskRaw(txt),re=/<(trans-unit|unit)\b/g;
-  const rSrcTag=/<source(?=[\s>\/])/,rSeg=/<segment(?=[\s>])[\s\S]*?<source(?=[\s>\/])/;
-  const rSrc=/<source\b[^>]*?(?:\/>|>([\s\S]*?)<\/source>)/,rTgt=/<target\b[^>]*?(?:\/>|>([\s\S]*?)<\/target>)/;
-  const rCx=/<context(?=[\s>])([^>]*)>([\s\S]*?)<\/context>/g;
+  const mr=maskRaw(txt),re=/<((?:[\w.\-]+:)?)(trans-unit|unit)\b/g;
+  const rSrcTag=/<(?:[\w.\-]+:)?source(?=[\s>\/])/,rSeg=/<(?:[\w.\-]+:)?segment(?=[\s>])[\s\S]*?<(?:[\w.\-]+:)?source(?=[\s>\/])/;
+  const rSrc=/<(?:[\w.\-]+:)?source\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?source>)/,rTgt=/<(?:[\w.\-]+:)?target\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?target>)/;
+  const rCx=/<(?:[\w.\-]+:)?context(?=[\s>])([^>]*)>([\s\S]*?)<\/(?:[\w.\-]+:)?context>/g,rCx0=/<(?:[\w.\-]+:)?context[\s>]/,rAlt0=/<(?:[\w.\-]+:)?alt-trans[\s>]/,rAlt=/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans>/g;
   let m,k=0,total=0,buf=[];
   while((m=re.exec(mr))){
-    const a=m.index,tag=m[1],idx=k++,e2=txt.indexOf('</'+tag+'>',a),end=e2<0?undefined:e2;
+    const a=m.index,pfx=m[1],tag=m[2],idx=k++,e2=txt.indexOf('</'+pfx+tag+'>',a),end=e2<0?undefined:e2;
     let bm=mr.slice(a,end);
-    if(bm.indexOf('<alt-trans')>=0)bm=bm.replace(/<alt-trans\b[\s\S]*?<\/alt-trans>/g,'');
+    if(rAlt0.test(bm))bm=bm.replace(rAlt,'');
     if(!(tag==='unit'?rSeg:rSrcTag).test(bm))continue;   /* units without a <source> are skipped, but still counted in idx */
     const b=txt.slice(a,end),sm=START.exec(b),stg=sm?sm[0]:'';
     const s1=rSrc.exec(b),t1=rTgt.exec(b);
@@ -1026,7 +1030,7 @@ function W_parse(txt,emit){
       rn:ga(stg,'resname')||ga(stg,'name')||'',oAp:ga(stg,'approved')==='yes',oTr:ga(stg,'translate')==='no'?'no':'yes',
       ctx:[],labels:[],max:0,ct:''};
     const mw=ga(stg,'maxwidth');if(ga(stg,'size-unit')==='char'&&/^\d+$/.test(mw||''))u.max=+mw;
-    if(b.indexOf('<context')>=0){
+    if(rCx0.test(b)){
       rCx.lastIndex=0;let cm;
       while((cm=rCx.exec(b))){
         const ty=ga(cm[1],'context-type')||'context',tx=cm[2];u.ctx.push(ty+': '+tx);
@@ -1040,13 +1044,47 @@ function W_parse(txt,emit){
   if(buf.length)emit(buf);
   return {root,mode:'xliff',crowdin,total};
 }
+/* XLIFF 2.x, core only: <unit id name translate>, <notes><note>, <segment state>, <source>, <target>.
+   Every <segment> is one item (a unit with several segments gives id#segmentId). Anything else is kept untouched. */
+function W_parse2(txt,emit){
+  const mr=maskRaw(txt),reU=/<((?:[\w.\-]+:)?)unit\b/g,reSg=/<((?:[\w.\-]+:)?)segment\b(?:"[^"]*"|'[^']*'|[^>"'])*>/g;
+  const rSrc=/<(?:[\w.\-]+:)?source\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?source>)/,rTgt=/<(?:[\w.\-]+:)?target\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?target>)/;
+  const rNote=/<(?:[\w.\-]+:)?note\b([^>]*)>([\s\S]*?)<\/(?:[\w.\-]+:)?note>/g;
+  let m,k=0,total=0,buf=[];
+  while((m=reU.exec(mr))){
+    const a=m.index,pf=m[1],e2=txt.indexOf('</'+pf+'unit>',a);
+    if(e2<0)break;
+    const b=txt.slice(a,e2),bm=mr.slice(a,e2),sm=START.exec(b),stg=sm?sm[0]:'';
+    const notes=[];let nm;rNote.lastIndex=0;
+    while((nm=rNote.exec(bm))){
+      const full=b.slice(nm.index,nm.index+nm[0].length),tx=full.slice(full.indexOf('>')+1,full.lastIndexOf('</'));
+      if(tx.trim())notes.push((ga(nm[1],'category')||'note')+': '+tx)}
+    const sgs=[];let sg;reSg.lastIndex=0;
+    while((sg=reSg.exec(bm))){const sa=sg.index,se=bm.indexOf('</'+sg[1]+'segment>',sa);if(se<0)break;sgs.push([sa,se,sg[0]]);reSg.lastIndex=se}
+    const uid=W_dec(ga(stg,'id')||''),nme=ga(stg,'name')||'',many=sgs.length>1;
+    sgs.forEach(([sa,se,tag],i)=>{
+      const idx=k++,body=txt.slice(a+sa,a+se),s1=rSrc.exec(body),t1=rTgt.exec(body);
+      if(!s1)return;   /* counted in idx, but nothing to translate */
+      const sid=ga(tag,'id')||String(i+1),st=ga(tag,'state')||'initial';
+      const u={idx,id:many?uid+'#'+sid:uid,rs:s1[1]||'',rt:t1?(t1[1]||''):'',is12:false,v2:true,ntr:many,
+        rn:many&&nme?nme+'#'+sid:nme,oAp:st==='final',oTr:ga(stg,'translate')==='no'?'no':'yes',
+        ctx:notes.slice(),labels:[],max:0,ct:''};
+      u.ct=ctxLines(u).join('\n');
+      buf.push(u);total++;
+      if(buf.length>=3000){emit(buf);buf=[]}
+    });
+    reU.lastIndex=e2;
+  }
+  if(buf.length)emit(buf);
+  return {root:'xliff',mode:'xliff',crowdin:false,v2:true,total};
+}
 /* translations of a file chosen with "Import": [[key,text],...] */
 function W_trans(txt){
   const mp=new Map();
   if(W_root(txt)==='resources'){
     parseStrings(txt).forEach(x=>{if(x.rs.trim())mp.set(ckey(x),x.rs)});
   }else{
-    const re=/<(trans-unit|unit)\b[\s\S]*?<\/\1>/g;let m;
+    const re=/<((?:[\w.\-]+:)?(?:trans-unit|unit))\b[\s\S]*?<\/\1>/g;let m;
     while((m=re.exec(txt))){
       const b=m[0],st=START.exec(b),tg=st?st[0]:'';
       const k=ga(tg,'resname')||ga(tg,'name')||W_dec(ga(tg,'id')||''),v=grabTag(b,'target');
@@ -1087,8 +1125,8 @@ function W_query(U,LC,p){
       switch(sk){
         case 'mod':return d&&(d.v!==undefined||d.a!==undefined||d.r!==undefined)?0:1;
         case 'cb':return d&&d.c?0:1;
-        case 'unap':return u.is12&&!ap?0:1;
-        case 'hid':return u.is12&&tr==='no'?0:1;
+        case 'unap':return (u.is12||u.v2)&&!ap?0:1;
+        case 'hid':return (u.is12||(u.v2&&!u.ntr))&&tr==='no'?0:1;
         case 'untr':return c.trim()===''?0:1;
         case 'same':return c!==''&&c===u.rs?0:1;
         case 'over':return u.max&&clen(c)>u.max?0:1;
@@ -1115,7 +1153,7 @@ function W_main(){
         const all=[];
         const info=W_parse(m.txt,function(c){for(let i=0;i<c.length;i++)all.push(c[i]);postMessage({t:'chunk',id:m.id,units:c})});
         U=all;LC={};
-        postMessage({t:'done',id:m.id,root:info.root,mode:info.mode,crowdin:info.crowdin,total:info.total});
+        postMessage({t:'done',id:m.id,root:info.root,mode:info.mode,crowdin:info.crowdin,v2:info.v2,total:info.total});
       }else if(m.t==='query'){
         const r=W_query(U,LC,m);
         postMessage({t:'qres',id:m.id,bad:r.bad,idx:r.idx},[r.idx.buffer]);
@@ -1130,7 +1168,7 @@ function W_main(){
 const workerSrc=()=>[
   'const ga='+ga,'const START='+START,'const maskRaw='+maskRaw,'const clen='+clen,'const ctxLines='+ctxLines,
   'const ckey='+ckey,'const grabTag='+grabTag,'const W_dec='+W_dec,
-  parseStrings,W_root,W_parse,W_trans,W_query,
+  parseStrings,W_root,W_parse,W_parse2,W_trans,W_query,
   'const XNAME='+JSON.stringify(XNAME),'const NAME_RX='+NAME_RX,'const CLOSE_RX='+CLOSE_RX,'const ATTR_RX='+ATTR_RX,'const validCP='+validCP,
   checkXml,'('+W_main+')()'
 ].join(';\n');
@@ -1272,7 +1310,7 @@ const sortByQa=f=>f.map((u,i)=>[u,i,-qaOf(u).length]).sort((a,b)=>a[2]-b[2]||a[1
 /* top=true: the search / filter / sort / page size changed, so start again from the top */
 function render(top){
   const seq=++RSEQ,L=$('list');
-  const nc=!!doc&&mode==='xliff'&&!crowdin;document.body.classList.toggle('nc',nc);
+  const nc=!!doc&&mode==='xliff'&&!crowdin&&!v2;document.body.classList.toggle('nc',nc);
   if(!doc){
     vsOff();L.classList.remove('wait');shown=[];vsCap=0;
     L.innerHTML='<div id="empty">Tap the folder icon to open a .xlf / .xliff or strings.xml file</div>';pages=1;page=0;upd();return;
@@ -1337,7 +1375,7 @@ function upd(quiet){
       if(x.sel)nsel++;if(x.cb&&x.cb.length)ncb++;
       if(sm&&cur(x).trim())nd++}}
   const nqa=doc?qaN:0;
-  $('info').textContent=!doc?'':(mode==='strings'?`${nd} / ${units.length} done`:`${ne} edited / ${units.length}`)+(nqa?` \u00b7 ${nqa}${qaBusy?'+':''} QA issues`:'')+(vsCap?` \u00b7 first ${vsCap.toLocaleString()} shown`:'');
+  $('info').textContent=!doc?'':(mode==='strings'?`${nd} / ${units.length} done`:(v2?'XLIFF 2.0 \u00b7 ':'')+`${ne} edited / ${units.length}`)+(nqa?` \u00b7 ${nqa}${qaBusy?'+':''} QA issues`:'')+(vsCap?` \u00b7 first ${vsCap.toLocaleString()} shown`:'');
   $('selc').textContent=nsel+' selected';$('selc').hidden=!doc||!nsel;
   $('bulk').disabled=!nsel;
   const sc=shown.filter(x=>x.sel).length;
@@ -1355,7 +1393,7 @@ function upd(quiet){
 const lc=c=>{if(!c||c==='auto')return c;const l=c.toLowerCase();
   if(l.startsWith('zh'))return /tw|hk|hant/.test(l)?'zh-TW':'zh-CN';return l.split(/[-_]/)[0]};
 function langs(){
-  const ft=/<file\b[^>]*>/.exec(raw),xt=/<xliff\b[^>]*>/.exec(raw);
+  const ft=/<(?:[\w.\-]+:)?file\b[^>]*>/.exec(raw),xt=/<(?:[\w.\-]+:)?xliff\b[^>]*>/.exec(raw);
   const g=(t,n)=>t?ga(t[0],n):null;
   return {sl:lc(g(ft,'source-language')||g(xt,'srcLang')||'auto'),tl:lc(g(ft,'target-language')||g(xt,'trgLang'))};
 }
@@ -1389,7 +1427,7 @@ async function gemini(src,u,sl,tl){
   const info=['Key: '+(mode==='strings'?u.id:(u.rn||u.id))];
   if(u.kind==='p')info.push('Plural quantity: '+u.sub);
   if(u.kind==='a')info.push('Array item index: '+u.sub);
-  if(crowdin&&ctxLines(u).length)info.push('Context: '+ctxLines(u).join('; '));
+  if((crowdin||v2)&&ctxLines(u).length)info.push('Context: '+ctxLines(u).join('; '));
   if(u.labels&&u.labels.length)info.push('Label: '+u.labels.join(', '));
   if(u.max)info.push('Maximum length of the translation: '+u.max+' characters (hard limit)');
   const gh=glossHits(src).slice(0,40);
@@ -1424,6 +1462,17 @@ async function geminiTest(){
   if(!t)throw new Error(j.promptFeedback&&j.promptFeedback.blockReason?'Blocked: '+j.promptFeedback.blockReason:'Empty response');
   return t;
 }
+/* wrapper for checking a fragment: declares every namespace prefix of the open file (default: xliff) */
+let _nsRaw=null,_nsDecl='';
+function xmlWrap(x){
+  if(_nsRaw!==raw){
+    _nsRaw=raw;const t=/<(?:[\w.\-]+:)?xliff\b(?:"[^"]*"|'[^']*'|[^>"'])*>/.exec(raw||''),d=[];
+    if(t){const rx=/\sxmlns:([\w.\-]+)\s*=\s*("[^"]*"|'[^']*')/g;let m;while((m=rx.exec(t[0])))d.push('xmlns:'+m[1]+'='+m[2])}
+    if(!d.some(a=>a.startsWith('xmlns:xliff=')))d.push('xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2"');
+    _nsDecl=d.join(' ');
+  }
+  return '<r '+_nsDecl+'>'+x+'</r>';
+}
 const tokCount=t=>{const m=new Map();(t.match(TOK)||[]).forEach(x=>m.set(x,(m.get(x)||0)+1));return m};
 async function machine(src,u){
   const {sl,tl}=mode==='strings'?{sl:'auto',tl:lc($('tl').value)}:langs();
@@ -1433,7 +1482,7 @@ async function machine(src,u){
   if(CFG.eng==='gemini'){
     const out=quotes(await gemini(src,u,sl,mode==='strings'?$('tl').value:tl));
     const a=tokCount(src),b=tokCount(out);let miss=false;a.forEach((n,k)=>{if((b.get(k)||0)!==n)miss=true});
-    const bad=new DOMParser().parseFromString('<r xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">'+out+'</r>','application/xml').querySelector('parsererror');
+    const bad=new DOMParser().parseFromString(xmlWrap(out),'application/xml').querySelector('parsererror');
     return {text:out,warn:miss||!!bad,msg:bad?'The translation may not be valid XML (check &, < and tags). Please review it.':'Some placeholders differ from the source. Please review the translation.'};
   }
   const toks=[];
@@ -1605,10 +1654,10 @@ async function errorFlow(name,txt){
 /* ---------- Export as strings.xml (XLIFF mode) ---------- */
 async function exportStrings(){
   if(!doc||mode!=='xliff')return;
-  const wrap=x=>'<r xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">'+x+'</r>';
+  const wrap=xmlWrap;
   const parse=x=>new DOMParser().parseFromString(wrap(x),'application/xml');
   const items=[],seen=new Set();
-  let empty=0,hidden=0,dup=0,kept=0,tags=0,quoted=0;const badName=[],badXml=[];
+  let empty=0,hidden=0,dup=0,kept=0,tags=0,quoted=0,v2tags=0;const badName=[],badXml=[];
   let nIt=0;
   for(const u of units){
     if(++nIt%300===0){busy('Preparing export\u2026 '+nIt+' / '+units.length);await new Promise(r=>setTimeout(r,0))}
@@ -1616,6 +1665,7 @@ async function exportStrings(){
     const c=cur(u);if(!c.trim()){empty++;continue}
     if(!/^[A-Za-z_][A-Za-z0-9_.]*$/.test(u.rn||'')){badName.push(u.rn||u.id);continue}
     if(seen.has(u.rn)){dup++;continue}
+    if(v2&&/<[^>]+>/.test(c)){v2tags++;continue}
     const d=parse(c);if(d.querySelector('parsererror')){badXml.push(u.rn);continue}
     let text=c;
     if(crowdin){
@@ -1634,6 +1684,7 @@ async function exportStrings(){
   if(badName.length)lines.push('Skipped (resname missing or not a valid Android name): '+badName.length);
   if(dup)lines.push('Skipped (duplicate resname): '+dup);
   if(badXml.length)lines.push('Skipped (invalid XML in translation): '+badXml.length);
+  if(v2tags)lines.push('Skipped (contains XLIFF 2.0 inline codes): '+v2tags);
   if(tags)lines.push('Inline XLIFF tags flattened to text: '+tags);
   if(quoted)lines.push('Quotes escaped for Android (\\\' and \\\"): '+quoted);
   if(kept)lines.push('Kept in their XLIFF form (not valid after decoding): '+kept);
@@ -1656,14 +1707,45 @@ function askFormat(){
     $('sf').hidden=false;
   });
 }
+/* XLIFF 2.x: edits the matching <segment> (target + state) and <unit translate=...> in place */
+function buildXlf2(){
+  const mr=maskRaw(raw),reU=/<((?:[\w.\-]+:)?)unit\b/g,reSg=/<((?:[\w.\-]+:)?)segment\b(?:"[^"]*"|'[^']*'|[^>"'])*>/g;
+  const want=new Map(units.filter(changed).map(u=>[u.idx,u])),ops=[];
+  const rTag=/^<(?:[\w.\-]+:)?segment\b(?:"[^"]*"|'[^']*'|[^>"'])*>/;
+  const tre=/<((?:[\w.\-]+:)?)target\b([^>]*?)\s*(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?target>)/;
+  const sre=/([ \t]*)<((?:[\w.\-]+:)?)source\b[^>]*?(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?source>)/;
+  let m,k=0;
+  while((m=reU.exec(mr))){
+    const a=m.index,pf=m[1],e2=raw.indexOf('</'+pf+'unit>',a);if(e2<0)break;
+    const bm=mr.slice(a,e2),sgs=[];let sg;reSg.lastIndex=0;
+    while((sg=reSg.exec(bm))){const sa=sg.index,se=bm.indexOf('</'+sg[1]+'segment>',sa);if(se<0)break;sgs.push([sa,se]);reSg.lastIndex=se}
+    for(const [sa,se] of sgs){
+      const u=want.get(k++);if(!u)continue;
+      let blk=raw.slice(a+sa,a+se);
+      if(u.val!==undefined){
+        if(tre.test(blk))blk=blk.replace(tre,(_,p,at)=>'<'+p+'target'+at+'>'+u.val+'</'+p+'target>');
+        else blk=blk.replace(sre,(x,ind,p)=>x+'\n'+ind+'<'+p+'target>'+u.val+'</'+p+'target>');
+      }
+      const tg=rTag.exec(blk),st=(tg&&ga(tg[0],'state'))||'initial';let ns=null;
+      if(u.ap!==undefined)ns=u.ap?'final':(cur(u).trim()?'translated':'initial');
+      else if(u.val!==undefined&&u.val.trim()&&st==='initial')ns='translated';
+      if(ns&&ns!==st)blk=blk.replace(rTag,t=>setAttr(t,'state',ns));
+      ops.push({s:a+sa,e:a+se,t:blk});
+      if(u.tr!==undefined&&!u.ntr){const sm=START.exec(raw.slice(a,e2));if(sm)ops.push({s:a,e:a+sm[0].length,t:setAttr(sm[0],'translate',u.tr)})}
+    }
+  }
+  let out=raw;ops.sort((x,y)=>y.s-x.s).forEach(o=>{out=out.slice(0,o.s)+o.t+out.slice(o.e)});
+  return out;
+}
 $('save').onclick=async()=>{
   if(!doc){alert('No file open');return}
   if(mode==='xliff'){const f=await askFormat();if(!f)return;if(f==='strings'){await exportStrings();return}}
   let out,outName=name;
   if(mode==='strings'){out=buildStrings();outName='strings-'+$('tl').value+'.xml'}
+  else if(v2){out=buildXlf2()}
   else{
-  const starts=[];const re=/<(trans-unit|unit)\b/g;let m;
-  for(const mr=maskRaw(raw);(m=re.exec(mr));)starts.push([m.index,m[1]]);
+  const starts=[];const re=/<((?:[\w.\-]+:)?)(trans-unit|unit)\b/g;let m;
+  for(const mr=maskRaw(raw);(m=re.exec(mr));)starts.push([m.index,m[1]+m[2]]);
   const ed=units.filter(changed).sort((x,y)=>x.idx-y.idx),parts=[];let pos=0;
   for(const u of ed){
     const sx=starts[u.idx];if(!sx)continue;
@@ -1671,12 +1753,12 @@ $('save').onclick=async()=>{
     let en=raw.indexOf('</'+tag+'>',st);if(en<0)continue;
     let blk=raw.slice(st,en);
     if(u.val!==undefined){
-    const tre=/<target\b([^>]*?)\s*(?:\/>|>[\s\S]*?<\/target>)/;
+    const tre=/<((?:[\w.\-]+:)?)target\b([^>]*?)\s*(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?target>)/;
     if(tre.test(blk)){
-      blk=blk.replace(tre,(_,at)=>'<target'+at+'>'+u.val+'</target>');
+      blk=blk.replace(tre,(_,pf,at)=>'<'+pf+'target'+at+'>'+u.val+'</'+pf+'target>');
     }else{
-      blk=blk.replace(/([ \t]*)<source\b[^>]*?(?:\/>|>[\s\S]*?<\/source>)/,
-        (x,ind)=>x+'\n'+ind+'<target>'+u.val+'</target>');
+      blk=blk.replace(/([ \t]*)<((?:[\w.\-]+:)?)source\b[^>]*?(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?source>)/,
+        (x,ind,pf)=>x+'\n'+ind+'<'+pf+'target>'+u.val+'</'+pf+'target>');
     }}
     blk=blk.replace(START,t=>{
       if(u.ap!==undefined)t=setAttr(t,'approved',u.ap?'yes':'no');
