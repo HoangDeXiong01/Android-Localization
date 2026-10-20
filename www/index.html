@@ -133,6 +133,8 @@ body.sm .mi.x{display:none}
 <div id="cl-list"></div>
 <div class="kr"><input id="cl-code" placeholder="Code, e.g. pt-BR" autocomplete="off" spellcheck="false"><input id="cl-name" placeholder="Name (optional)" autocomplete="off"></div>
 <div class="dr" style="margin-top:8px"><button id="cl-cancel" type="button" hidden>Cancel</button><button id="cl-save" type="button">Add</button></div>
+<label class="ck"><input type="checkbox" id="c-pv"> Edit on preview</label>
+<div class="hint">Shows text as it is displayed (&amp;amp; appears as &amp;) and escapes it again automatically when saved: quotes become &amp;quot; and &amp;apos; in XLIFF, \" and \' in strings.xml. The Valid XML QA check is unavailable while this is on.</div>
 <label>QA checks</label>
 <div id="qac"></div>
 <div class="dr"><button id="c-test" type="button">Test</button><button id="c-cancel" type="button">Close</button><button id="c-save" type="button" class="p">Save</button></div>
@@ -183,11 +185,49 @@ const cur=u=>u.val!==undefined?u.val:u.rt;
 const edited=()=>units.filter(changed).length;
 const setVal=(u,v)=>{if(v===u.rt)delete u.val;else u.val=v};
 
+// Edit on preview: raw XML content <-> text shown to the translator
+const PV_TAG=/<!\[CDATA\[[\s\S]*?\]\]>|<!--[\s\S]*?-->|<\/?[A-Za-z_][^<>]*>/;
+const PV_TOK=new RegExp(PV_TAG.source+'|&(?:[A-Za-z][\\w.-]*|#\\d+|#x[0-9A-Fa-f]+);','g');
+const pvXe=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const pvIsDec=m=>/^&(?:amp|lt|gt|quot|apos);$/.test(m);
+const PV_EN={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'"};
+// strings.xml: \' and \" are shown as ' and ", other backslash escapes stay visible
+const pvTxt=t=>t.replace(mode==='strings'?/\\[\s\S]|&(amp|lt|gt|quot|apos);/g:/&(amp|lt|gt|quot|apos);/g,(m,n)=>m[0]==='\\'?(m[1]==="'"||m[1]==='"'?m[1]:m):PV_EN[n]);
+// text -> XML content: & < > always; quotes as &quot; &apos; (XLIFF) or \" \' (strings.xml)
+function pvQ(t){let o='',bs=0;for(const c of t){if(c==='\\'){bs++;o+=c;continue}o+=(c==="'"||c==='"')&&!(bs%2)?'\\'+c:c;bs=0}return o}
+const pvSeg=t=>{t=pvXe(t);return mode==='strings'?pvQ(t):t.replace(/"/g,'&quot;').replace(/'/g,'&apos;')};
+function pvDec(raw){
+  let out='',last=0;
+  raw.replace(new RegExp(PV_TAG.source,'g'),(m,off)=>{out+=pvTxt(raw.slice(last,off))+m;last=off+m.length;return m});
+  return out+pvTxt(raw.slice(last));
+}
+// Tags / entities that may stay as markup when typed (those already in the source or the translation)
+function pvAllow(...raws){
+  const a=new Set();
+  raws.forEach(r=>(r||'').replace(new RegExp(PV_TOK.source,'g'),m=>{if(!m.startsWith('<!')&&!pvIsDec(m))a.add(m);return m}));
+  return a;
+}
+function pvEnc(t,allow){
+  let out='',last=0;
+  t.replace(new RegExp(PV_TOK.source,'g'),(m,off)=>{
+    out+=pvSeg(t.slice(last,off))+(m.startsWith('<!')||allow.has(m)?m:pvSeg(m));last=off+m.length;return m});
+  return out+pvSeg(t.slice(last));
+}
+// XLIFF content -> strings.xml content: quotes become \' and \" (used when exporting an XLIFF as strings.xml)
+function pvToAndroid(c){
+  const f=t=>pvQ(t.replace(/&quot;/g,'"').replace(/&apos;/g,"'"));
+  let o='',last=0;
+  c.replace(new RegExp(PV_TAG.source,'g'),(m,off)=>{o+=f(c.slice(last,off))+m;last=off+m.length;return m});
+  return o+f(c.slice(last));
+}
+const pvNorm=t=>{t=t.replace(/&gt;/g,'>');return mode==='strings'?t.replace(/&quot;/g,'\\"').replace(/&apos;/g,"\\'"):t.replace(/&quot;/g,'"').replace(/&apos;/g,"'")};
+const pvSafe=(raw,allow)=>pvNorm(pvEnc(pvDec(raw),allow))===pvNorm(raw);
+
 const DEFMODEL='gemini-3.6-flash';
 const QALAB=[['ph','Placeholders & tags'],['ws','Spaces & line breaks'],['dsp','Double spaces'],['pu','End punctuation'],['num','Numbers'],['xml','Valid XML'],['gl','Glossary terms'],['apo','Unescaped quotes (strings.xml)'],['len','Max length'],['hid','Also check hidden units (translate=no)']];
 const QADEF={ph:1,ws:1,dsp:1,pu:1,num:1,xml:1,gl:1,apo:1,len:1,hid:1};
 let QV=0;
-const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],gnotes:'',rpmG:10,rpmF:30,qa:{}};
+const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],gnotes:'',rpmG:10,rpmF:30,pv:0,qa:{}};
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
 CFG.qa=Object.assign({},QADEF,CFG.qa||{});
 const saveCfg=()=>{try{localStorage.setItem('cfg',JSON.stringify(CFG))}catch(e){}};
@@ -321,9 +361,9 @@ function qaOf(u){
     if(Q.pu&&tcls(s)!==tcls(c))out.push('End punctuation differs');
     if(Q.num){const n1=(s.replace(TOK,' ').match(/\d+/g)||[]).sort().join(),n2=(c.replace(TOK,' ').match(/\d+/g)||[]).sort().join();
       if(n1!==n2)out.push('Numbers differ')}
-    if(Q.xml&&/[<&\x00-\x08\x0B\x0C\x0E-\x1F]/.test(c)&&new DOMParser().parseFromString('<r xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">'+c+'</r>','application/xml').querySelector('parsererror'))out.push('Invalid XML');
+    if(Q.xml&&!CFG.pv&&/[<&\x00-\x08\x0B\x0C\x0E-\x1F]/.test(c)&&new DOMParser().parseFromString('<r xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">'+c+'</r>','application/xml').querySelector('parsererror'))out.push('Invalid XML');
     if(Q.gl&&GL.length){const lcc=c.toLowerCase();glossHits(s).forEach(h=>{if(!lcc.includes(h.t.toLowerCase()))out.push('Glossary: '+h.s+' \u2192 '+h.t)})}
-    if(Q.len&&u.max&&clen(c)>u.max)out.push('Over max length ('+clen(c)+'/'+u.max+')');
+    if(Q.len&&u.max){const cl=clen(CFG.pv?pvDec(c):c);if(cl>u.max)out.push('Over max length ('+cl+'/'+u.max+')')}
     if(Q.apo&&mode==='strings'&&!/CDATA/.test(c)&&/(?<!\\)['"]/.test(c.replace(/<[^>]+>/g,'')))out.push('Unescaped quote');
   }
   u._qk=k;u._qa=out;return out;
@@ -535,7 +575,7 @@ const gfShow=()=>{const g=$('c-eng').value==='gemini';$('gf').hidden=!g;$('ff').
 function openCfg(){
   $('c-eng').value=CFG.eng;$('c-key').value=CFG.gkey;fillModels(CFG.gmodel||DEFMODEL);$('c-notes').value=CFG.gnotes;
   $('c-rpmg').value=CFG.rpmG;$('c-rpmf').value=CFG.rpmF;
-  document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);glInfo();clRender();clReset();
+  document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);$('c-pv').checked=!!CFG.pv;pvUi();glInfo();clRender();clReset();
   $('c-key').type='password';gfShow();$('cfg').hidden=false;
   if(CFG.gkey.trim()&&!(CFG.gmodels||[]).length)loadModels();else showModelHint();
 }
@@ -543,10 +583,12 @@ function applyCfg(){
   CFG.eng=$('c-eng').value;CFG.gkey=$('c-key').value.trim();CFG.gmodel=$('c-model').value||DEFMODEL;CFG.gnotes=$('c-notes').value;
   const rp=(id,d)=>{const v=$(id).value.trim();return v===''?d:Math.max(0,Math.floor(+v)||0)};
   CFG.rpmG=rp('c-rpmg',10);CFG.rpmF=rp('c-rpmf',30);
-  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);QV++;
+  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);CFG.pv=$('c-pv').checked?1:0;QV++;
   saveCfg();
 }
 $('qac').innerHTML=QALAB.map(([k,t])=>'<label class="ck"><input type="checkbox" data-q="'+k+'"> '+t+'</label>').join('');
+function pvUi(){const x=document.querySelector('#qac input[data-q="xml"]');if(x){x.disabled=$('c-pv').checked;x.parentElement.style.opacity=x.disabled?.5:''}}
+$('c-pv').onchange=pvUi;
 function glInfo(){$('g-info').textContent=GL.length?GL.length+' terms \u00b7 e.g. '+GL.slice(0,2).map(e=>e.s+' \u2192 '+e.t).join(', '):'No glossary loaded'}
 $('g-imp').onclick=()=>$('f3').click();
 $('f3').onchange=async e=>{
@@ -729,13 +771,16 @@ function card(u){
   const cb=q('.sel');cb.setAttribute('aria-label','Select unit');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
   q('.id').textContent=u.id;q('.rn').textContent=u.rn;q('.rn').hidden=!u.rn;
   q('.lb').textContent=u.labels.length?'Label: '+u.labels.join(', '):'';q('.lb').hidden=!u.labels.length;
-  q('.src').innerHTML=hlight(u.rs);
-  q('.sc').textContent=clen(u.rs)+' chars';
+  const sv=CFG.pv?pvDec(u.rs):u.rs;
+  q('.src').innerHTML=hlight(sv);
+  q('.sc').textContent=clen(sv)+' chars';
   cxt.textContent=crowdin?(ctxLines(u).join('\n')||'No context'):'For Crowdin Only'
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
-  const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=clen(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars';tc.classList.toggle('over',!!u.max&&n>u.max)};
-  const setText=v=>{ta.value=v;paint();fit()};
-  ta.value=cur(u);ta.setAttribute('aria-label','Translation');paint();
+  const allow=CFG.pv?pvAllow(u.rs,u.rt,cur(u)):null,P=!!CFG.pv&&pvSafe(cur(u),allow);
+  const toTa=r=>P?pvDec(r):r,fromTa=v=>P?pvEnc(v,allow):v;
+  const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=clen(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars'+(CFG.pv&&!P?' \u00b7 raw':'');tc.classList.toggle('over',!!u.max&&n>u.max)};
+  const setText=v=>{ta.value=toTa(v);paint();fit()};
+  ta.value=toTa(cur(u));ta.setAttribute('aria-label','Translation');paint();
   const refresh=()=>{
     const a=u.ap!==undefined?u.ap:u.oAp,t=u.tr!==undefined?u.tr:u.oTr;
     d.classList.toggle('ch',changed(u));un.disabled=!changed(u);
@@ -747,7 +792,7 @@ function card(u){
     cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;
   };
   const sync=()=>{refresh();upd()};
-  ta.oninput=()=>{setVal(u,ta.value);paint();fit();sync()};
+  ta.oninput=()=>{setVal(u,fromTa(ta.value));paint();fit();sync()};
   cp.onclick=()=>{setText(u.rs);setVal(u,u.rs);sync()};
   un.onclick=()=>{setText(u.rt);delete u.val;delete u.ap;delete u.tr;sync()};
   ap.onclick=()=>{setAp(u,!(u.ap!==undefined?u.ap:u.oAp));sync()};
@@ -775,8 +820,8 @@ function render(){
     hit=v=>!bad&&re.test(v||'')}
   else{const ql=qs.toLowerCase();hit=v=>(v||'').toLowerCase().includes(ql)}
   $('q').classList.toggle('bad',bad);
-  const q=qs;
-  let f=units.filter(u=>!q||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(!nc&&F.ctx&&hit(u.ct))||(!nc&&F.lbl&&hit((u.labels||[]).join(' ')))||(F.tgt&&hit(cur(u))));
+  const q=qs,sv=t=>CFG.pv?pvDec(t):t;
+  let f=units.filter(u=>!q||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(sv(u.rs)))||(!nc&&F.ctx&&hit(u.ct))||(!nc&&F.lbl&&hit((u.labels||[]).join(' ')))||(F.tgt&&hit(sv(cur(u)))));
   const sk=$('so').value;
   if(sk!=='none')f=f.map((u,i)=>[u,i,sortKey(sk,u)]).sort((a,b)=>a[2]-b[2]||a[1]-b[1]).map(x=>x[0]);
   pages=size>0?Math.max(1,Math.ceil(f.length/size)):1;
@@ -1029,7 +1074,7 @@ async function exportStrings(){
   const wrap=x=>'<r xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">'+x+'</r>';
   const parse=x=>new DOMParser().parseFromString(wrap(x),'application/xml');
   const items=[],seen=new Set();
-  let empty=0,hidden=0,dup=0,kept=0,tags=0;const badName=[],badXml=[];
+  let empty=0,hidden=0,dup=0,kept=0,tags=0,quoted=0;const badName=[],badXml=[];
   units.forEach(u=>{
     if((u.tr!==undefined?u.tr:u.oTr)==='no'){hidden++;return}
     const c=cur(u);if(!c.trim()){empty++;return}
@@ -1042,6 +1087,7 @@ async function exportStrings(){
       const dec=d.documentElement.textContent;
       if(parse(dec).querySelector('parsererror'))kept++;else text=dec;
     }
+    if(CFG.pv){const t2=pvToAndroid(text);if(t2!==text){quoted++;text=t2}}
     seen.add(u.rn);items.push([u.rn,text]);
   });
   if(!items.length){alert('Nothing to export: no translated, visible unit has a valid resname.');return}
@@ -1052,6 +1098,7 @@ async function exportStrings(){
   if(dup)lines.push('Skipped (duplicate resname): '+dup);
   if(badXml.length)lines.push('Skipped (invalid XML in translation): '+badXml.length);
   if(tags)lines.push('Inline XLIFF tags flattened to text: '+tags);
+  if(quoted)lines.push('Quotes escaped for Android (\\\' and \\\"): '+quoted);
   if(kept)lines.push('Kept in their XLIFF form (not valid after decoding): '+kept);
   if(!confirm(lines.join('\n')+'\n\nExport?'))return;
   const L=['<?xml version="1.0" encoding="utf-8"?>','<resources>'];
