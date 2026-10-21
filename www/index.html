@@ -695,7 +695,7 @@ function applyCfg(){
 }
 $('qac').innerHTML=QALAB.map(([k,t])=>'<label class="ck"><input type="checkbox" data-q="'+k+'"> '+t+'</label>').join('');
 function pvUi(){
-  const off={xml:$('c-pv').checked,apo:$('c-pv').checked,len:mode==='strings',hid:mode==='strings'};
+  const off={xml:$('c-pv').checked,apo:$('c-pv').checked,len:mode==='strings',hid:mode==='strings',val:!(mode==='xliff'&&v2)};
   document.querySelectorAll('#qac input').forEach(x=>{const d=!!off[x.dataset.q];x.disabled=d;x.parentElement.style.opacity=d?.5:''});
 }
 $('c-pv').onchange=pvUi;
