@@ -269,8 +269,8 @@ const pvNorm=t=>{t=t.replace(/&gt;/g,'>');return mode==='strings'?t.replace(/&qu
 const pvSafe=(raw,allow)=>pvNorm(pvEnc(pvDec(raw),allow))===pvNorm(raw);
 
 const DEFMODEL='gemini-3.6-flash';
-const QALAB=[['ph','Placeholders & tags'],['ws','Spaces & line breaks'],['dsp','Double spaces'],['pu','End punctuation'],['num','Numbers'],['xml','Valid XML'],['gl','Glossary terms'],['apo','Unescaped quotes (strings.xml)'],['len','Max length'],['hid','Also check hidden units (translate=no)']];
-const QADEF={ph:1,ws:1,dsp:1,pu:1,num:1,xml:1,gl:1,apo:1,len:1,hid:1};
+const QALAB=[['ph','Placeholders & tags'],['ws','Spaces & line breaks'],['dsp','Double spaces'],['pu','End punctuation'],['num','Numbers'],['xml','Valid XML'],['gl','Glossary terms'],['apo','Unescaped quotes (strings.xml)'],['val','XLIFF 2.0 validation rules'],['len','Max length / storage'],['hid','Also check hidden units (translate=no)']];
+const QADEF={ph:1,ws:1,dsp:1,pu:1,num:1,xml:1,gl:1,apo:1,val:1,len:1,hid:1};
 let QV=0;
 const GQDEF='llama-3.3-70b-versatile';
 const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,pv:0,qa:{}};
@@ -399,6 +399,19 @@ function tcls(t){
   if(';\uff1b'.includes(c))return 'sc';
   return '';
 }
+/* XLIFF 2.0 validation module: <val:rule isPresent / isNotPresent / startsWith / endsWith, occurs, existsInSource, caseSensitive, normalization> checked against the target text.
+   existsInSource="yes": the isPresent rule only applies when the source contains the string too. occurs is read as a minimum. */
+function vrCheck(u,c){
+  const ld=x=>W_dec(x.replace(/<[^>]*>/g,'')),t0=ld(c),s0=ld(u.rs),out=[];
+  u.vr.forEach(r=>{
+    const f=x=>{if(r.nm!=='none')x=x.normalize(r.nm==='nfd'?'NFD':'NFC');return r.cs?x:x.toLowerCase()},t=f(t0);
+    if(r.pr){const p=f(r.pr);if(!(r.es&&!f(s0).includes(p))&&t.split(p).length-1<r.oc)out.push('Rule: must contain "'+r.pr+'"'+(r.oc>1?' \u00d7'+r.oc:''))}
+    if(r.np&&t.includes(f(r.np)))out.push('Rule: must not contain "'+r.np+'"');
+    if(r.sw&&!t.startsWith(f(r.sw)))out.push('Rule: must start with "'+r.sw+'"');
+    if(r.ew&&!t.endsWith(f(r.ew)))out.push('Rule: must end with "'+r.ew+'"');
+  });
+  return [...new Set(out)];
+}
 function qaOf(u){
   const c=cur(u),tr=u.tr!==undefined?u.tr:u.oTr;
   if(u._qa&&u._qv===QV&&u._qm===mode&&u._qt===tr&&u._qc===c)return u._qa;
@@ -419,7 +432,10 @@ function qaOf(u){
       if(n1!==n2)out.push('Numbers differ')}
     if(Q.xml&&!CFG.pv&&/[<&\x00-\x08\x0B\x0C\x0E-\x1F]/.test(c)&&new DOMParser().parseFromString(xmlWrap(c),'application/xml').querySelector('parsererror'))out.push('Invalid XML');
     if(Q.gl&&GL.length){const lcc=c.toLowerCase();glossHits(s).forEach(h=>{if(!lcc.includes(h.t.toLowerCase()))out.push('Glossary: '+h.s+' \u2192 '+h.t)})}
-    if(Q.len&&u.max){const cl=clen(CFG.pv?pvDec(c):c);if(cl>u.max)out.push('Over max length ('+cl+'/'+u.max+')')}
+    if(Q.gl&&u.gl){const lcc=c.toLowerCase(),ls=s.toLowerCase();u.gl.forEach(g=>{if(g.t.length&&ls.includes(g.s.toLowerCase())&&!g.t.some(x=>lcc.includes(x.toLowerCase())))out.push('Glossary: '+g.s+' \u2192 '+g.t.join(' / '))})}
+    if(Q.val&&u.vr)vrCheck(u,c).forEach(x=>out.push(x));
+    if(Q.len&&u.max){const cl=u.slr?txtlen(c):clen(CFG.pv?pvDec(c):c);if(cl>u.max)out.push('Over max length ('+cl+'/'+u.max+')')}
+    if(Q.len&&u.mb){const t=W_dec(c.replace(/<[^>]*>/g,'')),e=u.mb[1],n=e===32?[...t].length*4:e===16?t.length*2:new TextEncoder().encode(t).length;if(n>u.mb[0])out.push('Over storage limit ('+n+'/'+u.mb[0]+' bytes, UTF-'+e+')')}
     if(Q.apo&&!CFG.pv&&mode==='strings'&&!/CDATA/.test(c)&&/(?<!\\)['"]/.test(c.replace(/<[^>]+>/g,'')))out.push('Unescaped quote');
   }
   u._qv=QV;u._qm=mode;u._qt=tr;u._qc=c;u._qa=out;return out;
@@ -914,7 +930,7 @@ const sortKey=(k,u)=>{
     case 'hid':return (u.is12||(u.v2&&!u.ntr))&&tr==='no'?0:1;
     case 'untr':return c.trim()===''?0:1;
     case 'same':return c!==''&&c===u.rs?0:1;
-    case 'over':return u.max&&clen(c)>u.max?0:1;
+    case 'over':return u.max&&(u.slr?txtlen(c):clen(c))>u.max?0:1;
     case 'lsrc':return -clen(u.rs);
     case 'ssrc':return clen(u.rs);
     case 'ltgt':return -clen(c);
@@ -995,11 +1011,11 @@ function card(u){
   const sv=CFG.pv?pvDec(u.rs):u.rs;
   q('.src').innerHTML=hlight(sv);
   q('.sc').textContent=clen(sv)+' chars';
-  cxt.textContent=(crowdin||v2)?(ctxLines(u).join('\n')||(v2?'No notes':'No context')):'For Crowdin Only'
+  cxt.textContent=(crowdin||v2)?(ctxLines(u).join('\n')||(v2?'No notes or module data':'No context')):'For Crowdin Only'
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
   const allow=CFG.pv?pvAllow(u.rs,u.rt,cur(u)):null,P=!!CFG.pv&&pvSafe(cur(u),allow);
   const toTa=r=>P?pvDec(r):r,fromTa=v=>P?pvEnc(v,allow):v;
-  const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=clen(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars'+(CFG.pv&&!P?' \u00b7 raw':'');tc.classList.toggle('over',!!u.max&&n>u.max)};
+  const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=(u.slr&&!P?txtlen:clen)(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars'+(CFG.pv&&!P?' \u00b7 raw':'');tc.classList.toggle('over',!!u.max&&n>u.max)};
   const setText=v=>{ta.value=toTa(v);paint();fit()};
   ta.value=toTa(cur(u));ta.setAttribute('aria-label','Translation');paint();
   const refresh=()=>{
@@ -1039,6 +1055,8 @@ function card(u){
 const W_dec=s=>s.replace(/&(?:#(\d+)|#x([0-9a-fA-F]+)|(lt|gt|amp|quot|apos));/g,(m,d,h,n)=>{
   if(n)return {lt:'<',gt:'>',amp:'&',quot:'"',apos:"'"}[n];
   try{return String.fromCodePoint(d!==undefined?+d:parseInt(h,16))}catch(e){return m}});
+/* length in characters of an XML fragment as text: inline tags dropped, entities decoded (XLIFF 2.0 size restriction counts text only) */
+const txtlen=t=>[...W_dec(t.replace(/<[^>]*>/g,''))].length;
 /* local name of the root element (skips BOM, <?xml?>, comments, DOCTYPE) */
 function W_root(t){
   let i=0;const n=t.length;
@@ -1096,22 +1114,82 @@ function W_parse(txt,emit){
   if(buf.length)emit(buf);
   return {root,mode:'xliff',crowdin,total};
 }
-/* XLIFF 2.x, core only: <unit id name translate>, <notes><note>, <segment state>, <source>, <target>.
-   Every <segment> is one item (a unit with several segments gives id#segmentId). Anything else is kept untouched. */
+/* XLIFF 2.x: core + the official OASIS modules (mtc matches, gls glossary, mda metadata, res resource data, ctr change tracking,
+   val validation, slr size/storage restriction, fs format style). Module prefixes are read from their namespace declarations.
+   Every <segment> is one item (a unit with several segments gives id#segmentId). Module data becomes context lines; slr sets the
+   length limits; val rules and unit glossaries feed the QA checks. Anything else is kept untouched. */
 function W_parse2(txt,emit){
   const mr=maskRaw(txt),reU=/<((?:[\w.\-]+:)?)unit\b/g,reSg=/<((?:[\w.\-]+:)?)segment\b(?:"[^"]*"|'[^']*'|[^>"'])*>/g;
   const rSrc=/<(?:[\w.\-]+:)?source\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?source>)/,rTgt=/<(?:[\w.\-]+:)?target\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?target>)/;
   const rNote=/<(?:[\w.\-]+:)?note\b((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?note>)/g;
-  /* translate is inherited: collect <file>/<group> open/close events, keep a stack of their translate values while sweeping units */
+  const pm={},rxn=/xmlns:([\w.\-]+)\s*=\s*["']urn:oasis:names:tc:xliff:(\w+):2\.0["']/g;let xn;
+  while((xn=rxn.exec(mr))){const k=xn[2].toLowerCase();(pm[k]=pm[k]||[]).push(xn[1])}
+  const PX=k=>pm[k]?'(?:'+[...new Set(pm[k])].map(s=>s.replace(/[.\-]/g,'\\$&')).join('|')+')':null;
+  const pM=PX('matches'),pG=PX('glossary'),pD=PX('metadata'),pR=PX('resourcedata'),pC=PX('changetracking'),pV=PX('validation'),pS=PX('sizerestriction'),pF=PX('fs');
+  const hasM=!!(pM||pG||pD||pR||pC||pV||pS||pF);
+  const gaP=(t,P,n)=>P&&t?ga(t,P+':'+n):null;
+  const T=x=>W_dec(x.replace(/<[^>]*>/g,'')).replace(/\s+/g,' ').trim();
+  const rb=(P,tag)=>new RegExp('<('+P+'):'+tag+'\\b((?:"[^"]*"|\'[^\']*\'|[^>"\'])*?)(?:/>|>([\\s\\S]*?)</\\1:'+tag+'>)','g');
+  /* calls f(attrs, realInner, maskedInner) for every <prefix:tag> of a module inside the block r (real) / rm (masked, same length) */
+  const each=(P,tag,r,rm,f)=>{if(!P)return;const re=rb(P,tag);let x;
+    while((x=re.exec(rm))){const im=x[3]===undefined?'':x[3],o=x[3]===undefined?0:x[0].length-im.length-('</'+x[1]+':'+tag+'>').length;f(x[2],r.slice(x.index+o,x.index+o+im.length),im)}};
+  const mkRule=at=>{const g=n=>{const v=ga(at,n);return v==null?null:W_dec(v)};
+    return {pr:g('isPresent'),np:g('isNotPresent'),sw:g('startsWith'),ew:g('endsWith'),oc:Math.max(1,parseInt(g('occurs'),10)||1),
+      es:g('existsInSource')==='yes',cs:g('caseSensitive')!=='no',nm:g('normalization')||'nfc',dis:g('disabled')==='yes'}};
+  /* file/group level: units are blanked so that only rules and profiles declared outside units are seen here */
+  const outer=(pV||pS)?mr.replace(/<((?:[\w.\-]+:)?)unit\b[\s\S]*?<\/\1unit>/g,x=>' '.repeat(x.length)):mr;
+  /* translate / slr / val / profiles are inherited: <file>/<group> open/close events (plus rule and profile markers) are swept along with the units */
   const evs=[],reC=/<(\/?)(?:[\w.\-]+:)?(?:file|group)\b((?:"[^"]*"|'[^']*'|[^>"'])*)>/g;let ev;
-  while((ev=reC.exec(mr)))evs.push({p:ev.index,c:!!ev[1],t:ev[1]||/\/\s*$/.test(ev[2])?null:ga(ev[2],'translate'),sc:!ev[1]&&/\/\s*$/.test(ev[2])});
-  let ei=0;const tst=[];
+  while((ev=reC.exec(outer)))evs.push({p:ev.index,c:!!ev[1],t:ev[2],sc:!ev[1]&&/\/\s*$/.test(ev[2])});
+  if(pV){const rr=rb(pV,'rule');let x;while((x=rr.exec(outer)))evs.push({p:x.index,m:{rule:mkRule(x[2])}})}
+  if(pS){const rr=rb(pS,'profiles');let x;while((x=rr.exec(outer)))evs.push({p:x.index,m:{prof:{g:ga(x[2],'generalProfile'),s:ga(x[2],'storageProfile')}}})}
+  if(pV||pS)evs.sort((x,y)=>x.p-y.p);
+  /* everything the modules say about one unit */
+  const mods=(b,bm,stg,fr)=>{
+    const ml=[],mt=[],gl=[],ur=[];let pf=null;
+    each(pM,'match',b,bm,(at,r,rm)=>{
+      const sr=T(grabTagM(r,rm,'source')),tg=T(grabTagM(r,rm,'target')),sim=ga(at,'similarity'),ty=[ga(at,'type'),ga(at,'origin')].filter(Boolean).join(', ');
+      if(!sr&&!tg)return;
+      mt.push({rf:(ga(at,'ref')||'').replace(/^.*#/,''),sim:parseFloat(sim)||0,l:('Match'+(sim?' '+sim+'%':'')+(ty?' ('+ty+')':'')+': '+sr+' \u2192 '+tg).slice(0,400)})});
+    mt.sort((x,y)=>y.sim-x.sim);
+    each(pG,'glossEntry',b,bm,(at,r,rm)=>{
+      const tm=T(grabTagM(r,rm,'term')),ts=[];
+      each(pG,'translation',r,rm,(a2,r2)=>{const v=T(r2);if(v)ts.push(v)});
+      const df=T(grabTagM(r,rm,'definition'));
+      if(!tm)return;gl.push({s:tm,t:ts});
+      ml.push(('Glossary: '+tm+(ts.length?' \u2192 '+ts.join(' / '):'')+(df?' \u2014 '+df:'')).slice(0,400))});
+    each(pD,'meta',b,bm,(at,r)=>{const v=T(r);if(v)ml.push(('Metadata '+(ga(at,'type')||'meta')+': '+v).slice(0,300))});
+    each(pR,'resourceItem',b,bm,(at,r,rm)=>{
+      const hs=[...rm.matchAll(/<(?:[\w.\-]+:)?(source|target|reference)\b[^>]*?\shref\s*=\s*"([^"]*)"/g)].map(x=>x[1]+' '+x[2]),mt2=ga(at,'mimeType');
+      if(hs.length)ml.push('Resource'+(mt2?' ('+mt2+')':'')+': '+hs.join('; '))});
+    each(pC,'revisions',b,bm,(at,r,rm)=>{
+      const rv=[...rm.matchAll(/<(?:[\w.\-]+:)?revision\b([^>]*)>/g)].map(x=>[ga(x[1],'datetime')||'',ga(x[1],'author')||'']),ap=ga(at,'appliesTo');
+      if(!rv.length)return;rv.sort((x,y)=>x[0]<y[0]?-1:1);const l=rv[rv.length-1];
+      ml.push('Revisions'+(ap?' ('+ap+')':'')+': '+rv.length+(l[0]||l[1]?', latest '+[l[0],l[1]].filter(Boolean).join(' '):''))});
+    each(pV,'rule',b,bm,at=>ur.push(mkRule(at)));
+    each(pS,'profiles',b,bm,at=>{pf={g:ga(at,'generalProfile'),s:ga(at,'storageProfile')}});
+    const f1=gaP(stg,pF,'fs'),f2=gaP(stg,pF,'subFs');
+    if(f1||f2)ml.push('Format: '+[f1&&'fs='+f1,f2&&'subFs='+f2].filter(Boolean).join(' '));
+    let sz=gaP(stg,pS,'sizeRestriction'),st=gaP(stg,pS,'storageRestriction');
+    for(let j=fr.length-1;j>=0;j--){const t=fr[j].t;
+      if(sz==null)sz=gaP(t,pS,'sizeRestriction');if(st==null)st=gaP(t,pS,'storageRestriction');if(!pf&&fr[j].pf)pf=fr[j].pf}
+    const rl=[];fr.forEach(f=>f.rl.forEach(x=>rl.push(x)));ur.forEach(x=>rl.push(x));
+    const vr=rl.filter(x=>!x.dis&&(x.pr||x.np||x.sw||x.ew));
+    /* slr: general profile xliff:codepoints (default) counts characters; storage profile xliff:utf8 (default) / utf16 / utf32 counts bytes. Custom profiles cannot be evaluated and are skipped */
+    const gp=pf&&pf.g,sp=pf&&pf.s,en=!sp?8:({'xliff:utf8':8,'xliff:utf16':16,'xliff:utf32':32})[sp]||0;
+    return {ml,mt,gl,vr:vr.length?vr:null,
+      mx:sz!=null&&/^\d+$/.test(sz)&&(!gp||gp==='xliff:codepoints')?+sz:0,
+      mb:st!=null&&/^\d+$/.test(st)&&en?[+st,en]:null};
+  };
+  let ei=0;const fr=[];
   let m,k=0,total=0,buf=[];
   while((m=reU.exec(mr))){
     const a=m.index,pf=m[1],e2=mr.indexOf('</'+pf+'unit>',a);
     if(e2<0)break;
-    while(ei<evs.length&&evs[ei].p<a){const x=evs[ei++];if(x.c)tst.pop();else if(!x.sc)tst.push(x.t)}
-    let inh=null;for(let j=tst.length-1;j>=0;j--)if(tst[j]){inh=tst[j];break}
+    while(ei<evs.length&&evs[ei].p<a){const x=evs[ei++];
+      if(x.m){const f=fr[fr.length-1];if(f){if(x.m.rule)f.rl.push(x.m.rule);else f.pf=x.m.prof}}
+      else if(x.c)fr.pop();else if(!x.sc)fr.push({t:x.t,rl:[],pf:null})}
+    let inh=null;for(let j=fr.length-1;j>=0&&!inh;j--)inh=ga(fr[j].t,'translate');
     const b=txt.slice(a,e2),bm=mr.slice(a,e2),sm=START.exec(b),stg=sm?sm[0]:'';
     const notes=[];let nm;rNote.lastIndex=0;
     while((nm=rNote.exec(bm))){
@@ -1120,14 +1198,23 @@ function W_parse2(txt,emit){
       if(tx.trim())notes.push((ga(nm[1],'category')||'note')+': '+tx)}
     const sgs=[];let sg;reSg.lastIndex=0;
     while((sg=reSg.exec(bm))){const sa=sg.index,se=bm.indexOf('</'+sg[1]+'segment>',sa);if(se<0)break;sgs.push([sa,se,sg[0]]);reSg.lastIndex=se}
-    const uid=W_dec(ga(stg,'id')||''),nme=ga(stg,'name')||'',many=sgs.length>1;
+    const uid=W_dec(ga(stg,'id')||''),nme=ga(stg,'name')||'',many=sgs.length>1,ids=sgs.map((s,i)=>ga(s[2],'id')||String(i+1));
+    const R=hasM?mods(b,bm,stg,fr):null;
     sgs.forEach(([sa,se,tag],i)=>{
       const idx=k++,body=b.slice(sa,se),bodyM=bm.slice(sa,se),s1=rSrc.exec(bodyM);
       if(!s1)return;   /* counted in idx, but nothing to translate */
-      const sid=ga(tag,'id')||String(i+1),st=ga(tag,'state')||'initial';
+      const sid=ids[i],st=ga(tag,'state')||'initial';
       const u={idx,id:many?uid+'#'+sid:uid,rs:grabTagM(body,bodyM,'source'),rt:grabTagM(body,bodyM,'target'),is12:false,v2:true,ntr:many,
         rn:many&&nme?nme+'#'+sid:nme,oAp:st==='final',oTr:(ga(stg,'translate')||inh)==='no'?'no':'yes',
         ctx:notes.slice(),labels:[],max:0,ct:''};
+      if(R){
+        /* a match with ref="#id" belongs to that segment only; without a usable ref it belongs to all segments of the unit */
+        u.ctx=u.ctx.concat(R.ml,R.mt.filter(x=>!x.rf||!ids.includes(x.rf)||x.rf===sid).slice(0,5).map(x=>x.l));
+        if(R.gl.length)u.gl=R.gl;
+        if(R.vr)u.vr=R.vr;
+        if(R.mx){u.max=R.mx;u.slr=1}
+        if(R.mb)u.mb=R.mb;
+      }
       u.ct=ctxLines(u).join('\n');
       buf.push(u);total++;
       if(buf.length>=3000){emit(buf);buf=[]}
@@ -1203,7 +1290,7 @@ function W_query(U,LC,p){
         case 'hid':return (u.is12||(u.v2&&!u.ntr))&&tr==='no'?0:1;
         case 'untr':return c.trim()===''?0:1;
         case 'same':return c!==''&&c===u.rs?0:1;
-        case 'over':return u.max&&clen(c)>u.max?0:1;
+        case 'over':return u.max&&(u.slr?txtlen(c):clen(c))>u.max?0:1;
         case 'lsrc':return -clen(u.rs);
         case 'ssrc':return clen(u.rs);
         case 'ltgt':return -clen(c);
@@ -1241,7 +1328,7 @@ function W_main(){
 }
 const workerSrc=()=>[
   'const ga='+ga,'const START='+START,'const maskRaw='+maskRaw,'const clen='+clen,'const ctxLines='+ctxLines,
-  'const ckey='+ckey,'const grabTag='+grabTag,'const grabTagM='+grabTagM,'const W_dec='+W_dec,
+  'const ckey='+ckey,'const grabTag='+grabTag,'const grabTagM='+grabTagM,'const W_dec='+W_dec,'const txtlen='+txtlen,
   parseStrings,W_root,W_parse,W_parse2,W_trans,W_query,
   'const XNAME='+JSON.stringify(XNAME),'const NAME_RX='+NAME_RX,'const CLOSE_RX='+CLOSE_RX,'const ATTR_RX='+ATTR_RX,'const validCP='+validCP,
   checkXml,'('+W_main+')()'
@@ -1504,6 +1591,9 @@ function mtPrompt(src,u,sl,tl){
   if((crowdin||v2)&&ctxLines(u).length)info.push('Context: '+ctxLines(u).join('; '));
   if(u.labels&&u.labels.length)info.push('Label: '+u.labels.join(', '));
   if(u.max)info.push('Maximum length of the translation: '+u.max+' characters (hard limit)');
+  if(u.mb)info.push('Storage limit of the translation: '+u.mb[0]+' bytes in UTF-'+u.mb[1]+' (hard limit)');
+  if(u.gl&&u.gl.length)info.push('Glossary of this unit (use exactly these translations):\n'+u.gl.map(g=>'- '+g.s+' => '+(g.t.join(' / ')||'(keep)')).join('\n'));
+  if(u.vr&&u.vr.length)info.push('The translation must satisfy these rules: '+u.vr.map(r=>[r.pr&&'contain "'+r.pr+'"',r.np&&'not contain "'+r.np+'"',r.sw&&'start with "'+r.sw+'"',r.ew&&'end with "'+r.ew+'"'].filter(Boolean).join(', ')).join('; '));
   const gh=glossHits(src).slice(0,40);
   if(gh.length)info.push('Glossary (use exactly these translations for these terms):\n'+gh.map(h=>'- '+h.s+' => '+h.t).join('\n'));
   const prompt=info.join('\n')+'\n\nSource text'+(sl&&sl!=='auto'?' ('+lname(sl)+')':'')+':\n<<<\n'+src+'\n>>>\n\nTranslate into '+lname(tl)+'. Output only the translation.';
@@ -1833,13 +1923,16 @@ function buildXlf2(){
       }
       const tg=rTag.exec(blk),st=(tg&&ga(tg[0],'state'))||'initial';let ns=null;
       if(u.ap!==undefined)ns=u.ap?'final':(cur(u).trim()?'translated':'initial');
-      if(ns&&ns!==st)blk=blk.replace(rTag,t=>setAttr(t,'state',ns));
+      else if(u.val!==undefined)ns=cur(u).trim()?'translated':'initial';   /* text changed without an explicit approve: the old state (e.g. final) no longer applies */
+      if(ns&&ns!==st)blk=blk.replace(rTag,t=>setAttr(t,'state',ns).replace(/\ssubState=(?:"[^"]*"|'[^']*')/,''));
       ops.push({s:a+sa,e:a+se,t:blk});
       if(u.tr!==undefined&&!u.ntr){const sm=START.exec(raw.slice(a,e2));if(sm)ops.push({s:a,e:a+sm[0].length,t:setAttr(sm[0],'translate',u.tr)})}
     }
   }
-  let out=raw;ops.sort((x,y)=>y.s-x.s).forEach(o=>{out=out.slice(0,o.s)+o.t+out.slice(o.e)});
-  return out;
+  /* ascending order + one join: replacing in a growing string per edit was quadratic (14 s for 15,000 edits) */
+  ops.sort((x,y)=>x.s-y.s);const parts=[];let pos=0;
+  for(const o of ops){parts.push(raw.slice(pos,o.s),o.t);pos=o.e}
+  parts.push(raw.slice(pos));return parts.join('');
 }
 /* XLIFF 1.2: edits the matching <trans-unit> in place */
 function buildXlf12(){
