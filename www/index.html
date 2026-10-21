@@ -1101,15 +1101,22 @@ function W_parse(txt,emit){
 function W_parse2(txt,emit){
   const mr=maskRaw(txt),reU=/<((?:[\w.\-]+:)?)unit\b/g,reSg=/<((?:[\w.\-]+:)?)segment\b(?:"[^"]*"|'[^']*'|[^>"'])*>/g;
   const rSrc=/<(?:[\w.\-]+:)?source\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?source>)/,rTgt=/<(?:[\w.\-]+:)?target\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?target>)/;
-  const rNote=/<(?:[\w.\-]+:)?note\b([^>]*)>([\s\S]*?)<\/(?:[\w.\-]+:)?note>/g;
+  const rNote=/<(?:[\w.\-]+:)?note\b((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?note>)/g;
+  /* translate is inherited: collect <file>/<group> open/close events, keep a stack of their translate values while sweeping units */
+  const evs=[],reC=/<(\/?)(?:[\w.\-]+:)?(?:file|group)\b((?:"[^"]*"|'[^']*'|[^>"'])*)>/g;let ev;
+  while((ev=reC.exec(mr)))evs.push({p:ev.index,c:!!ev[1],t:ev[1]||/\/\s*$/.test(ev[2])?null:ga(ev[2],'translate'),sc:!ev[1]&&/\/\s*$/.test(ev[2])});
+  let ei=0;const tst=[];
   let m,k=0,total=0,buf=[];
   while((m=reU.exec(mr))){
     const a=m.index,pf=m[1],e2=mr.indexOf('</'+pf+'unit>',a);
     if(e2<0)break;
+    while(ei<evs.length&&evs[ei].p<a){const x=evs[ei++];if(x.c)tst.pop();else if(!x.sc)tst.push(x.t)}
+    let inh=null;for(let j=tst.length-1;j>=0;j--)if(tst[j]){inh=tst[j];break}
     const b=txt.slice(a,e2),bm=mr.slice(a,e2),sm=START.exec(b),stg=sm?sm[0]:'';
     const notes=[];let nm;rNote.lastIndex=0;
     while((nm=rNote.exec(bm))){
-      const full=b.slice(nm.index,nm.index+nm[0].length),tx=full.slice(full.indexOf('>')+1,full.lastIndexOf('</'));
+      if(nm[2]==='/>')continue;   /* self-closing <note/> has no text */
+      const full=b.slice(nm.index,nm.index+nm[0].length),tx=full.slice(nm[0].length-nm[2].length+1,full.lastIndexOf('</'));
       if(tx.trim())notes.push((ga(nm[1],'category')||'note')+': '+tx)}
     const sgs=[];let sg;reSg.lastIndex=0;
     while((sg=reSg.exec(bm))){const sa=sg.index,se=bm.indexOf('</'+sg[1]+'segment>',sa);if(se<0)break;sgs.push([sa,se,sg[0]]);reSg.lastIndex=se}
@@ -1119,7 +1126,7 @@ function W_parse2(txt,emit){
       if(!s1)return;   /* counted in idx, but nothing to translate */
       const sid=ga(tag,'id')||String(i+1),st=ga(tag,'state')||'initial';
       const u={idx,id:many?uid+'#'+sid:uid,rs:grabTagM(body,bodyM,'source'),rt:grabTagM(body,bodyM,'target'),is12:false,v2:true,ntr:many,
-        rn:many&&nme?nme+'#'+sid:nme,oAp:st==='final',oTr:ga(stg,'translate')==='no'?'no':'yes',
+        rn:many&&nme?nme+'#'+sid:nme,oAp:st==='final',oTr:(ga(stg,'translate')||inh)==='no'?'no':'yes',
         ctx:notes.slice(),labels:[],max:0,ct:''};
       u.ct=ctxLines(u).join('\n');
       buf.push(u);total++;
