@@ -532,6 +532,8 @@ function buildStrings(){
 }
 const ckey=u=>u.kind==='s'?u.name:u.kind==='p'?u.name+':'+u.sub:u.name+'['+u.sub+']';
 const maskRaw=s=>s.replace(/<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>/g,x=>' '.repeat(x.length));
+/* like grabTag, but finds the tag in bm (b with comments/CDATA blanked, same length) and returns the text from b */
+const grabTagM=(b,bm,n)=>{const r=new RegExp('<(?:[\\w.\\-]+:)?'+n+'\\b[^>]*?(?:\\/>|>([\\s\\S]*?)<\\/(?:[\\w.\\-]+:)?'+n+'>)').exec(bm);if(!r||r[1]===undefined)return '';const e=r.index+r[0].lastIndexOf('</');return b.slice(e-r[1].length,e)};
 const grabTag=(b,n)=>{const r=new RegExp('<(?:[\\w.\\-]+:)?'+n+'\\b[^>]*?(?:\\/>|>([\\s\\S]*?)<\\/(?:[\\w.\\-]+:)?'+n+'>)').exec(b);return r?(r[1]||''):''};
 async function readTranslations(txt){
   if(new DOMParser().parseFromString(txt,'application/xml').querySelector('parsererror'))return null;
@@ -1071,20 +1073,19 @@ function W_parse(txt,emit){
   const rCx=/<(?:[\w.\-]+:)?context(?=[\s>])([^>]*)>([\s\S]*?)<\/(?:[\w.\-]+:)?context>/g,rCx0=/<(?:[\w.\-]+:)?context[\s>]/,rAlt0=/<(?:[\w.\-]+:)?alt-trans[\s>]/,rAlt=/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans>/g;
   let m,k=0,total=0,buf=[];
   while((m=re.exec(mr))){
-    const a=m.index,pfx=m[1],tag=m[2],idx=k++,e2=txt.indexOf('</'+pfx+tag+'>',a),end=e2<0?undefined:e2;
-    let bm=mr.slice(a,end);
-    if(rAlt0.test(bm))bm=bm.replace(rAlt,'');
+    const a=m.index,pfx=m[1],tag=m[2],idx=k++,e2=mr.indexOf('</'+pfx+tag+'>',a),end=e2<0?undefined:e2;
+    const bc=mr.slice(a,end);let bm=bc;
+    if(rAlt0.test(bm))bm=bm.replace(rAlt,x=>' '.repeat(x.length));   /* blank, keep the length so indexes still match b */
     if(!(tag==='unit'?rSeg:rSrcTag).test(bm))continue;   /* units without a <source> are skipped, but still counted in idx */
     const b=txt.slice(a,end),sm=START.exec(b),stg=sm?sm[0]:'';
-    const bn=rAlt0.test(b)?b.replace(rAlt,''):b,s1=rSrc.exec(bn),t1=rTgt.exec(bn);
-    const u={idx,id:W_dec(ga(stg,'id')||''),rs:s1?(s1[1]||''):'',rt:t1?(t1[1]||''):'',is12:tag==='trans-unit',
+    const u={idx,id:W_dec(ga(stg,'id')||''),rs:grabTagM(b,bm,'source'),rt:grabTagM(b,bm,'target'),is12:tag==='trans-unit',
       rn:ga(stg,'resname')||ga(stg,'name')||'',oAp:ga(stg,'approved')==='yes',oTr:ga(stg,'translate')==='no'?'no':'yes',
       ctx:[],labels:[],max:0,ct:''};
     const mw=ga(stg,'maxwidth');if(ga(stg,'size-unit')==='char'&&/^\d+$/.test(mw||''))u.max=+mw;
-    if(rCx0.test(b)){
+    if(rCx0.test(bc)){
       rCx.lastIndex=0;let cm;
-      while((cm=rCx.exec(b))){
-        const ty=ga(cm[1],'context-type')||'context',tx=cm[2];u.ctx.push(ty+': '+tx);
+      while((cm=rCx.exec(bc))){
+        const ce=cm.index+cm[0].lastIndexOf('</'),ty=ga(cm[1],'context-type')||'context',tx=b.slice(ce-cm[2].length,ce);u.ctx.push(ty+': '+tx);
         if(ty==='x-crowdin-label'&&tx.trim())u.labels.push(tx.trim());
       }
     }
@@ -1103,7 +1104,7 @@ function W_parse2(txt,emit){
   const rNote=/<(?:[\w.\-]+:)?note\b([^>]*)>([\s\S]*?)<\/(?:[\w.\-]+:)?note>/g;
   let m,k=0,total=0,buf=[];
   while((m=reU.exec(mr))){
-    const a=m.index,pf=m[1],e2=txt.indexOf('</'+pf+'unit>',a);
+    const a=m.index,pf=m[1],e2=mr.indexOf('</'+pf+'unit>',a);
     if(e2<0)break;
     const b=txt.slice(a,e2),bm=mr.slice(a,e2),sm=START.exec(b),stg=sm?sm[0]:'';
     const notes=[];let nm;rNote.lastIndex=0;
@@ -1114,10 +1115,10 @@ function W_parse2(txt,emit){
     while((sg=reSg.exec(bm))){const sa=sg.index,se=bm.indexOf('</'+sg[1]+'segment>',sa);if(se<0)break;sgs.push([sa,se,sg[0]]);reSg.lastIndex=se}
     const uid=W_dec(ga(stg,'id')||''),nme=ga(stg,'name')||'',many=sgs.length>1;
     sgs.forEach(([sa,se,tag],i)=>{
-      const idx=k++,body=txt.slice(a+sa,a+se),s1=rSrc.exec(body),t1=rTgt.exec(body);
+      const idx=k++,body=b.slice(sa,se),bodyM=bm.slice(sa,se),s1=rSrc.exec(bodyM);
       if(!s1)return;   /* counted in idx, but nothing to translate */
       const sid=ga(tag,'id')||String(i+1),st=ga(tag,'state')||'initial';
-      const u={idx,id:many?uid+'#'+sid:uid,rs:s1[1]||'',rt:t1?(t1[1]||''):'',is12:false,v2:true,ntr:many,
+      const u={idx,id:many?uid+'#'+sid:uid,rs:grabTagM(body,bodyM,'source'),rt:grabTagM(body,bodyM,'target'),is12:false,v2:true,ntr:many,
         rn:many&&nme?nme+'#'+sid:nme,oAp:st==='final',oTr:ga(stg,'translate')==='no'?'no':'yes',
         ctx:notes.slice(),labels:[],max:0,ct:''};
       u.ct=ctxLines(u).join('\n');
@@ -1129,28 +1130,30 @@ function W_parse2(txt,emit){
   if(buf.length)emit(buf);
   return {root:'xliff',mode:'xliff',crowdin:false,v2:true,total};
 }
-/* translations of a file chosen with "Import": [[key,text],...] */
+/* translations of a file chosen with "Import": [[key,text],...]
+   Structure is searched in a copy with comments and CDATA blanked out (same length), so tags inside a <!-- comment --> or CDATA
+   can neither start/end a unit or segment nor supply a fake <target>; the text itself is always cut from the real file. */
 function W_trans(txt){
   const mp=new Map();
   if(W_root(txt)==='resources'){
     parseStrings(txt).forEach(x=>{if(x.rs.trim())mp.set(ckey(x),x.rs)});
   }else{
-    const re=/<((?:[\w.\-]+:)?(?:trans-unit|unit))\b[\s\S]*?<\/\1>/g,reSg=/<((?:[\w.\-]+:)?)segment\b(?:"[^"]*"|'[^']*'|[^>"'])*>/g,
+    const mr=maskRaw(txt),re=/<((?:[\w.\-]+:)?(?:trans-unit|unit))\b[\s\S]*?<\/\1>/g,reSg=/<((?:[\w.\-]+:)?)segment\b(?:"[^"]*"|'[^']*'|[^>"'])*>/g,
       rAlt=/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans>/g;
     let m;
-    while((m=re.exec(txt))){
-      const b=m[0],st=START.exec(b),tg=st?st[0]:'';
+    while((m=re.exec(mr))){
+      const bm=m[0],b=txt.slice(m.index,m.index+bm.length),st=START.exec(b),tg=st?st[0]:'';
       const kn=ga(tg,'resname')||ga(tg,'name'),id=W_dec(ga(tg,'id')||''),k=kn||id;
       if(/(?:^|:)unit$/.test(m[1])){
         /* XLIFF 2.x: one entry per <segment>; a unit with several segments is keyed name#segmentId (as when it is opened) */
         const sgs=[];let sg;reSg.lastIndex=0;
-        while((sg=reSg.exec(b))){const sa=sg.index,se=b.indexOf('</'+sg[1]+'segment>',sa);if(se<0)break;sgs.push([sg[0],b.slice(sa,se)]);reSg.lastIndex=se}
-        sgs.forEach(([t,body],i)=>{
-          const v=grabTag(body,'target'),key=sgs.length>1?(kn||id)+'#'+(ga(t,'id')||String(i+1)):k;
+        while((sg=reSg.exec(bm))){const sa=sg.index,se=bm.indexOf('</'+sg[1]+'segment>',sa);if(se<0)break;sgs.push([sg[0],sa,se]);reSg.lastIndex=se}
+        sgs.forEach(([t,sa,se],i)=>{
+          const v=grabTagM(b.slice(sa,se),bm.slice(sa,se),'target'),key=sgs.length>1?(kn||id)+'#'+(ga(t,'id')||String(i+1)):k;
           if(key&&v.trim()&&!mp.has(key))mp.set(key,v);
         });
       }else{
-        const v=grabTag(b.replace(rAlt,''),'target');
+        const v=grabTagM(b,bm.replace(rAlt,x=>' '.repeat(x.length)),'target');
         if(k&&v.trim()&&!mp.has(k))mp.set(k,v);
       }
     }
@@ -1231,7 +1234,7 @@ function W_main(){
 }
 const workerSrc=()=>[
   'const ga='+ga,'const START='+START,'const maskRaw='+maskRaw,'const clen='+clen,'const ctxLines='+ctxLines,
-  'const ckey='+ckey,'const grabTag='+grabTag,'const W_dec='+W_dec,
+  'const ckey='+ckey,'const grabTag='+grabTag,'const grabTagM='+grabTagM,'const W_dec='+W_dec,
   parseStrings,W_root,W_parse,W_parse2,W_trans,W_query,
   'const XNAME='+JSON.stringify(XNAME),'const NAME_RX='+NAME_RX,'const CLOSE_RX='+CLOSE_RX,'const ATTR_RX='+ATTR_RX,'const validCP='+validCP,
   checkXml,'('+W_main+')()'
@@ -1809,15 +1812,17 @@ function buildXlf2(){
   const sre=/([ \t]*)<((?:[\w.\-]+:)?)source\b[^>]*?(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?source>)/;
   let m,k=0;
   while((m=reU.exec(mr))){
-    const a=m.index,pf=m[1],e2=raw.indexOf('</'+pf+'unit>',a);if(e2<0)break;
+    const a=m.index,pf=m[1],e2=mr.indexOf('</'+pf+'unit>',a);if(e2<0)break;
     const bm=mr.slice(a,e2),sgs=[];let sg;reSg.lastIndex=0;
     while((sg=reSg.exec(bm))){const sa=sg.index,se=bm.indexOf('</'+sg[1]+'segment>',sa);if(se<0)break;sgs.push([sa,se]);reSg.lastIndex=se}
     for(const [sa,se] of sgs){
       const u=want.get(k++);if(!u)continue;
       let blk=raw.slice(a+sa,a+se);
       if(u.val!==undefined){
-        if(tre.test(blk))blk=blk.replace(tre,(_,p,at)=>'<'+p+'target'+at+'>'+u.val+'</'+p+'target>');
-        else blk=blk.replace(sre,(x,ind,p)=>x+'\n'+ind+'<'+p+'target>'+u.val+'</'+p+'target>');
+        /* match on the copy with comments/CDATA blanked (same length), edit the real text */
+        const bk=bm.slice(sa,se),tm=tre.exec(bk);
+        if(tm)blk=blk.slice(0,tm.index)+'<'+tm[1]+'target'+tm[2]+'>'+u.val+'</'+tm[1]+'target>'+blk.slice(tm.index+tm[0].length);
+        else{const sm=sre.exec(bk);if(sm){const z=sm.index+sm[0].length;blk=blk.slice(0,z)+'\n'+sm[1]+'<'+sm[2]+'target>'+u.val+'</'+sm[2]+'target>'+blk.slice(z)}}
       }
       const tg=rTag.exec(blk),st=(tg&&ga(tg[0],'state'))||'initial';let ns=null;
       if(u.ap!==undefined)ns=u.ap?'final':(cur(u).trim()?'translated':'initial');
@@ -1829,29 +1834,24 @@ function buildXlf2(){
   let out=raw;ops.sort((x,y)=>y.s-x.s).forEach(o=>{out=out.slice(0,o.s)+o.t+out.slice(o.e)});
   return out;
 }
-$('save').onclick=async()=>{
-  if(!doc){alert('No file open');return}
-  if(mode==='xliff'){const f=await askFormat();if(!f)return;if(f==='strings'){await exportStrings();return}}
-  let out,outName=name;
-  if(mode==='strings'){out=buildStrings();outName='strings-'+$('tl').value+'.xml'}
-  else if(v2){out=buildXlf2()}
-  else{
+/* XLIFF 1.2: edits the matching <trans-unit> in place */
+function buildXlf12(){
   const starts=[];const re=/<((?:[\w.\-]+:)?)(trans-unit|unit)\b/g;let m;
-  for(const mr=maskRaw(raw);(m=re.exec(mr));)starts.push([m.index,m[1]+m[2]]);
+  const mr=maskRaw(raw);while((m=re.exec(mr)))starts.push([m.index,m[1]+m[2]]);
   const ed=units.filter(changed).sort((x,y)=>x.idx-y.idx),parts=[];let pos=0;
   for(const u of ed){
     const sx=starts[u.idx];if(!sx)continue;
     const [st,tag]=sx;
-    let en=raw.indexOf('</'+tag+'>',st);if(en<0)continue;
+    let en=mr.indexOf('</'+tag+'>',st);if(en<0)continue;
     let blk=raw.slice(st,en);
     if(u.val!==undefined){
     const tre=/<((?:[\w.\-]+:)?)target\b([^>]*?)\s*(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?target>)/;
-    const mk=blk.replace(/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans>/g,x=>' '.repeat(x.length)),tm=tre.exec(mk);
+    const mk=mr.slice(st,en).replace(/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans>/g,x=>' '.repeat(x.length)),tm=tre.exec(mk);
     if(tm){
       blk=blk.slice(0,tm.index)+'<'+tm[1]+'target'+tm[2]+'>'+u.val+'</'+tm[1]+'target>'+blk.slice(tm.index+tm[0].length);
     }else{
-      blk=blk.replace(/([ \t]*)<((?:[\w.\-]+:)?)source\b[^>]*?(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?source>)/,
-        (x,ind,pf)=>x+'\n'+ind+'<'+pf+'target>'+u.val+'</'+pf+'target>');
+      const sm=/([ \t]*)<((?:[\w.\-]+:)?)source\b[^>]*?(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?source>)/.exec(mk);
+      if(sm){const z=sm.index+sm[0].length;blk=blk.slice(0,z)+'\n'+sm[1]+'<'+sm[2]+'target>'+u.val+'</'+sm[2]+'target>'+blk.slice(z)}
     }}
     blk=blk.replace(START,t=>{
       if(u.ap!==undefined)t=setAttr(t,'approved',u.ap?'yes':'no');
@@ -1859,7 +1859,16 @@ $('save').onclick=async()=>{
       return t});
     parts.push(raw.slice(pos,st),blk);pos=en;
   }
-  parts.push(raw.slice(pos));out=parts.join('');
+  parts.push(raw.slice(pos));return parts.join('');
+}
+$('save').onclick=async()=>{
+  if(!doc){alert('No file open');return}
+  if(mode==='xliff'){const f=await askFormat();if(!f)return;if(f==='strings'){await exportStrings();return}}
+  let out,outName=name;
+  if(mode==='strings'){out=buildStrings();outName='strings-'+$('tl').value+'.xml'}
+  else if(v2){out=buildXlf2()}
+  else{
+  out=buildXlf12();
   }
   const chk=new DOMParser().parseFromString(out,'application/xml');
   if(chk.querySelector('parsererror')){alert('Your edits make the XML invalid (e.g. a bare & or < instead of &amp; / &lt;). Not saved.');return}
