@@ -272,10 +272,14 @@ const DEFMODEL='gemini-3.6-flash';
 const QALAB=[['ph','Placeholders & tags'],['ws','Spaces & line breaks'],['dsp','Double spaces'],['pu','End punctuation'],['num','Numbers'],['xml','Valid XML'],['gl','Glossary terms'],['apo','Unescaped quotes (strings.xml)'],['val','XLIFF 2.0 validation rules'],['len','Max length / storage'],['hid','Also check hidden units (translate=no)']];
 const QADEF={ph:1,ws:1,dsp:1,pu:1,num:1,xml:1,gl:1,apo:1,val:1,len:1,hid:1};
 let QV=0;
-const GQDEF='llama-3.3-70b-versatile';
+const GQDEF='openai/gpt-oss-120b';
+/* models Groq has shut down: a stored choice or cached list that still has them is replaced / cleaned */
+const GQDEAD={'llama-3.3-70b-versatile':GQDEF,'llama-3.1-8b-instant':'openai/gpt-oss-20b'};
 const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,pv:0,qa:{}};
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
 CFG.qa=Object.assign({},QADEF,CFG.qa||{});
+if(GQDEAD[CFG.qmodel])CFG.qmodel=GQDEAD[CFG.qmodel];
+CFG.qmodels=(Array.isArray(CFG.qmodels)?CFG.qmodels:[]).filter(m=>!GQDEAD[m]);
 const saveCfg=()=>{try{localStorage.setItem('cfg',JSON.stringify(CFG))}catch(e){}};
 /* AI engines: Gemini and Groq share the notes, glossary, prompt and checks; each has its own key, model list and rate limit */
 const AIF={
@@ -318,7 +322,7 @@ function parseGlossary(txt){
   if(txt.trimStart().startsWith('<')){
     const d=new DOMParser().parseFromString(txt,'application/xml');
     if(d.querySelector('parsererror'))throw new Error('Invalid XML');
-    const tl=mode==='strings'?lc($('tl').value):(doc?langs().tl:''),tb=(tl||'').split('-')[0].toLowerCase(),out=[];
+    const tl=tlNow(),tb=(tl||'').split('-')[0].toLowerCase(),out=[];
     d.querySelectorAll('termEntry').forEach(te=>{
       const ls=[...te.querySelectorAll('langSet')].map(l=>[(l.getAttribute('xml:lang')||l.getAttribute('lang')||'').toLowerCase(),(l.querySelector('term')||{}).textContent||'']);
       if(ls.length<2)return;
@@ -340,7 +344,7 @@ function glMap(txt){
     const first=txt.split(/\r?\n/).find(l=>l.trim())||'';
     const cnt=c=>first.split(c).length-1;
     const KW=/^(source|src|term|english|en|original|target|translation|tgt)$/i;
-    let tl='';try{tl=((mode==='strings'?lc($('tl').value):(doc?langs().tl:''))||'').split('-')[0].toLowerCase()}catch(e){}
+    let tl='';try{tl=(tlNow()||'').split('-')[0].toLowerCase()}catch(e){}
     const dlg=$('gm'),sd=$('gm-d'),hc=$('gm-h'),ss=$('gm-s'),st=$('gm-t'),pv=$('gm-p'),inf=$('gm-i'),ok=$('gm-ok');
     let rows=[],nc=1;
     const parse=()=>{rows=parseCSV(txt,sd.value);nc=Math.max(1,...rows.slice(0,200).map(r=>r.length))};
@@ -510,20 +514,20 @@ $('cl-save').onclick=()=>{
 $('tl').onchange=()=>{try{localStorage.setItem('tl',$('tl').value)}catch(e){}};
 function setMode(m){
   mode=m;document.body.classList.toggle('sm',m==='strings');
-  $('tl').hidden=m!=='strings';
+  $('tl').hidden=!(m==='strings'||(doc&&!langs().tl));   /* an XLIFF that names no target language needs the selector too */
   document.querySelector('#fl [data-f=id]').textContent=m==='strings'?'Key':'ID';
   fillSort();fchips();
 }
 function parseStrings(txt){
-  const t=txt.replace(/<!--[\s\S]*?-->/g,''),tm=maskRaw(t);   /* match on a copy with CDATA blanked (same length), so a "</string>" inside CDATA cannot end the string; the texts are cut from the real one */
-  const res=[];let fm=false;const re=/<(string-array|plurals|string)(?=[\s>\/])([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g;let m;
-  const add=(kind,name,sub,rs)=>res.push({kind,name,sub,rs,fm,id:name,rn:kind==='p'?sub:kind==='a'?'['+sub+']':'',
+  const t=txt.replace(/<!\[CDATA\[[\s\S]*?\]\]>|<!--[\s\S]*?-->/g,x=>x.startsWith('<!--')?'':x),tm=maskRaw(t);   /* match on a copy with CDATA blanked (same length), so a "</string>" inside CDATA cannot end the string; the texts are cut from the real one */
+  const res=[];let fm=false,prod='';const re=/<(string-array|plurals|string)(?=[\s>\/])([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g;let m;
+  const add=(kind,name,sub,rs)=>res.push({kind,name,sub,rs,fm,prod,id:name,rn:(kind==='p'?sub:kind==='a'?'['+sub+']':'')+(prod?(kind==='s'?'product: ':' \u00b7 ')+prod:''),
     rt:'',is12:false,oAp:false,oTr:'yes',ctx:[],labels:[],max:0,ct:'',idx:res.length});
   const inner=(src,r,g)=>{const c=r[g];if(c===undefined)return '';const e=r.index+r[0].lastIndexOf('</');return src.slice(e-c.length,e)};
   while((m=re.exec(tm))){
     const at=' '+m[2],name=ga(at,'name');
     if(!name||ga(at,'translatable')==='false')continue;
-    fm=ga(at,'formatted')==='false';
+    fm=ga(at,'formatted')==='false';prod=ga(at,'product')||'';
     const body=inner(t,m,3),bodyM=m[3]||'';
     if(m[1]==='string')add('s',name,'',body);
     else{const ir=/<item\b([^>]*?)(?:\/>|>([\s\S]*?)<\/item>)/g;let im,i=0;   /* <item/> (self-closing) is an empty item and must not swallow the next one */
@@ -536,20 +540,21 @@ function buildStrings(){
   const rm=/<resources\b(?:"[^"]*"|'[^']*'|[^>"'])*>/.exec(maskRaw(raw||'')),root=rm&&rm[0].slice(-2)!=='/>'?raw.slice(rm.index,rm.index+rm[0].length):'<resources>';
   const L=['<?xml version="1.0" encoding="utf-8"?>',root];
   const has=v=>v.trim()!=='';
+  const pa=x=>(x.fm?' formatted="false"':'')+(x.prod?' product="'+x.prod+'"':'');   /* product variants (tablet / default ...) are separate resources and keep their attribute */
   for(let i=0;i<units.length;){
-    const u=units[i];let j=i;
-    while(j<units.length&&units[j].kind===u.kind&&units[j].name===u.name)j++;
+    const u=units[i];let j=i+1;
+    if(u.kind!=='s')while(j<units.length&&units[j].kind===u.kind&&units[j].name===u.name&&units[j].prod===u.prod)j++;   /* the items of one <plurals> / <string-array>; every <string> stands alone */
     const g=units.slice(i,j);i=j;
-    if(u.kind==='s'){if(has(cur(u)))L.push('    <string name="'+u.name+'"'+(u.fm?' formatted="false"':'')+'>'+cur(u)+'</string>')}
+    if(u.kind==='s'){if(has(cur(u)))L.push('    <string name="'+u.name+'"'+pa(u)+'>'+cur(u)+'</string>')}
     else if(u.kind==='p'){const it=g.filter(x=>has(cur(x)));
-      if(it.length){L.push('    <plurals name="'+u.name+'"'+(u.fm?' formatted="false"':'')+'>');
+      if(it.length){L.push('    <plurals name="'+u.name+'"'+pa(u)+'>');
         it.forEach(x=>L.push('        <item quantity="'+x.sub+'">'+cur(x)+'</item>'));L.push('    </plurals>')}}
-    else if(g.some(x=>has(cur(x)))){L.push('    <string-array name="'+u.name+'"'+(u.fm?' formatted="false"':'')+'>');
+    else if(g.some(x=>has(cur(x)))){L.push('    <string-array name="'+u.name+'"'+pa(u)+'>');
       g.forEach(x=>L.push('        <item>'+(has(cur(x))?cur(x):x.rs)+'</item>'));L.push('    </string-array>')}
   }
   L.push('</resources>','');return L.join('\n');
 }
-const ckey=u=>u.kind==='s'?u.name:u.kind==='p'?u.name+':'+u.sub:u.name+'['+u.sub+']';
+const ckey=(u,np)=>(u.kind==='s'?u.name:u.kind==='p'?u.name+':'+u.sub:u.name+'['+u.sub+']')+(u.prod&&!np?'@'+u.prod:'');   /* np: key without the product (an XLIFF import knows only the name) */
 const maskRaw=s=>s.replace(/<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>/g,x=>' '.repeat(x.length));
 /* like grabTag, but finds the tag in bm (b with comments/CDATA blanked, same length) and returns the text from b */
 const grabTagM=(b,bm,n)=>{const r=new RegExp('<(?:[\\w.\\-]+:)?'+n+'\\b[^>]*?(?:\\/>|>([\\s\\S]*?)<\\/(?:[\\w.\\-]+:)?'+n+'>)').exec(bm);if(!r||r[1]===undefined)return '';const e=r.index+r[0].lastIndexOf('</');return b.slice(e-r[1].length,e)};
@@ -570,7 +575,7 @@ $('f2').onchange=async e=>{
   busy('Reading\u2026');
   const mp=await readTranslations(txt);busy('');upd(true);
   if(!mp){await errorFlow(file.name,txt);return}
-  const kOf=u=>mode==='strings'?ckey(u):(mp.has(u.rn)?u.rn:u.id);
+  const kOf=u=>mode==='strings'?(mp.has(ckey(u))?ckey(u):ckey(u,1)):(mp.has(u.rn)?u.rn:u.id);
   /* between formats the quote escaping differs: XLIFF -> strings.xml escapes quotes; strings.xml -> XLIFF unescapes them
      (unless that XLIFF keeps \' in its own source texts); XLIFF inline codes (<ph/>, <pc>...) cannot go into strings.xml */
   const inl=/<(?:[\w.\-]+:)?(?:ph|pc|sc|ec|sm|em|cp|mrk)(?=[\s\/>])/;
@@ -591,7 +596,7 @@ $('f2').onchange=async e=>{
   const todo=plan.filter(p=>p.k==='fill'||(choice==='all'&&p.k==='over'));
   todo.forEach(p=>setVal(p.u,p.v));
   units.forEach(u=>delete u.sel);todo.forEach(p=>p.u.sel=true);
-  $('q').value='';$('so').value='mod';page=0;fchips();render(1);
+  $('q').value='';$('so').value='mod';page=0;fchips();RES=null;render(1);
 };
 function previewImport(plan,nf,no,same,skipped){
   return new Promise(res=>{
@@ -909,7 +914,7 @@ $('close').onclick=()=>{
   LSEQ++;GEN++;qaJob++;qaN=0;qaBusy=false;WSYNC=false;wDrop();
   doc=null;raw='';units=[];crowdin=false;v2=false;page=0;$('q').value='';setMode('xliff');sessClear();render();
 };
-let qt;$('q').oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{page=0;render(1)},150)};
+let qt;$('q').oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{RES=null;page=0;render(1)},150)};   /* every edit of the search box refreshes the results, even back to the earlier text */
 $('rx').onclick=()=>{RX=!RX;fchips();page=0;render(1)};
 $('flt').onclick=()=>$('fl').classList.toggle('show');
 document.querySelectorAll('#fl button[data-f]').forEach(b=>b.onclick=()=>{F[b.dataset.f]=F[b.dataset.f]?0:1;fchips();page=0;render(1)});
@@ -1472,18 +1477,25 @@ const fitAll=cs=>{const t=cs.map(c=>c.querySelector('textarea'));t.forEach(x=>x.
 let RSEQ=0;const BIGN=2500;
 const sortByQa=f=>f.map((u,i)=>[u,i,-qaOf(u).length]).sort((a,b)=>a[2]-b[2]||a[1]-b[1]).map(x=>x[0]);
 /* top=true: the search / filter / sort / page size changed, so start again from the top */
+/* The result list is a snapshot: it is rebuilt only when the search changes (text, scope, regex, sort) or the file does, not when a page is turned
+   or units are edited / approved / bulk-processed. RK = key of the latest render, RES = the finished result list. */
+let RES=null,RK=null;
+const resKey=()=>{const q=$('q').value,sk=$('so').value;return JSON.stringify([GEN,mode,q,q?RX:0,q?F:0,sk,CFG.pv?1:0,sk==='qa'?QV:0])};
 function render(top){
   const seq=++RSEQ,L=$('list');
   const nc=!!doc&&mode==='xliff'&&!crowdin&&!v2;document.body.classList.toggle('nc',nc);
   if(!doc){
-    vsOff();L.classList.remove('wait');shown=[];vsCap=0;
+    vsOff();L.classList.remove('wait');shown=[];vsCap=0;RES=RK=null;
     L.innerHTML='<div id="empty">Tap the folder icon to open a .xlf / .xliff or strings.xml file</div>';pages=1;page=0;upd();return;
   }
   const qs=$('q').value,sk=$('so').value;let bad=false,re=null;
   if(RX&&qs){try{re=new RegExp(qs,'i')}catch(e){bad=true}}
   $('q').classList.toggle('bad',bad);
   const done=f=>{if(seq!==RSEQ)return;L.classList.remove('wait');paintList(f,bad,top)};
+  const key=resKey();RK=key;
   if(bad){done([]);return}
+  if(!top&&RES&&RES.key===key){done(RES.f);return}   /* search / filter / sort / page-size changes (top) always rebuild, even if the key is unchanged */
+  const fin=f=>{if(seq!==RSEQ)return;RES={key,f};done(f)};
   const big=units.length>=BIGN;
   /* main-thread search + sort (small files, "Edit on preview" on, or no Worker) */
   const local=()=>{
@@ -1495,7 +1507,7 @@ function render(top){
       else{const ql=qs.toLowerCase();hit=v=>(v||'').toLowerCase().includes(ql)}
       let f=units.filter(u=>!qs||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(sv(u.rs)))||(!nc&&F.ctx&&hit(u.ct))||(!nc&&F.lbl&&hit((u.labels||[]).join(' ')))||(F.tgt&&hit(sv(cur(u)))));
       if(sk!=='none')f=f.map((u,i)=>[u,i,sortKey(sk,u)]).sort((a,b)=>a[2]-b[2]||a[1]-b[1]).map(x=>x[0]);
-      done(f);
+      fin(f);
     };
     if(sk==='qa'&&big){L.classList.add('wait');qaScan(go)}else go();
   };
@@ -1504,7 +1516,7 @@ function render(top){
     wCall({t:'query',q:qs,rx:!!(RX&&qs),F:Object.assign({},F),nc,sk:sk==='qa'?'none':sk,dyn:wDyn()}).then(m=>{
       if(seq!==RSEQ)return;
       const f=Array.from(m.idx,i=>units[i]);
-      if(sk==='qa')qaScan(()=>{if(seq===RSEQ)done(sortByQa(f))});else done(f);
+      if(sk==='qa')qaScan(()=>fin(sortByQa(f)));else fin(f);
     }).catch(()=>{if(seq===RSEQ){WSYNC=false;local()}});
   }else local();
 }
@@ -1558,9 +1570,13 @@ const lc=c=>{if(!c||c==='auto')return c;const l=c.toLowerCase();
   if(l.startsWith('zh'))return /tw|hk|hant/.test(l)?'zh-TW':'zh-CN';return l.split(/[-_]/)[0]};
 function langs(){
   const ft=/<(?:[\w.\-]+:)?file\b[^>]*>/.exec(raw),xt=/<(?:[\w.\-]+:)?xliff\b[^>]*>/.exec(raw);
-  const g=(t,n)=>t?ga(t[0],n):null;
-  return {sl:lc(g(ft,'source-language')||g(xt,'srcLang')||'auto'),tl:lc(g(ft,'target-language')||g(xt,'trgLang'))};
+  const g=(t,n)=>t?ga(t[0],n):null,fx=s=>String(s||'').trim().replace(/_/g,'-');
+  const sr=fx(g(ft,'source-language')||g(xt,'srcLang')),tr=fx(g(ft,'target-language')||g(xt,'trgLang'));
+  /* sl / tl: the language only (free engines); slr / tlr: the full code with region or script, e.g. fr-CA, sr-Latn (AI engines) */
+  return {sl:lc(sr||'auto'),tl:lc(tr),slr:sr,tlr:tr};
 }
+/* target language of the open file: its own (XLIFF), else the selector (strings.xml, or an XLIFF that names none) */
+const tlNow=()=>mode==='strings'?lc($('tl').value):doc?(langs().tl||lc($('tl').value)):'';
 const TOK=/%(?:\d+\$)?[-#+0,(]*\d*(?:\.\d+)?[a-zA-Z%]|\\u[0-9a-fA-F]{4}|\\[nrt'"@?\\]|&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);|<[^>]+>|\{[^}]*\}/g;
 async function gtx(q,sl,tl){
   const url='https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl='+sl+'&tl='+tl+'&q='+encodeURIComponent(q);
@@ -1576,7 +1592,9 @@ async function mym(q,sl,tl){
   if(!j.responseData||String(j.responseStatus)!=='200')throw new Error(j.responseDetails||'Service error');
   const t=document.createElement('textarea');t.innerHTML=j.responseData.translatedText;return t.value;
 }
-const lname=c=>{const l=allLangs().find(x=>x[0].toLowerCase()===String(c).toLowerCase());return l?(l[1]?l[1]+' ('+l[0]+')':l[0]):c};
+const lname=c=>{const k=String(c).toLowerCase(),all=allLangs(),l=all.find(x=>x[0].toLowerCase()===k);
+  if(l)return l[1]?l[1]+' ('+l[0]+')':l[0];
+  const b=all.find(x=>x[0].toLowerCase()===k.split('-')[0]);return b&&b[1]?b[1]+' ('+c+')':c};   /* fr-CA -> French (fr-CA) */
 function mtPrompt(src,u,sl,tl){
   const sys=['You are a professional software localizer for an Android app. Translate the given UI string.',
     'Rules:',
@@ -1673,12 +1691,12 @@ function xmlWrap(x){
 const QUOTE_TOK=new Set(["\\'",'\\"','&apos;','&quot;']);
 const tokCount=t=>{const m=new Map();(t.match(TOK)||[]).forEach(x=>{if(!QUOTE_TOK.has(x))m.set(x,(m.get(x)||0)+1)});return m};
 async function machine(src,u){
-  const {sl,tl}=mode==='strings'?{sl:'auto',tl:lc($('tl').value)}:langs();
+  const lg=mode==='strings'?null:langs(),sl=lg?lg.sl:'auto',slr=lg&&lg.slr||'auto',tlr=(lg&&lg.tl?lg.tlr:$('tl').value).trim().replace(/_/g,'-'),tl=lc(tlr);
   if(!tl)throw new Error('Target language not found in file');
   if(src.length>1500)throw new Error('Source too long');
   const quotes=t=>mode==='strings'?t.replace(/(<!\[CDATA\[[\s\S]*?\]\]>|<!--[\s\S]*?-->|<\/?[A-Za-z_][^>]*>)|(?<!\\)(['"])/g,(m,tag,q)=>tag?tag:'\\'+q):t;   /* tags keep their attribute quotes */
   if(aiOn(CFG.eng)){
-    const out=quotes(await (CFG.eng==='groq'?groq:gemini)(src,u,sl,mode==='strings'?$('tl').value:tl));
+    const out=quotes(await (CFG.eng==='groq'?groq:gemini)(src,u,slr,tlr));
     const a=tokCount(src),b=tokCount(out);let miss=false;a.forEach((n,k)=>{if((b.get(k)||0)!==n)miss=true});
     const bad=new DOMParser().parseFromString(xmlWrap(out),'application/xml').querySelector('parsererror');
     return {text:out,warn:miss||!!bad,msg:bad?'The translation may not be valid XML (check &, < and tags). Please review it.':'Some placeholders differ from the source. Please review the translation.'};
@@ -1897,7 +1915,7 @@ async function exportStrings(){
   L.push('</resources>','');
   const out=L.join('\n');
   if(new DOMParser().parseFromString(out,'application/xml').querySelector('parsererror')){alert('The generated strings.xml is not valid XML. Not exported.');return}
-  const tl=(langs().tl||'').trim();
+  const tl=(tlNow()||'').trim();
   await shareFile(tl?'strings-'+tl+'.xml':'strings.xml',out);
 }
 function askFormat(){
@@ -1945,6 +1963,12 @@ function buildXlf2(){
   parts.push(raw.slice(pos));return parts.join('');
 }
 /* XLIFF 1.2: edits the matching <trans-unit> in place */
+/* XLIFF 1.2: the state of an edited <target> follows its text: translated text is no longer "needs-translation", a cleared one is no longer "translated" */
+function trState(a,txt){
+  const s=ga(a,'state');if(s===null)return a;
+  const need=/^(?:new|needs-[\w-]+)$/.test(s),has=txt.trim()!=='';
+  return has&&need?setAttr(a,'state','translated'):!has&&!need?setAttr(a,'state','needs-translation'):a;
+}
 function buildXlf12(){
   const starts=[];const re=/<((?:[\w.\-]+:)?)(trans-unit|unit)\b/g;let m;
   const mr=maskRaw(raw);while((m=re.exec(mr)))starts.push([m.index,m[1]+m[2]]);
@@ -1958,7 +1982,7 @@ function buildXlf12(){
     const tre=/<((?:[\w.\-]+:)?)target\b([^>]*?)\s*(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?target>)/;
     const mk=mr.slice(st,en).replace(/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans>/g,x=>' '.repeat(x.length)),tm=tre.exec(mk);
     if(tm){
-      blk=blk.slice(0,tm.index)+'<'+tm[1]+'target'+tm[2]+'>'+u.val+'</'+tm[1]+'target>'+blk.slice(tm.index+tm[0].length);
+      blk=blk.slice(0,tm.index)+'<'+tm[1]+'target'+trState(tm[2],u.val)+'>'+u.val+'</'+tm[1]+'target>'+blk.slice(tm.index+tm[0].length);
     }else{
       const sm=/([ \t]*)<((?:[\w.\-]+:)?)source\b[^>]*?(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?source>)/.exec(mk);
       if(sm){const z=sm.index+sm[0].length;blk=blk.slice(0,z)+'\n'+sm[1]+'<'+sm[2]+'target>'+u.val+'</'+sm[2]+'target>'+blk.slice(z)}
