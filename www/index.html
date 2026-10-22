@@ -195,13 +195,13 @@ const ga=(t,n)=>{const r=new RegExp('\\s'+n+'=(?:"([^"]*)"|\'([^\']*)\')').exec(
 const setAttr=(t,n,v)=>{const re=new RegExp('(\\s'+n+'=)(?:"[^"]*"|\'[^\']*\')');
   return re.test(t)?t.replace(re,'$1"'+v+'"'):t.replace(/\s*(\/?>)$/,' '+n+'="'+v+'"$1')};
 const START=/^<(?:[\w.\-]+:)?(?:trans-unit|unit)\b(?:"[^"]*"|'[^']*'|[^>"'])*>/;
-const setAp=(u,n)=>{if(n===u.oAp)delete u.ap;else u.ap=n};
+const setAp=(u,n)=>{if(n===u.oAp&&!(u.v2&&u.val!==undefined))delete u.ap;else u.ap=n};   /* XLIFF 2.x: once the text is edited the state is rewritten on save, so an explicit approve must be kept */
 const setTr=(u,n)=>{if(n===u.oTr)delete u.tr;else u.tr=n};
 const changed=u=>u.val!==undefined||u.ap!==undefined||u.tr!==undefined;
 const byLocal=(p,n)=>[...p.children].find(c=>c.localName===n);
 const cur=u=>u.val!==undefined?u.val:u.rt;
 const edited=()=>units.filter(changed).length;
-const setVal=(u,v)=>{if(v===u.rt)delete u.val;else u.val=v};
+const setVal=(u,v)=>{if(v===u.rt)delete u.val;else{u.val=v;if(u.v2&&u.oAp&&u.ap===undefined)u.ap=false}};   /* XLIFF 2.x: editing the text of a final segment un-approves it (buildXlf2 saves it as translated), so show it that way */
 
 // Clipboard: up to 3 backup versions of a unit's translation, kept for this session only (u.cb, newest first)
 const CB_MAX=3;
@@ -389,7 +389,7 @@ function glMap(txt){
   });
 }
 function tcls(t){
-  t=t.replace(/\s+$/,'');if(!t)return '';
+  t=W_dec(t).replace(/\s+$/,'');if(!t)return '';   /* decode entities first: "Loading&#8230;" ends with an ellipsis, not with a ";" */
   if(/(\.\.\.|\u2026)$/.test(t))return 'ell';
   const c=t.slice(-1);
   if('.\u3002\uff0e'.includes(c))return 'dot';
@@ -515,23 +515,26 @@ function setMode(m){
   fillSort();fchips();
 }
 function parseStrings(txt){
-  const t=txt.replace(/<!--[\s\S]*?-->/g,'');
+  const t=txt.replace(/<!--[\s\S]*?-->/g,''),tm=maskRaw(t);   /* match on a copy with CDATA blanked (same length), so a "</string>" inside CDATA cannot end the string; the texts are cut from the real one */
   const res=[];let fm=false;const re=/<(string-array|plurals|string)(?=[\s>\/])([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g;let m;
   const add=(kind,name,sub,rs)=>res.push({kind,name,sub,rs,fm,id:name,rn:kind==='p'?sub:kind==='a'?'['+sub+']':'',
     rt:'',is12:false,oAp:false,oTr:'yes',ctx:[],labels:[],max:0,ct:'',idx:res.length});
-  while((m=re.exec(t))){
+  const inner=(src,r,g)=>{const c=r[g];if(c===undefined)return '';const e=r.index+r[0].lastIndexOf('</');return src.slice(e-c.length,e)};
+  while((m=re.exec(tm))){
     const at=' '+m[2],name=ga(at,'name');
     if(!name||ga(at,'translatable')==='false')continue;
     fm=ga(at,'formatted')==='false';
-    const body=m[3]||'';
+    const body=inner(t,m,3),bodyM=m[3]||'';
     if(m[1]==='string')add('s',name,'',body);
-    else{const ir=/<item\b([^>]*)>([\s\S]*?)<\/item>/g;let im,i=0;
-      while((im=ir.exec(body)))add(m[1]==='plurals'?'p':'a',name,m[1]==='plurals'?(ga(' '+im[1],'quantity')||'other'):String(i++),im[2])}
+    else{const ir=/<item\b([^>]*?)(?:\/>|>([\s\S]*?)<\/item>)/g;let im,i=0;   /* <item/> (self-closing) is an empty item and must not swallow the next one */
+      while((im=ir.exec(bodyM)))add(m[1]==='plurals'?'p':'a',name,m[1]==='plurals'?(ga(' '+im[1],'quantity')||'other'):String(i++),inner(body,im,2))}
   }
   return res;
 }
 function buildStrings(){
-  const L=['<?xml version="1.0" encoding="utf-8"?>','<resources>'];
+  /* keep the original <resources ...> start tag: it declares xmlns:xliff / xmlns:tools used by the strings (<xliff:g>), otherwise the saved file is not valid XML */
+  const rm=/<resources\b(?:"[^"]*"|'[^']*'|[^>"'])*>/.exec(maskRaw(raw||'')),root=rm&&rm[0].slice(-2)!=='/>'?raw.slice(rm.index,rm.index+rm[0].length):'<resources>';
+  const L=['<?xml version="1.0" encoding="utf-8"?>',root];
   const has=v=>v.trim()!=='';
   for(let i=0;i<units.length;){
     const u=units[i];let j=i;
@@ -1666,12 +1669,14 @@ function xmlWrap(x){
   }
   return '<r '+_nsDecl+'>'+x+'</r>';
 }
-const tokCount=t=>{const m=new Map();(t.match(TOK)||[]).forEach(x=>m.set(x,(m.get(x)||0)+1));return m};
+/* quote marks (\' \" &apos; &quot;) are punctuation, not placeholders: their number legitimately differs between languages */
+const QUOTE_TOK=new Set(["\\'",'\\"','&apos;','&quot;']);
+const tokCount=t=>{const m=new Map();(t.match(TOK)||[]).forEach(x=>{if(!QUOTE_TOK.has(x))m.set(x,(m.get(x)||0)+1)});return m};
 async function machine(src,u){
   const {sl,tl}=mode==='strings'?{sl:'auto',tl:lc($('tl').value)}:langs();
   if(!tl)throw new Error('Target language not found in file');
   if(src.length>1500)throw new Error('Source too long');
-  const quotes=t=>mode==='strings'?t.replace(/(?<!\\)(['"])/g,'\\$1'):t;
+  const quotes=t=>mode==='strings'?t.replace(/(<!\[CDATA\[[\s\S]*?\]\]>|<!--[\s\S]*?-->|<\/?[A-Za-z_][^>]*>)|(?<!\\)(['"])/g,(m,tag,q)=>tag?tag:'\\'+q):t;   /* tags keep their attribute quotes */
   if(aiOn(CFG.eng)){
     const out=quotes(await (CFG.eng==='groq'?groq:gemini)(src,u,sl,mode==='strings'?$('tl').value:tl));
     const a=tokCount(src),b=tokCount(out);let miss=false;a.forEach((n,k)=>{if((b.get(k)||0)!==n)miss=true});
@@ -1866,7 +1871,7 @@ async function exportStrings(){
       const dec=d.documentElement.textContent;
       if(parse(dec).querySelector('parsererror'))kept++;else text=dec;
     }
-    if(CFG.pv){const t2=pvToAndroid(text);if(t2!==text){quoted++;text=t2}}
+    {const t2=pvToAndroid(text);if(t2!==text){quoted++;text=t2}}   /* strings.xml needs \' and \" whatever the XLIFF used (plain quote, &apos; / &quot;) */
     seen.add(u.rn);items.push([u.rn,text]);
   }
   busy('');upd(true);
@@ -1882,7 +1887,12 @@ async function exportStrings(){
   if(quoted)lines.push('Quotes escaped for Android (\\\' and \\\"): '+quoted);
   if(kept)lines.push('Kept in their XLIFF form (not valid after decoding): '+kept);
   if(!confirm(lines.join('\n')+'\n\nExport?'))return;
-  const L=['<?xml version="1.0" encoding="utf-8"?>','<resources>'];
+  /* declare the namespace prefixes the texts use (e.g. <xliff:g>), otherwise the generated file is not valid XML */
+  const nsMap={},used=new Set();
+  {const rx=/xmlns:([\w.\-]+)=("[^"]*"|'[^']*')/g;let m;while((m=rx.exec(_nsDecl)))nsMap[m[1]]=m[2];
+   items.forEach(([,t])=>{const r2=/<\/?([A-Za-z_][\w.\-]*):[\w.\-]/g;let q;while((q=r2.exec(t)))used.add(q[1])})}
+  const nsAttr=[...used].filter(p=>nsMap[p]).map(p=>' xmlns:'+p+'='+nsMap[p]).join('');
+  const L=['<?xml version="1.0" encoding="utf-8"?>','<resources'+nsAttr+'>'];
   items.forEach(([nm,t])=>L.push('    <string name="'+nm+'">'+t+'</string>'));
   L.push('</resources>','');
   const out=L.join('\n');
