@@ -43,7 +43,7 @@ Everything runs on your device. There is no account, no server, and no upload st
 
 ### Machine translation
 - **Free engine:** Google Translate with a MyMemory fallback.
-- **Gemini (AI) engine:** uses your own API key, picks from the models your key can access, and understands context: the key name, plural form, labels, max length, glossary terms, and your own notes (e.g. *"Music player app. Informal tone. Keep 'Playlist' untranslated."*).
+- **AI engines (Gemini or Groq):** use your own API key, pick from the models your key can access, and understand context: the key name, plural form, labels, max length, glossary terms, and your own notes (e.g. *"Music player app. Informal tone. Keep 'Playlist' untranslated."*).
 - Placeholders and tags are protected during translation, and a warning appears if any went missing.
 - Adjustable **rate limit** (requests per minute) with automatic retry on 429/503 errors.
 - Translate one string, or run it on many selected strings with progress and a stop button.
@@ -88,8 +88,8 @@ If a file fails to open because of broken XML, the app locates the problem lines
 ## Privacy
 
 - Your files are processed **locally** on your device.
-- Settings, your glossary and your Gemini API key are stored **only on your device**.
-- Text is sent over the network **only** when you use machine translation: to Google Translate / MyMemory (free engine) or to Google's Gemini API (your key, sent only to Google).
+- Settings, your glossary and your Gemini / Groq API key are stored **only on your device**.
+- Text is sent over the network **only** when you use machine translation: to Google Translate / MyMemory (free engine), or to the AI service you picked with your own key (Google's Gemini API or Groq). Each key is sent only to its own service.
 
 ---
 
