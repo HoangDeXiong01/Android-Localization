@@ -685,6 +685,45 @@ function buildStrings(){
   }
   L.push('</resources>','');return L.join('\n');
 }
+/* strings.xml save: the ORIGINAL file with only the translated texts replaced (comments, order, spacing, untranslated and translatable="false"
+   entries stay exactly as they were). Scans the raw text with the same rules as parseStrings; returns null when the scan does not
+   match the units (then the caller falls back to buildStrings). */
+function patchStrings(){
+  if(!raw)return null;
+  const tm=maskRaw(raw),ed=[];let k=0;
+  const has=v=>v.trim()!=='';
+  const want=u=>{const c=cur(u);return has(c)&&c!==u.rs?c:null};
+  const re=/<(string-array|plurals|string)(?=[\s>\/])((?:"[^"]*"|'[^']*'|[^>"'])*?)(?:\/>|>([\s\S]*?)<\/\1\s*>)/g;let m;
+  const fill=(u,tag,start,len,body,selfEnd)=>{   /* body: [from,to] of the text, or null for a self-closing tag */
+    const t=want(u);if(t===null)return;
+    if(body)ed.push([body[0],body[1],t]);
+    else{const e=start+len;let a=e-2;while(a>start&&/\s/.test(raw[a-1]))a--;ed.push([a,e,'>'+t+'</'+tag+'>'])}
+  };
+  while((m=re.exec(tm))){
+    const name=ga(' '+m[2],'name');
+    if(!name||ga(' '+m[2],'translatable')==='false')continue;
+    const bodyM=m[3];
+    if(m[1]==='string'){
+      const u=units[k++];if(!u||u.kind!=='s'||u.name!==name)return null;
+      if(bodyM===undefined)fill(u,'string',m.index,m[0].length,null);
+      else{const e=m.index+m[0].lastIndexOf('</');fill(u,'string',0,0,[e-bodyM.length,e])}
+      continue;
+    }
+    if(bodyM===undefined)continue;
+    const base=m.index+m[0].lastIndexOf('</')-bodyM.length;
+    const ir=/<item(?=[\s>\/])((?:"[^"]*"|'[^']*'|[^>"'])*?)(?:\/>|>([\s\S]*?)<\/item\s*>)/g;let im;
+    const kind=m[1]==='plurals'?'p':'a';
+    while((im=ir.exec(bodyM))){
+      const u=units[k++];if(!u||u.kind!==kind||u.name!==name)return null;
+      if(im[2]===undefined)fill(u,'item',base+im.index,im[0].length,null);
+      else{const e=base+im.index+im[0].lastIndexOf('</');fill(u,'item',0,0,[e-im[2].length,e])}
+    }
+  }
+  if(k!==units.length)return null;
+  let out=raw;
+  ed.sort((a,b)=>b[0]-a[0]).forEach(([a,b,t])=>{out=out.slice(0,a)+t+out.slice(b)});
+  return out;
+}
 const ckey=(u,np)=>(u.kind==='s'?u.name:u.kind==='p'?u.name+':'+u.sub:u.name+'['+u.sub+']')+(u.prod&&!np?'@'+u.prod:'');   /* np: key without the product (an XLIFF import knows only the name) */
 const maskRaw=s=>s.replace(/<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>/g,x=>' '.repeat(x.length));
 /* index of the end tag </name> at or after from in t, or -1. XML 1.0 [42] allows white space before the ">" (</unit >), so a plain indexOf('</unit>') is not enough.
@@ -2732,7 +2771,7 @@ $('save').onclick=async()=>{
     if(bad.length&&!confirm(bad.length+' segment(s) you edited break XLIFF 2 rules for inline codes, e.g. '+bad[0].id+': '+inlineViol(bad[0],cur(bad[0]))[0]+'\n\nThe standard does not allow such a translation. Save anyway?'))return;
   }
   let out,outName=name;
-  if(mode==='strings'){out=buildStrings();outName='strings-'+$('tl').value+'.xml'}
+  if(mode==='strings'){const pt=patchStrings();out=pt!==null?pt:buildStrings();outName=pt!==null?name:'strings-'+$('tl').value+'.xml'}   /* original file with the translations patched in; buildStrings only as a fallback */
   else if(v2){out=buildXlf2()}
   else{
   out=buildXlf12();
