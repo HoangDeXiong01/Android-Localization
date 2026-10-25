@@ -1218,8 +1218,266 @@ function xliff2Issues(txt){
     }
   }
   if(hasTrg&&!trg)add('<xliff> without trgLang although it contains <target> elements (Core 3.2.2.1)');
+  try{xliff2Deep(d,r,isX,add,ex,src,trg);xliff2Modules(d,r,isX,add,src,trg)}catch(e){/* a checker bug must never block opening */}
   for(const k in cnt)out.push(cnt[k]+' \u00d7 '+k+(/repeated/.test(k)&&ex[k.split(' ')[0]]?' (e.g. '+ex[k.split(' ')[0]]+')':''));
   return out;
+}
+/* XLIFF 2.x deeper conformance checks (Core 3.x / 4.x constraints exercised by the OASIS XLIFF TC test suite). Findings go to add(text). */
+function xliff2Deep(d,r,isX,add,ex,src,trg){
+  const XL='http://www.w3.org/XML/1998/namespace',XMLNS='http://www.w3.org/2000/xmlns/';
+  const NM=/^[A-Za-z0-9_:.\-\u00B7\u00C0-\uFFFF]+$/,NC=/^[A-Za-z_\u00C0-\uFFFF][A-Za-z0-9_.\-\u00B7\u00C0-\uFFFF]*$/;
+  const ln=e=>e.localName,kids=e=>[...e.children],xk=e=>kids(e).filter(isX),xkn=(e,n)=>xk(e).filter(c=>ln(c)===n);
+  const isMod=ns=>/^urn:oasis:names:tc:xliff:/.test(ns||'')&&ns!==r.namespaceURI;
+  const isExt=e=>!isX(e)&&!isMod(e.namespaceURI);
+  const attrs=e=>[...e.attributes].filter(a=>a.namespaceURI!==XMLNS&&a.name!=='xmlns'&&!a.name.startsWith('xmlns:'));
+  const all=n=>[...r.getElementsByTagNameNS(r.namespaceURI,n)];
+  const dup=(list,label)=>{const s=new Set();for(const x of list){if(x==null||x==='')continue;if(s.has(x)){add(label+' repeated');return}s.add(x)}};
+  /* BCP 47 shape (well-formed language tag, RFC 5646 section 2.1) */
+  const LT=/^(?:[A-Za-z]{2,3}(?:-[A-Za-z]{3}){0,3}|[A-Za-z]{4}|[A-Za-z]{5,8})(?:-[A-Za-z]{4})?(?:-(?:[A-Za-z]{2}|[0-9]{3}))?(?:-(?:[A-Za-z0-9]{5,8}|[0-9][A-Za-z0-9]{3}))*(?:-[A-WY-Za-wy-z0-9](?:-[A-Za-z0-9]{2,8})+)*(?:-[xX](?:-[A-Za-z0-9]{1,8})+)?$|^[xX](?:-[A-Za-z0-9]{1,8})+$|^[iI]-[A-Za-z0-9]{1,8}$/;
+  if(src&&!LT.test(src))add('srcLang that is not a well-formed language tag (BCP 47)');
+  if(trg&&!LT.test(trg))add('trgLang that is not a well-formed language tag (BCP 47)');
+  for(const e of r.getElementsByTagNameNS('*','*')){const l=e.getAttributeNS(XL,'lang');if(l!==null&&l!==''&&!LT.test(l))add('xml:lang value(s) that are not well-formed language tags');
+    const sp=e.getAttributeNS(XL,'space');if(sp!==null&&sp!=='default'&&sp!=='preserve')add('xml:space value(s) other than default / preserve')}
+  /* attribute tables (Core 4.x): unqualified attributes the XLIFF elements accept */
+  const CO='canCopy canDelete canReorder copyOf dir subType type'.split(' ');
+  const AT={xliff:'version srcLang trgLang',file:'id canResegment original translate srcDir trgDir',group:'id name canResegment translate srcDir trgDir type',unit:'id name canResegment translate srcDir trgDir type',
+    notes:'',note:'id appliesTo category priority ref',segment:'id canResegment state subState',ignorable:'id',source:'',target:'order',skeleton:'href',originalData:'',data:'id dir',cp:'hex',
+    ph:'id canCopy canDelete canReorder copyOf disp equiv dataRef subFlows subType type',
+    pc:'id canCopy canDelete canReorder copyOf dispEnd dispStart equivEnd equivStart dataRefEnd dataRefStart subFlowsEnd subFlowsStart subType type dir',
+    sc:'id canCopy canDelete canReorder canOverlap copyOf dataRef dir disp equiv isolated subFlows subType type',ec:'id startRef canCopy canDelete canReorder canOverlap copyOf dataRef dir disp equiv isolated subFlows subType type',
+    mrk:'id translate type ref value',sm:'id translate type ref value',em:'startRef'};
+  AT.ph+=' dir';
+  const EXTA=['xliff','file','group','unit','note','mrk','sm'];
+  for(const e of r.getElementsByTagNameNS(r.namespaceURI,'*').length?[r,...r.getElementsByTagNameNS(r.namespaceURI,'*')]:[r]){
+    if(!isX(e))continue;const n=ln(e),ok=(AT[n]||'').split(' ');
+    for(const a of attrs(e)){
+      if(!a.namespaceURI){if(AT[n]!==undefined&&!ok.includes(a.name))add('<'+n+'> with an attribute that Core does not define for it (e.g. '+a.name+')')}
+      else if(a.namespaceURI===XL){if(!(a.localName==='lang'&&['xliff','file','group','unit','source','target'].includes(n))&&!(a.localName==='space'&&['xliff','file','group','unit','source','target','data'].includes(n))&&a.localName!=='id')add('<'+n+'> with an xml: attribute that is not allowed there (e.g. '+a.name+')')}
+      else if(isExt(a)||!isMod(a.namespaceURI)){if(!/^urn:oasis:names:tc:xliff:/.test(a.namespaceURI)&&!EXTA.includes(n)&&a.namespaceURI!=='http://www.w3.org/2005/11/its'&&a.namespaceURI!=='http://www.w3.org/2001/XMLSchema-instance')add('<'+n+'> with an extension attribute (only xliff, file, group, unit, note, mrk and sm accept them)')}
+    }
+  }
+  /* ids: NMTOKEN, and the translate attribute is not allowed on a segment */
+  const idEls=['file','group','unit','segment','ignorable','note','data','ph','pc','sc','ec','sm','mrk'];
+  for(const n of idEls)for(const e of all(n)){const v=e.getAttribute('id');if(v!==null&&v!==''&&!NM.test(v))add('id value(s) that are not NMTOKENs')}
+  for(const e of all('segment'))if(e.hasAttribute('translate'))add('<segment> with a translate attribute (not defined for segments)');
+  /* notes, originalData, skeleton, extension elements: content model and order (Core 3.2.2) */
+  for(const e of all('notes')){const ns=xkn(e,'note');if(!ns.length)add('<notes> without a <note>');dup(ns.map(x=>x.getAttribute('id')),'<note> id(s)')}
+  for(const e of all('originalData'))if(!xkn(e,'data').length)add('<originalData> without a <data>');
+  for(const e of all('file'))if(!xk(e).some(c=>['group','unit'].includes(ln(c))))add('<file> without a <group> or <unit>');
+  for(const e of all('skeleton')){const h=e.hasAttribute('href'),empty=!e.children.length&&!e.textContent.trim();if(h&&!empty)add('<skeleton> with href and inline content');if(!h&&empty)add('<skeleton> with neither href nor content')}
+  const place=(p,stop,what)=>{let seen=false;for(const c of kids(p)){if(isX(c)&&stop.includes(ln(c)))seen=true;else if(seen&&(what(c)))add('<'+ln(p)+'> with '+(isX(c)?'<'+ln(c)+'>':'an extension / module element')+' after its '+stop.join(' / '))}};
+  for(const e of all('file')){place(e,['group','unit'],c=>isX(c)?['notes','skeleton'].includes(ln(c)):true)}
+  for(const e of all('group')){place(e,['group','unit'],c=>isX(c)?ln(c)==='notes':true)}
+  for(const e of all('unit')){place(e,['segment','ignorable'],c=>isX(c)?['notes','originalData'].includes(ln(c)):true)}
+  for(const c of kids(r))if(isExt(c))add('extension element directly inside <xliff>');
+  for(const e of all('segment'))for(const c of kids(e))if(!isX(c))add('extension / module element inside <segment>');
+  for(const e of all('originalData'))for(const c of kids(e))if(!isX(c))add('extension / module element inside <originalData>');
+  for(const e of all('data'))for(const c of kids(e))if(isX(c)?ln(c)!=='cp':true)add('<data> with content other than text and <cp>');
+  /* extension element ids: unique inside the same parent kind (file / group / unit) */
+  const extIds=e=>{const l=[];(function w(x){for(const c of kids(x)){if(isExt(c)){const v=c.getAttribute('id');if(v)l.push(v);}w(c)}})(e);return l};
+  for(const n of ['file','group','unit'])for(const e of all(n)){const l=[];for(const c of kids(e))if(isExt(c)){const v=c.getAttribute('id')||c.getAttributeNS(XL,'id');if(v)l.push(v);for(const g of kids(c)){const v2=g.getAttribute('id')||g.getAttributeNS(XL,'id');if(v2)l.push('>'+c.localName+'>'+v2)}}dup(l,'extension element id(s)')}
+  /* cp: only for characters XML cannot carry */
+  for(const e of all('cp')){const h=e.getAttribute('hex');if(h===null||!/^[0-9A-Fa-f]{1,6}$/.test(h)){add('<cp> whose hex is not a hexadecimal code point');continue}const c=parseInt(h,16);
+    if(!((c>=0&&c<=8)||c===0xB||c===0xC||(c>=0xE&&c<=0x1F)||(c>=0x7F&&c<=0x84)||(c>=0x86&&c<=0x9F)||(c>=0xFDD0&&c<=0xFDEF)||(c&0xFFFE)===0xFFFE||c===0xD800||(c>=0xD800&&c<=0xDFFF)))add('<cp> for a character XML can carry directly')}
+  /* type / subType (Core 4.x type, subType) */
+  const TY={pc:['fmt','ui','quote','link','image','other'],ph:['fmt','ui','quote','link','image','other'],sc:['fmt','ui','quote','link','image','other'],ec:['fmt','ui','quote','link','image','other'],mrk:['generic','comment','term','other']};
+  const XS={'xlf:b':'fmt','xlf:i':'fmt','xlf:u':'fmt','xlf:lb':'fmt','xlf:pb':'fmt','xlf:var':'ui'};
+  for(const n of ['pc','ph','sc','ec','mrk','sm']){for(const e of all(n)){const t=e.getAttribute('type'),s=e.getAttribute('subType');
+    if(t!==null&&TY[n]&&!TY[n].includes(t)&&!/^[^:\s]+:\S+$/.test(t))add('type value(s) outside the Core list (and not prefix:value)');
+    if(s!==null&&t===null)add('subType without a type');
+    if(s!==null&&!/^[^:\s]+:\S+$/.test(s))add('subType value(s) not of the form prefix:value');
+    if(s!==null&&XS[s]&&t!==null&&XS[s]!==t)add('reserved xlf: subType used with a type it does not map onto')}}
+  /* inline codes, per unit (Core 4.x: sc/ec, sm/em, dataRef, copyOf, canCopy/canDelete/canReorder, order) */
+  const CODE=['ph','pc','sc','ec'];
+  const eff=(e,a,def)=>e.hasAttribute(a)?e.getAttribute(a):def;
+  const uids=new Set(all('unit').map(x=>x.getAttribute('id')));   /* hoisted: computing it per unit made large files quadratic */
+  for(const u of all('unit')){
+    const od=xkn(u,'originalData')[0],dids=new Set(od?xkn(od,'data').map(x=>x.getAttribute('id')):[]);
+    const segs=xk(u).filter(c=>ln(c)==='segment'||ln(c)==='ignorable'),ord=[];
+    const srcs=[],trgs=[];for(const s of segs){const so=xkn(s,'source')[0],tg=xkn(s,'target')[0];if(so)srcs.push(so);if(tg)trgs.push(tg)}
+    const inl=el=>[...el.getElementsByTagNameNS(r.namespaceURI,'*')].filter(x=>['ph','pc','sc','ec','sm','em','mrk','cp'].includes(ln(x)));
+    /* data references */
+    const chk=(e,a)=>{const v=e.getAttribute(a);if(v===null)return;if(!dids.has(v))add('dataRef-type attribute(s) naming a <data> that is not in the unit\'s <originalData>')};
+    for(const s of [...srcs,...trgs])for(const e of inl(s)){chk(e,'dataRef');chk(e,'dataRefStart');chk(e,'dataRefEnd')}
+    /* copyOf: names a code of the unit that can be copied, and then has no dataRef of its own */
+    const byId=new Map();for(const s of srcs)for(const e of inl(s))if(CODE.includes(ln(e))&&e.getAttribute('id')!==null)byId.set(e.getAttribute('id'),e);
+    for(const s of [...srcs,...trgs])for(const e of inl(s)){const c=e.getAttribute('copyOf');if(c===null)continue;
+      const t=byId.get(c);if(!t)add('copyOf naming a code that does not exist in the unit');else if(eff(t,'canCopy','yes')==='no')add('copyOf naming a code that has canCopy="no"');
+      if(e.hasAttribute('dataRef')||e.hasAttribute('dataRefStart')||e.hasAttribute('dataRefEnd'))add('code with both copyOf and a dataRef (the data comes from the copied code)')}
+    /* subFlows: ids of units of the same file */
+    for(const s of srcs)for(const e of inl(s))for(const a of ['subFlows','subFlowsStart','subFlowsEnd']){const v=e.getAttribute(a);if(v!==null&&v.trim().split(/\s+/).some(x=>!uids.has(x)))add('subFlows naming unit id(s) that do not exist')}
+    if(od)for(const dt of xkn(od,'data')){const t=dt.textContent;for(const m of t.matchAll(/\[#\$([^\]]*)\]/g))if(!uids.has(m[1]))add('subflow reference [#$id] in <data> naming a unit that does not exist')}
+    /* sc / ec and sm / em pairing */
+    for(const side of [srcs,trgs]){
+      const pos=[],scs=new Map(),sms=new Map();let i=0;
+      for(const s of side)for(const e of inl(s)){const n=ln(e),id=e.getAttribute('id');
+        if(n==='sc'&&id!==null)scs.set(id,{e,i:i});if(n==='sm'&&id!==null)sms.set(id,{e,i:i});pos.push({e,n,i:i});i++}
+      const ecRef=new Set(),emRef=new Set();
+      for(const p of pos){const e=p.e,n=p.n;
+        if(n==='ec'){const iso=e.getAttribute('isolated'),st=e.getAttribute('startRef'),id=e.getAttribute('id');
+          if(iso!==null&&iso!=='yes'&&iso!=='no')add('isolated value(s) other than yes / no');
+          if(iso==='yes'){if(st!==null||id===null)add('isolated <ec> that uses startRef instead of id')}
+          else{if(id!==null&&st===null)add('<ec> without isolated="yes" that has no startRef');if(id!==null&&st!==null)add('<ec> with both id and startRef');
+            if(st!==null){const s=scs.get(st);if(!s)add('<ec> whose startRef names no <sc> in the unit');else{ecRef.add(st);if(s.i>p.i)add('<ec> before its <sc>');
+              for(const a of ['canCopy','canDelete','canOverlap','canReorder'])if(a!=='canReorder'?eff(s.e,a,a==='canOverlap'?'no':'yes')!==eff(e,a,a==='canOverlap'?'no':'yes'):false)add('<sc> and <ec> of a pair with different '+a)
+              const a1=eff(s.e,'canReorder','yes'),a2=eff(e,'canReorder','yes');if(a1!==a2&&!(a1==='firstNo'&&a2==='no'))add('<sc> and <ec> of a pair with different canReorder');
+              if(e.getAttributeNS(XL,'space')!==s.e.getAttributeNS(XL,'space'))add('<sc> and <ec> of a pair with different xml:space')}}}}
+        if(n==='em'){const st=e.getAttribute('startRef'),s=st!==null?sms.get(st):null;if(!s)add('<em> whose startRef names no <sm> in the unit');else{emRef.add(st);if(s.i>p.i)add('<em> before its <sm>')}}}
+      for(const p of pos){const e=p.e;
+        if(p.n==='sc'){const iso=e.getAttribute('isolated'),has=ecRef.has(e.getAttribute('id'));
+          if(iso!==null&&iso!=='yes'&&iso!=='no')add('isolated value(s) other than yes / no');
+          if(iso==='yes'&&has)add('<sc> with isolated="yes" that has a matching <ec>');if(iso!=='yes'&&!has)add('<sc> without a matching <ec> and without isolated="yes"')}
+        if(p.n==='sm'&&!emRef.has(e.getAttribute('id')))add('<sm> without a matching <em>')}}
+    /* canDelete="no" codes of a segment that has a target must survive into the targets of the unit */
+    {const tid=new Set();for(const t of trgs)for(const e of inl(t))if(CODE.includes(ln(e)))tid.add(e.getAttribute('id')||e.getAttribute('startRef'));
+     for(const s of segs){const so=xkn(s,'source')[0],tg=xkn(s,'target')[0];if(!so||!tg)continue;
+       for(const e of inl(so))if(CODE.includes(ln(e))&&e.getAttribute('canDelete')==='no'){const id=e.getAttribute('id')||e.getAttribute('startRef');if(!tid.has(id))add('canDelete="no" code(s) missing from the target')}}}
+    /* canReorder="firstNo" / "no": context and order (Core 4.x canReorder) */
+    for(const s of srcs)for(const e of inl(s)){if(!CODE.includes(ln(e)))continue;const cr=eff(e,'canReorder','yes');
+      if(cr==='firstNo'&&!(eff(e,'canDelete','yes')==='no'&&eff(e,'canCopy','yes')==='no'))add('canReorder="firstNo" on a code that is not canDelete="no" canCopy="no"');
+      if(cr==='no'){/* must be preceded by a firstNo / no code with nothing reorderable between */
+        const l=inl(s).filter(x=>CODE.includes(ln(x)));const k=l.indexOf(e);let prev=k>0?l[k-1]:null;
+        if(!prev||!['firstNo','no'].includes(eff(prev,'canReorder','yes')))add('canReorder="no" code that does not follow a firstNo / no code')}}
+    for(const s of segs){const so=xkn(s,'source')[0],tg=xkn(s,'target')[0];if(!so||!tg)continue;
+      const L=x=>inl(x).filter(c=>CODE.includes(ln(c)));const sl=L(so).filter(c=>['firstNo','no'].includes(eff(c,'canReorder','yes'))),tl=L(tg).filter(c=>['firstNo','no'].includes(eff(c,'canReorder','yes')));
+      const sId=sl.map(c=>c.getAttribute('id')||c.getAttribute('startRef')),tId=tl.map(c=>c.getAttribute('id')||c.getAttribute('startRef'));
+      const common=sId.filter(x=>tId.includes(x)),tc=tId.filter(x=>sId.includes(x));
+      if(common.join('|')!==tc.join('|'))add('non-reorderable codes that changed order in the target');
+      const par=(c,root)=>{let p=c.parentNode;while(p&&p!==root){if(ln(p)==='pc')return p.getAttribute('id');p=p.parentNode}return ''};
+      for(const c of sl){const id=c.getAttribute('id')||c.getAttribute('startRef'),t=tl.find(z=>(z.getAttribute('id')||z.getAttribute('startRef'))===id);if(t&&par(c,so)!==par(t,tg))add('non-reorderable code that moved out of / into a <pc> in the target')}
+      /* they must also stay adjacent: only codes of the same group may sit between them */
+      const flat=x=>[...x.getElementsByTagNameNS(r.namespaceURI,'*')].filter(c=>CODE.includes(ln(c)));
+      for(const root of [so,tg]){const f=flat(root);let run=0,first=-1;f.forEach((c,ix)=>{const v=eff(c,'canReorder','yes');if(v==='firstNo'||v==='no'){if(v==='no'&&first>=0&&ix-first>run+1&&f.slice(first+1,ix).some(z=>eff(z,'canReorder','yes')==='yes'))add('non-reorderable codes separated by reorderable ones');if(v==='firstNo'){first=ix;run=0}else run++}})}
+      if(sl.length&&tl.length&&tl.length===sl.length){const mv=so.textContent.length&&0}
+    }
+    /* order of targets: unique and inside 1..number of segments (implicit order = position) */
+    {const os=[];segs.forEach((s,ix)=>{const tg=xkn(s,'target')[0];if(!tg)return;const o=tg.getAttribute('order');os.push(o===null?ix+1:(/^\d+$/.test(o)?+o:NaN))});
+     if(os.length&&xk(u).some(c=>0)){}
+     if(new Set(os).size!==os.length)add('<target> order value(s) that are not unique inside the unit');
+     if(os.some(x=>isNaN(x)||x<1||x>segs.length))add('<target> order value(s) outside 1..number of segments')}
+    /* xml:space differing between source and target */
+    for(const s of segs){const so=xkn(s,'source')[0],tg=xkn(s,'target')[0];if(so&&tg){const a=so.getAttributeNS(XL,'space')||inhs(so),b=tg.getAttributeNS(XL,'space')||inhs(tg);if(a!==b)add('<source> and <target> with different xml:space')}}
+    /* mrk annotations: comment needs exactly one of ref / value, a ref to a note of this unit; term refs are free */
+    const nids=new Set(xkn(xkn(u,'notes')[0]||u,'note').map(x=>x.getAttribute('id')));
+    for(const s of [...srcs,...trgs])for(const m of inl(s))if(ln(m)==='mrk'||ln(m)==='sm'){const t=m.getAttribute('type'),rf=m.getAttribute('ref'),vl=m.getAttribute('value');
+      if(t==='comment'){if(rf===null&&vl===null)add('comment annotation with neither ref nor value');if(rf!==null&&vl!==null)add('comment annotation with both ref and value');
+        if(rf!==null&&rf.startsWith('#')){const mm=/^#(?:\/?f=[^\/]+\/)?(?:g=[^\/]+\/)*(u=[^\/]+\/)?n=([^\/]+)$/.exec(rf);
+          /* a comment points at a note of a unit: #n=id (this unit) or #f=file/u=unit/n=id; file and group notes do not qualify */
+          if(!mm||!mm[1]&&/^#(?:\/?f=|g=)/.test(rf)||!mm[1]&&!nids.has(mm[2]))add('comment annotation whose ref is not a note of a unit')}}}
+  }
+  function inhs(e){for(let p=e;p&&p.nodeType===1;p=p.parentNode){const v=p.getAttributeNS(XL,'space');if(v)return v}return 'default'}
+  /* fragment identifiers (Core 6): #[/]prefix=id/.../leaf, prefixes f g u then n d t or a module prefix, or one bare inline id */
+  const MP=['mtc','gls','ctr','res','slr','val','mda','its','pgs','tbx'];
+  const fragBad=v=>{if(!v.startsWith('#'))return false;let s=v.slice(1);if(s.startsWith('/'))s=s.slice(1);if(!s)return true;
+    const parts=s.split('/');let stage=0,leaf=false,seenF=0,seenU=0;
+    for(let i=0;i<parts.length;i++){const p=parts[i],ix=p.indexOf('=');
+      if(ix<0){if(leaf||!NC.test(p)&&!NM.test(p))return true;leaf=true;continue}
+      const k=p.slice(0,ix),val=p.slice(ix+1);if(!val)return true;if(leaf)return true;
+      if(!NM.test(k.replace(/\$/g,'#'))||/[$]/.test(k))return true;
+      if(k==='f'){if(stage>0||seenF)return true;seenF=1;stage=1}
+      else if(k==='g'){if(stage>1||seenU)return true;stage=1}
+      else if(k==='u'){if(seenU||stage>2)return true;seenU=1;stage=2}
+      else if(['n','d','t'].includes(k)||MP.includes(k)){leaf=true}
+      else if(k.length<2||!MP.includes(k))return true}
+    return false};
+  for(const e of r.getElementsByTagNameNS('*','*'))if(isX(e)||isMod(e.namespaceURI))for(const a of ['ref']){const v=e.getAttribute(a);if(v&&v.startsWith('#')&&['mrk','sm','note'].includes(ln(e))&&fragBad(v))add('ref value(s) that are not valid XLIFF fragment identifiers')}
+}
+/* XLIFF 2.x module conformance (mda, mtc, gls, res, slr, val, fs, ctr): constraints exercised by the OASIS XLIFF TC test suite. */
+function xliff2Modules(d,r,isX,add,src,trg){
+  const XL='http://www.w3.org/XML/1998/namespace',NM=/^[A-Za-z0-9_:.\-\u00B7\u00C0-\uFFFF]+$/;
+  const NS={mda:'metadata',mtc:'matches',gls:'glossary',res:'resourcedata',slr:'sizerestriction',val:'validation',fs:'fs',ctr:'changetracking'};
+  const isNs=(e,k)=>new RegExp('^urn:oasis:names:tc:xliff:'+NS[k]+':[12]\\.0$').test(e.namespaceURI||'');
+  const kids=e=>[...e.children],ln=e=>e.localName;
+  const inNs=(e,k)=>isNs(e,k),sub=(e,k,n)=>kids(e).filter(c=>isNs(c,k)&&ln(c)===n);
+  const everything=[...r.getElementsByTagNameNS('*','*')];
+  const dup=(l,w)=>{const s=new Set();for(const x of l){if(!x)continue;if(s.has(x)){add(w+' repeated');return}s.add(x)}};
+  /* element names each module defines */
+  const EL={mda:'metadata metaGroup meta',mtc:'matches match',gls:'glossary glossEntry term translation definition',res:'resourceData resourceItem resourceItemRef source target reference',slr:'profiles normalization data',val:'validation rule',ctr:'changeTrack revisions revision item'};
+  for(const e of everything)for(const k in EL)if(isNs(e,k)&&!EL[k].split(' ').includes(ln(e)))add('<'+k+':'+ln(e)+'> is not an element of the '+k+' module');
+  /* mda */
+  for(const m of everything.filter(e=>isNs(e,'mda')&&ln(e)==='metadata')){
+    const id=m.getAttribute('id');if(id!==null&&!NM.test(id))add('mda id value(s) that are not NMTOKENs');
+    if(!sub(m,'mda','metaGroup').length)add('<mda:metadata> without a <mda:metaGroup>');
+    dup(sub(m,'mda','metaGroup').map(g=>g.getAttribute('id')),'<mda:metaGroup> id(s)')}
+  for(const g of everything.filter(e=>isNs(e,'mda')&&ln(e)==='metaGroup')){
+    const id=g.getAttribute('id');if(id!==null&&!NM.test(id))add('mda id value(s) that are not NMTOKENs');
+    if(!kids(g).some(c=>ln(c)==='meta'||ln(c)==='metaGroup'))add('<mda:metaGroup> without <mda:meta> or <mda:metaGroup>');
+    const a=g.getAttribute('appliesTo');if(a!==null&&!/^(source|target|ignorable)$/.test(a))add('<mda:metaGroup> with an appliesTo value outside source / target / ignorable')}
+  for(const m of everything.filter(e=>isNs(e,'mda')&&ln(e)==='meta')){
+    if(m.getAttribute('type')===null)add('<mda:meta> without the required type attribute');
+    if(m.hasAttribute('appliesTo'))add('<mda:meta> with appliesTo (only <mda:metaGroup> has it)')}
+  for(const m of everything.filter(e=>isNs(e,'mda')&&ln(e)==='metadata'))for(const c of kids(m))if(!(isNs(c,'mda')&&ln(c)==='metaGroup'))add('<mda:metadata> with a child that is not <mda:metaGroup>');
+  /* mtc */
+  const MT=['am','mt','icm','idm','tb','tm','other'];
+  for(const ms of everything.filter(e=>isNs(e,'mtc')&&ln(e)==='matches')){
+    dup(sub(ms,'mtc','match').map(x=>x.getAttribute('id')),'<mtc:match> id(s)');
+    let u=ms.parentNode;while(u&&!(u.nodeType===1&&ln(u)==='unit'&&isX(u)))u=u.parentNode;
+    const mk=new Set(u?[...u.getElementsByTagNameNS(r.namespaceURI,'*')].filter(x=>['mrk','sm','segment','ignorable'].includes(ln(x))).map(x=>x.getAttribute('id')):[]);
+    for(const m of sub(ms,'mtc','match')){
+      const id=m.getAttribute('id');if(id!==null&&!NM.test(id))add('mtc id value(s) that are not NMTOKENs');
+      if(m.getAttributeNS(XL,'lang')!==null)add('<mtc:match> with xml:lang (not allowed)');
+      const t=m.getAttribute('type'),s=m.getAttribute('subType');
+      if(s!==null&&t===null)add('<mtc:match> with subType but no type');
+      if(t!==null&&!MT.includes(t)&&!/^[^:\s]+:\S+$/.test(t))add('<mtc:match> type outside the module list');
+      const rf=m.getAttribute('ref');
+      if(rf!==null){if(!rf.startsWith('#'))add('<mtc:match> ref that is not a fragment identifier');
+        else{const mm=/^#(?:t=)?([^\/=]+)$/.exec(rf);if(!mm||!mk.has(mm[1]))add('<mtc:match> ref that does not point to a span of text in its own unit')}}}}
+  /* gls */
+  for(const g of everything.filter(e=>isNs(e,'gls')&&ln(e)==='glossary')){
+    const ents=sub(g,'gls','glossEntry');
+    dup([...ents.map(x=>x.getAttribute('id')),...ents.flatMap(x=>sub(x,'gls','translation').map(t=>t.getAttribute('id')))],'<gls:glossEntry> / <gls:translation> id(s)');
+    for(const x of ents){if(!sub(x,'gls','translation').length&&!sub(x,'gls','definition').length)add('<gls:glossEntry> without <gls:translation> or <gls:definition>');
+      if(sub(x,'gls','term').length!==1)add('<gls:glossEntry> without exactly one <gls:term>');
+      for(const c of kids(x))if(!isNs(c,'gls')&&/^urn:oasis:names:tc:xliff:/.test(c.namespaceURI||''))add('<gls:glossEntry> with an element from another XLIFF module')}}
+  /* res */
+  for(const p of everything.filter(e=>isNs(e,'res')&&ln(e)==='resourceData')){
+    let h=p.parentNode;const scope=h;const l=[...sub(p,'res','resourceItem'),...sub(p,'res','resourceItemRef')].map(x=>x.getAttribute('id'));dup(l,'<res:resourceItem> / <res:resourceItemRef> id(s)')}
+  for(const x of everything.filter(e=>isNs(e,'res')&&(ln(e)==='source'||ln(e)==='target'||ln(e)==='reference'))){
+    if(x.getAttribute('href')!==null&&(x.children.length||x.textContent.trim()))add('<res:'+ln(x)+'> with both href and inline content');
+    const l=x.getAttributeNS(XL,'lang');if(l!==null&&ln(x)==='source'&&src&&l.toLowerCase()!==src.toLowerCase())add('<res:source> whose xml:lang differs from srcLang');
+}
+  /* slr */
+  const RP=/^(?:\*|\d+|\d+,\d+|\d+,\*)$/;
+  for(const e of everything){
+    for(const a of [...e.attributes])if(a.namespaceURI&&/^urn:oasis:names:tc:xliff:sizerestriction:[12]\.0$/.test(a.namespaceURI)){
+      const n=a.localName,v=a.value;
+      if((n==='sizeRestriction'||n==='storageRestriction')&&!RP.test(v))add('slr '+n+' value(s) not of the form *, N, N,N or N,*');
+      if((n==='equivStorage'||n==='sizeInfo')&&!(isX(e)&&(ln(e)==='sc'||ln(e)==='ec'))&&!/^\d+$/.test(v))add('slr '+n+' value(s) that are not integers');
+      if(['equivStorage','sizeInfo','sizeInfoRef'].includes(n)&&isX(e)&&ln(e)==='ec'&&e.getAttribute('isolated')!=='yes')add('slr '+n+' on an <ec> that is not isolated');
+      if(n==='sizeInfoRef'){if(e.hasAttributeNS(a.namespaceURI,'sizeInfo'))add('slr sizeInfo together with sizeInfoRef');
+        let ok=false;for(let p=e;p&&p.nodeType===1&&!ok;p=p.parentNode){const sib=p.parentNode?kids(p.parentNode):[];for(const s of sib)if(isNs(s,'slr')&&ln(s)==='data'&&[...s.getElementsByTagNameNS('*','*')].some(z=>z.getAttribute('id')===v))ok=true}
+        if(!ok)add('slr sizeInfoRef that names no element of a sibling <slr:data>')}}}
+  /* val */
+  const ONE=['isPresent','isNotPresent','startsWith','endsWith'];
+  for(const x of everything.filter(e=>isNs(e,'val')&&ln(e)==='rule')){
+    const own=ONE.filter(a=>x.hasAttribute(a)).length,cust=[...x.attributes].filter(a=>a.namespaceURI&&a.namespaceURI!=='http://www.w3.org/2000/xmlns/'&&!isNs({namespaceURI:a.namespaceURI},'val')).length;
+    if(own+cust!==1)add('<val:rule> without exactly one of isPresent / isNotPresent / startsWith / endsWith / custom');
+    const o=x.getAttribute('occurs');if(o!==null&&!(/^\d+$/.test(o)&&+o>=1))add('<val:rule> occurs that is not a positive integer');
+    if(x.hasAttribute('occurs')&&!x.hasAttribute('isPresent')&&!x.hasAttribute('isNotPresent')&&false){}
+    for(const a of ['caseSensitive','existsInSource'])if(x.hasAttribute(a)&&!/^(yes|no)$/.test(x.getAttribute(a)))add('<val:rule> '+a+' value(s) other than yes / no');
+    const nm=x.getAttribute('normalization');if(nm!==null&&!/^(none|nfc|nfd)$/.test(nm))add('<val:rule> normalization value(s) outside none / nfc / nfd');
+    if(x.hasAttribute('existsInSource')&&!x.hasAttribute('isPresent')&&!x.hasAttribute('isNotPresent')&&!x.hasAttribute('startsWith')&&!x.hasAttribute('endsWith'))add('<val:rule> existsInSource used on a rule that has no pattern');}
+  /* fs */
+  const FS='a b bdo big blockquote body br button caption center cite code col colgroup dd del div dl dt em h1 h2 h3 h4 h5 h6 head hr html i img label legend li ol p pre q s samp select small span strike strong sub sup table tbody td tfoot th thead title tr tt u ul'.split(' ');
+  for(const e of everything){
+    for(const a of [...e.attributes])if(a.namespaceURI&&/^urn:oasis:names:tc:xliff:fs:2\.0$/.test(a.namespaceURI)){
+      if(a.localName!=='fs'&&a.localName!=='subFs')add('fs module attribute that does not exist (e.g. fs:'+a.localName+')');
+      if(a.localName==='fs'&&!FS.includes(a.value))add('fs:fs value(s) outside the HTML element list');
+      if(a.localName==='subFs'&&!e.hasAttributeNS(a.namespaceURI,'fs'))add('fs:subFs without fs:fs');
+      if(isX(e)&&ln(e)==='ec'&&e.getAttribute('isolated')!=='yes')add('fs attribute on an <ec> that is not isolated')}}
+  /* ctr */
+  for(const rv of everything.filter(e=>isNs(e,'ctr')&&ln(e)==='revisions')){
+    let u=rv.parentNode;while(u&&!(u.nodeType===1&&['unit','group','file'].includes(ln(u))&&isX(u)))u=u.parentNode;
+    const ap=rv.getAttribute('appliesTo'),rf=rv.getAttribute('ref');
+    if(ap===null)add('<ctr:revisions> without appliesTo');
+    const notes=u?[...u.getElementsByTagNameNS(r.namespaceURI,'note')].filter(n=>{let p=n.parentNode.parentNode;return p===u}):[];
+    if(ap==='note'){const ids=notes.map(n=>n.getAttribute('id')).filter(Boolean);
+      if(rf!==null&&!ids.includes(rf))add('<ctr:revisions> ref that names no note of the enclosing element');
+      if(rf===null&&ids.length>1)add('<ctr:revisions> applying to one of several notes that have ids, without ref');
+      if(rf!==null){const n=notes.find(z=>z.getAttribute('id')===rf);
+        for(const it of [...rv.getElementsByTagNameNS('*','item')]){const p=it.getAttribute('property');if(p&&p!=='content'&&n&&!n.hasAttribute(p))add('<ctr:item> property naming an attribute that the referenced element does not have')}}}
+    for(const it of [...rv.getElementsByTagNameNS('*','item')])if(isNs(it,'ctr')&&it.getAttribute('property')===null)add('<ctr:item> without property');
+    for(const re of sub(rv,'ctr','revision'))dup(sub(re,'ctr','item').map(i=>i.getAttribute('property')),'<ctr:item> property value(s) inside one <ctr:revision>')}
 }
 async function loadText(txt,fname,pre){
   const my=++LSEQ;
@@ -1580,11 +1838,12 @@ function W_parse2(txt,emit){
       else if(x.c)fr.pop();else if(!x.sc)fr.push({t:x.t,rl:[],pf:null})}
     let inh=null;for(let j=fr.length-1;j>=0&&!inh;j--)inh=ga(fr[j].t,'translate');
     const b=txt.slice(a,e2),bm=mr.slice(a,e2),sm=START.exec(b),stg=sm?sm[0]:'';
-    const notes=[];let nm;rNote.lastIndex=0;
+    const notes=[],lbls=[];let nm;rNote.lastIndex=0;
     while((nm=rNote.exec(bm))){
       if(nm[2]==='/>')continue;   /* self-closing <note/> has no text */
-      const full=b.slice(nm.index,nm.index+nm[0].length),tx=full.slice(nm[0].length-nm[2].length+1,full.lastIndexOf('</'));
-      if(tx.trim())notes.push((ga(nm[1],'category')||'note')+': '+tx)}
+      const full=b.slice(nm.index,nm.index+nm[0].length),tx=full.slice(nm[0].length-nm[2].length+1,full.lastIndexOf('</')),cat=ga(nm[1],'category')||'note';
+      if(tx.trim())notes.push(cat+': '+tx);
+      if(cat==='x-crowdin-label'&&tx.trim())lbls.push(W_dec(tx.trim()))}   /* Crowdin labels: <note category="x-crowdin-label"> (the XLIFF 1.2 counterpart is <context context-type="x-crowdin-label">); shared by all segments of the unit */
     const sgs=[];let sg;reSg.lastIndex=0;
     while((sg=reSg.exec(bm))){const sa=sg.index,se=endTag(bm,sg[1]+'segment',sa);if(se<0)break;sgs.push([sa,se,sg[0]]);reSg.lastIndex=se}
     const uid=W_dec(ga(stg,'id')||''),nme=ga(stg,'name')||'',many=sgs.length>1,ids=sgs.map((s,i)=>ga(s[2],'id')||String(i+1));
@@ -1596,7 +1855,7 @@ function W_parse2(txt,emit){
       const sid=ids[i],st=ga(tag,'state')||'initial';
       const u={idx,id:many?uid+'#'+sid:uid,rs:grabTagM(body,bodyM,'source'),rt:grabTagM(body,bodyM,'target'),is12:false,v2:true,gk:many?g0:undefined,gn:many?sgs.length:undefined,fi:Math.max(fp-1,0),
         rn:many&&nme?nme+'#'+sid:nme,oAp:st==='final',oTr:(ga(stg,'translate')||inh)==='no'?'no':'yes',
-        ctx:notes.slice(),labels:[],max:0,ct:''};
+        ctx:notes.slice(),labels:lbls.slice(),max:0,ct:''};
       if(R){
         /* a match with ref="#id" belongs to that segment only; without a usable ref it belongs to all segments of the unit */
         u.ctx=u.ctx.concat(R.ml,R.mt.filter(x=>!x.rf||!ids.includes(x.rf)||x.rf===sid).slice(0,5).map(x=>x.l));
