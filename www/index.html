@@ -3,9 +3,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme:light)"><meta name="theme-color" content="#141318" media="(prefers-color-scheme:dark)">
 <title>Android Localization</title>
+<script>try{var t=JSON.parse(localStorage.getItem("cfg")||"{}").theme;if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
 :root{--bg:#fff;--fg:#1c1b1f;--card:#f3f1f6;--ac:#5b4bd5;--mut:#6b6874;color-scheme:light dark}
-@media(prefers-color-scheme:dark){:root{--bg:#141318;--fg:#e6e1e9;--card:#211f26;--ac:#a99cff;--mut:#9a95a3}}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#141318;--fg:#e6e1e9;--card:#211f26;--ac:#a99cff;--mut:#9a95a3}}
+:root[data-theme=dark]{--bg:#141318;--fg:#e6e1e9;--card:#211f26;--ac:#a99cff;--mut:#9a95a3;color-scheme:dark}
+:root[data-theme=light]{color-scheme:light}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,sans-serif;padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);-webkit-text-size-adjust:100%}
 header{position:sticky;top:0;background:var(--bg);padding:calc(8px + env(safe-area-inset-top,0px)) 10px 8px;border-bottom:1px solid var(--card);z-index:2}
 .row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
@@ -26,6 +29,9 @@ input[type=search]{flex:1;min-width:0;height:40px;padding:0 10px;border-radius:1
 #sb.act i,#sb:hover i{opacity:.9;width:12px;right:1px;background:var(--ac)}
 .u{background:var(--card);margin:10px;padding:10px 12px;border-radius:12px;border:2px solid transparent}
 .u.ch{border-color:var(--ac)}
+.u.mk{border-color:#f57c00;border-style:dashed}
+#mkb{justify-content:space-between;font-size:13px;color:#f57c00}#mkt{flex:1;min-width:0}#mkb button{height:30px;font-size:13px}
+#ms-t{font-size:14px;line-height:1.45;margin:10px 0 0}#ms-l{max-height:30vh;overflow:auto;font-size:12px;color:var(--mut);word-break:break-all;white-space:pre-wrap;margin-top:8px}
 .id{font-size:12px;color:var(--mut);word-break:break-all}
 .u button{height:34px;min-width:34px;padding:0;background:var(--bg)}
 .u svg{width:18px;height:18px}
@@ -36,9 +42,9 @@ button.on{background:var(--ac)!important;color:var(--bg)!important}
 [hidden]{display:none!important}
 select{font-size:16px}button,select,input,label{touch-action:manipulation}button{cursor:pointer}:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 #tl{width:78px;height:36px;padding:0 4px}
-#imp{height:36px}
-body.sm .ap,body.sm .hd,body.sm .cx{display:none}
-body.sm #fl [data-f=rn],body.sm #fl [data-f=ctx],body.sm #fl [data-f=lbl]{display:none}
+#mnb{height:36px}
+body.sm .ap,body.sm .hd{display:none}
+body.sm #fl [data-f=rn],body.sm #fl [data-f=lbl]{display:none}
 body.nc #fl [data-f=ctx],body.nc #fl [data-f=lbl]{display:none}
 .cxt{font-size:13px;color:var(--mut);white-space:pre-wrap;word-break:break-word;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--bg)}
 #fl{display:none;flex-wrap:wrap}
@@ -49,7 +55,7 @@ body.nc #fl [data-f=ctx],body.nc #fl [data-f=lbl]{display:none}
 #so{flex:1 1 100%;height:36px;font-size:16px}
 .src{margin:6px 0;white-space:pre-wrap;word-break:break-word}
 textarea{width:100%;min-height:70px;padding:8px;border-radius:8px;border:1px solid var(--mut);background:var(--bg);color:var(--fg);font:inherit}
-#empty{padding:30px;text-align:center;color:var(--mut)}
+#empty{padding:30px;text-align:center;color:var(--mut)}#empty .tip{margin:0 0 22px}#empty .tip button{margin-top:10px;padding:0 18px}#empty svg{width:18px;height:18px;vertical-align:text-bottom}
 
 .idw{margin-bottom:2px}
 .bt{margin:6px 0 4px}
@@ -77,7 +83,7 @@ mark.es{background:rgba(102,187,106,.42)}
 .dr{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 .dr button{padding:0 16px}
 #fnw{flex:1;min-width:0}
-#bm,#prog,#ip,#rp,#sf,#gm,#cm,#sr{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
+#bm,#prog,#ip,#rp,#gm,#cm,#sr,#ms,#mn{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
 #sw{width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex:none}
 .sel,#sa{width:20px;height:20px;accent-color:var(--ac);margin:2px 0 0;flex:none}
 #sa{margin:0}
@@ -110,14 +116,12 @@ body.sm .mi.x{display:none}
 body.busy,body.busy *{cursor:progress}
 </style></head><body>
 <header>
-<div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div><div id="selc" hidden></div></div><select id="tl" title="Target language" hidden></select><button id="cfgb" title="Settings" aria-label="Settings"></button><button id="imp" title="Import translations (XLIFF or strings.xml)" aria-label="Import translations" hidden></button></div>
+<div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div><div id="selc" hidden></div></div><select id="tl" title="Target language" hidden></select><button id="cfgb" title="Settings" aria-label="Settings"></button><button id="mnb" title="Menu" aria-label="Menu"></button></div>
 <div class="row">
-<button id="open" class="p" title="Open file" aria-label="Open file"></button>
-<button id="save" title="Download" aria-label="Download"></button>
-<button id="close" title="Close file" aria-label="Close file"></button>
 <input id="q" type="search" placeholder="Search"><button id="flt" title="Search in…" aria-label="Search in"></button>
 <input id="f" type="file" accept="*/*" hidden><input id="f2" type="file" accept="*/*" hidden></div>
 <div class="row" id="fl"><button data-f="id">ID</button><button data-f="rn">Name</button><button data-f="src">Source</button><button data-f="ctx">Context</button><button data-f="lbl">Label</button><button data-f="tgt">Target</button><button id="rx" type="button" title="Regex search" aria-label="Regex search">.*</button><select id="so" title="Show first"></select></div>
+<div class="row" id="mkb" hidden><span id="mkt"></span><button id="mkc" type="button">Clear marks</button></div>
 <div class="row">
 <label id="sw" title="Select all shown"><input id="sa" type="checkbox"></label><button id="bulk" title="Actions for selected units" aria-label="Actions for selected units" disabled></button>
 <select id="sz" title="Units per page"><option>10</option><option selected>20</option><option>50</option><option>100</option><option value="0">∞</option></select>
@@ -129,6 +133,7 @@ body.busy,body.busy *{cursor:progress}
 <div id="sb" hidden><i></i></div>
 <div id="cfg" hidden><div class="dlg">
 <h3>Settings</h3>
+<label>Theme<select id="c-theme"><option value="system">Follow system</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
 <label>Auto-translate engine<select id="c-eng"><option value="free">Free (Google / MyMemory)</option><option value="gemini">Gemini (AI, uses context)</option><option value="groq">Groq (AI, uses context)</option></select></label>
 <div id="gf">
 <label><span id="c-klab">Gemini API key</span><div class="kr"><input id="c-key" type="password" autocomplete="off" spellcheck="false" placeholder="AIza..."><button id="c-eye" type="button" title="Show / hide key" aria-label="Show or hide key"></button></div></label>
@@ -143,7 +148,7 @@ body.busy,body.busy *{cursor:progress}
 <div class="kr"><button id="g-imp" type="button">Import CSV / TSV / TBX</button><button id="g-clr" type="button">Clear</button></div>
 <div class="hint" id="g-info"></div>
 <input id="f3" type="file" accept="*/*" hidden>
-<label>Custom languages (strings.xml)</label>
+<label>Custom languages</label>
 <div id="cl-list"></div>
 <div class="kr"><input id="cl-code" placeholder="Code, e.g. pt-BR" autocomplete="off" spellcheck="false"><input id="cl-name" placeholder="Name (optional)" autocomplete="off"></div>
 <div class="dr" style="margin-top:8px"><button id="cl-cancel" type="button" hidden>Cancel</button><button id="cl-save" type="button">Add</button></div>
@@ -153,18 +158,19 @@ body.busy,body.busy *{cursor:progress}
 <div id="qac"></div>
 <div class="dr"><button id="c-test" type="button">Test</button><button id="c-cancel" type="button">Close</button><button id="c-save" type="button" class="p">Save</button></div>
 </div></div>
+<div id="ms" hidden><div class="dlg"><h3 id="ms-h"></h3><div id="ms-t"></div><div id="ms-l"></div><div class="dr"><button id="ms-c" type="button">Cancel</button><button id="ms-v" type="button">View</button><button id="ms-a" type="button" class="p">Apply</button></div></div></div>
+<div id="mn" hidden><div class="dlg"><div id="ml"><button class="mi" id="open" type="button"></button><button class="mi" id="imp" type="button" hidden></button><button class="mi" id="save" type="button"></button><button class="mi" id="sv2" type="button" hidden></button><button class="mi" id="close" type="button"></button></div><div class="dr"><button id="mn-x" type="button">Close</button></div></div></div>
 <div id="bm" hidden><div class="dlg"><h3>Selected units</h3><div id="bl"></div><div class="dr"><button id="bclose" type="button">Close</button></div></div></div>
 <div id="ip" hidden><div class="dlg"><h3>Import preview</h3><div id="ips" class="hint"></div><div id="ipl"></div><div class="dr"><button id="ip-c" type="button">Cancel</button><button id="ip-fill" type="button"></button><button id="ip-all" type="button" class="p"></button></div></div></div>
 <div id="rp" hidden><div class="dlg"><h3>XML errors</h3><div id="rps" class="hint"></div><div id="rpl"></div><div class="dr"><button id="rp-c" type="button">No</button><button id="rp-a" type="button" class="p">Save as .txt</button></div></div></div>
 <div id="sr" hidden><div class="dlg"><h3>Restore previous session?</h3><div id="sr-i" class="hint"></div><div class="hint">Your edits, approvals and clipboards from the last session were kept on this device.</div><div class="dr"><button id="sr-d" type="button">Discard</button><button id="sr-r" type="button" class="p">Restore</button></div></div></div>
 <div id="cm" hidden><div class="dlg"><h3 id="cm-h">Clipboard</h3><div id="cm-i" class="hint"></div><div id="cm-l"></div><div class="dr"><button id="cm-c" type="button">Close</button><button id="cm-s" type="button" class="p">Save current</button></div></div></div>
 <div id="gm" hidden><div class="dlg"><h3>Glossary columns</h3><div id="gm-i" class="hint"></div><label>Delimiter<select id="gm-d"><option value="&#9;">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label><label class="ck"><input type="checkbox" id="gm-h"> First row is a header</label><label>Source column<select id="gm-s"></select></label><label>Target column<select id="gm-t"></select></label><div id="gm-p"></div><div class="dr"><button id="gm-c" type="button">Cancel</button><button id="gm-ok" type="button" class="p">Import</button></div></div></div>
-<div id="sf" hidden><div class="dlg"><h3>Save as</h3><button class="mi" data-f="xliff" type="button"></button><button class="mi" data-f="strings" type="button"></button><div class="dr"><button id="sf-c" type="button">Cancel</button></div></div></div>
 <div id="prog" hidden><div class="dlg"><div id="pt"></div><div class="dr"><button id="pstop" type="button">Stop</button></div></div></div>
 <div id="list"></div>
 <script>
 const $=id=>document.getElementById(id);
-const IC={
+const IC={menu:'M3 18h18v-2H3zm0-5h18v-2H3zm0-7v2h18V6z',
 open:'M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8z',
 save:'M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7zm-5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm3-10H5V5h10z',
 close:'M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
@@ -186,22 +192,40 @@ next:'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z',
 clip:'M19 2h-4.18C14.4.84 13.3 0 12 0S9.6.84 9.18 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z',
 trash:'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z'};
 const ic=k=>'<svg viewBox="0 0 24 24"><path d="'+IC[k]+'"/></svg>';
-['open','save','close','prev','next','flt','imp','cfg','bulk'].forEach(k=>$(k==='cfg'?'cfgb':k).innerHTML=ic(k));
+['prev','next','flt','cfg','bulk','menu'].forEach(k=>$(k==='cfg'?'cfgb':k==='menu'?'mnb':k).innerHTML=ic(k));
+[['open','Open file'],['imp','Import translations'],['save','Save'],['sv2','Save as strings.xml (Android)'],['close','Close file']].forEach(([k,t])=>{$(k).innerHTML=ic(k==='sv2'?'save':k)+'<span>'+t+'</span>'});   /* sv2 shares the save icon */
+$('mnb').onclick=()=>{$('mn').hidden=false};
+$('mn-x').onclick=()=>{$('mn').hidden=true};
+$('mn').onclick=e=>{if(e.target===$('mn')||e.target.closest('#ml .mi'))$('mn').hidden=true};
 
 let shown=[],doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,crowdin=false,v2=false,mode='xliff',svT=0;
-let RX=false;
+let RX=false,MARK=null,MKJ=false;   /* MARK: segments of multi-segment units that a pending hide/unhide would change (shown with a dashed border) */
 const F={id:1,rn:1,src:1,ctx:1,lbl:1,tgt:1};
-const ga=(t,n)=>{const r=new RegExp('\\s'+n+'=(?:"([^"]*)"|\'([^\']*)\')').exec(t);return r?(r[1]!==undefined?r[1]:r[2]):null};
-const setAttr=(t,n,v)=>{const re=new RegExp('(\\s'+n+'=)(?:"[^"]*"|\'[^\']*\')');
+const ga=(t,n)=>{const r=new RegExp('\\s'+n+'\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')').exec(t);return r?(r[1]!==undefined?r[1]:r[2]):null};
+const setAttr=(t,n,v)=>{const re=new RegExp('(\\s'+n+'\\s*=\\s*)(?:"[^"]*"|\'[^\']*\')');
   return re.test(t)?t.replace(re,'$1"'+v+'"'):t.replace(/\s*(\/?>)$/,' '+n+'="'+v+'"$1')};
-const START=/^<(?:[\w.\-]+:)?(?:trans-unit|unit)\b(?:"[^"]*"|'[^']*'|[^>"'])*>/;
-const setAp=(u,n)=>{if(n===u.oAp&&!(u.v2&&u.val!==undefined))delete u.ap;else u.ap=n};   /* XLIFF 2.x: once the text is edited the state is rewritten on save, so an explicit approve must be kept */
+const START=/^<(?:[\w.\-]+:)?(?:trans-unit|unit)(?=[\s>\/])(?:"[^"]*"|'[^']*'|[^>"'])*>/;
+const setAp=(u,n)=>{if(n===false&&u.apAuto&&u.ap===false)return;delete u.apAuto;if(n===u.oAp&&!(u.v2&&u.val!==undefined))delete u.ap;else u.ap=n};   /* XLIFF 2.x: once the text is edited the state is rewritten on save, so an explicit approve must be kept */
 const setTr=(u,n)=>{if(n===u.oTr)delete u.tr;else u.tr=n};
+/* XLIFF 2.x: translate is an attribute of the <unit>, so all segments of a multi-segment unit share it (gk = index of the unit's first segment, gn = its segment count) */
+let GM=null,GMg=-1;
+const grpOf=u=>{if(u.gk===undefined)return [u];
+  if(!GM||GMg!==GEN){GM=new Map();for(const x of units)if(x.gk!==undefined){let a=GM.get(x.gk);if(!a)GM.set(x.gk,a=[]);a.push(x)}GMg=GEN}
+  return GM.get(u.gk)||[u]};
+const setTrG=(u,n)=>grpOf(u).forEach(x=>setTr(x,n));
+const trOf=u=>u.tr!==undefined?u.tr:u.oTr;
+/* the name line of a segment of a multi-segment unit is "name#segmentId" internally; the id line already shows the segment id, so show only the name */
+const rnShow=u=>u.gk!==undefined&&u.rn&&u.rn.lastIndexOf('#')>0?u.rn.slice(0,u.rn.lastIndexOf('#')):u.rn;
 const changed=u=>u.val!==undefined||u.ap!==undefined||u.tr!==undefined;
 const byLocal=(p,n)=>[...p.children].find(c=>c.localName===n);
 const cur=u=>u.val!==undefined?u.val:u.rt;
 const edited=()=>units.filter(changed).length;
-const setVal=(u,v)=>{if(v===u.rt)delete u.val;else{u.val=v;if(u.v2&&u.oAp&&u.ap===undefined)u.ap=false}};   /* XLIFF 2.x: editing the text of a final segment un-approves it (buildXlf2 saves it as translated), so show it that way */
+const setVal=(u,v)=>{
+  if(v===u.rt){delete u.val;
+    if(u.apAuto){delete u.ap;delete u.apAuto}   /* the approval was only withdrawn by the edit: the original text gets it back */
+    else if(u.ap!==undefined&&u.ap===u.oAp)delete u.ap;
+  }else{u.val=v;if((u.v2||u.is12)&&u.oAp&&u.ap===undefined){u.ap=false;u.apAuto=true}}
+};   /* editing the text of an approved unit withdraws the approval, so show it that way (XLIFF 2.x: buildXlf2 saves the segment as translated; 1.2: approved means the translation passed its final review, which new text has not) */
 
 // Clipboard: up to 3 backup versions of a unit's translation, kept for this session only (u.cb, newest first)
 const CB_MAX=3;
@@ -269,15 +293,26 @@ const pvNorm=t=>{t=t.replace(/&gt;/g,'>');return mode==='strings'?t.replace(/&qu
 const pvSafe=(raw,allow)=>pvNorm(pvEnc(pvDec(raw),allow))===pvNorm(raw);
 
 const DEFMODEL='gemini-3.6-flash';
-const QALAB=[['ph','Placeholders & tags'],['ws','Spaces & line breaks'],['dsp','Double spaces'],['pu','End punctuation'],['num','Numbers'],['xml','Valid XML'],['gl','Glossary terms'],['apo','Unescaped quotes (strings.xml)'],['val','XLIFF 2.0 validation rules'],['len','Max length / storage'],['hid','Also check hidden units (translate=no)']];
-const QADEF={ph:1,ws:1,dsp:1,pu:1,num:1,xml:1,gl:1,apo:1,val:1,len:1,hid:1};
+const QALAB=[['ph','Placeholders & tags'],['ic','XLIFF 2 inline codes (editing hints)'],['ws','Spaces & line breaks'],['dsp','Double spaces'],['pu','End punctuation'],['num','Numbers'],['xml','Valid XML'],['gl','Glossary terms'],['apo','Unescaped quotes (strings.xml)'],['val','XLIFF 2 validation rules'],['len','Max length / storage'],['hid','Also check hidden units (translate=no)']];
+const QADEF={ph:1,ic:1,ws:1,dsp:1,pu:1,num:1,xml:1,gl:1,apo:1,val:1,len:1,hid:1};
 let QV=0;
 const GQDEF='openai/gpt-oss-120b';
 /* models Groq has shut down: a stored choice or cached list that still has them is replaced / cleaned */
 const GQDEAD={'llama-3.3-70b-versatile':GQDEF,'llama-3.1-8b-instant':'openai/gpt-oss-20b'};
-const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,pv:0,qa:{}};
+const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,pv:0,qa:{},theme:'system'};
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
 CFG.qa=Object.assign({},QADEF,CFG.qa||{});
+/* Theme: 'system' follows the device, 'light' / 'dark' force it. The browser bar colour (theme-color) follows too. */
+const TCOL={light:'#ffffff',dark:'#141318'};
+function applyTheme(){
+  const t=CFG.theme==='light'||CFG.theme==='dark'?CFG.theme:'system',r=document.documentElement;
+  if(t==='system')r.removeAttribute('data-theme');else r.setAttribute('data-theme',t);
+  document.querySelectorAll('meta[name=theme-color]').forEach(m=>{
+    if(!m.dataset.m)m.dataset.m=m.getAttribute('media')||'all';
+    const k=/dark/.test(m.dataset.m)?'dark':'light';
+    if(t==='system'){m.setAttribute('media',m.dataset.m);m.setAttribute('content',TCOL[k])}else{m.setAttribute('media','all');m.setAttribute('content',TCOL[t])}});
+}
+applyTheme();
 if(GQDEAD[CFG.qmodel])CFG.qmodel=GQDEAD[CFG.qmodel];
 CFG.qmodels=(Array.isArray(CFG.qmodels)?CFG.qmodels:[]).filter(m=>!GQDEAD[m]);
 const saveCfg=()=>{try{localStorage.setItem('cfg',JSON.stringify(CFG))}catch(e){}};
@@ -294,10 +329,13 @@ const rpmOf=()=>aiOn(CFG.eng)?CFG[AIF[CFG.eng].rpm]:CFG.rpmF;
 const engName=()=>aiOn(CFG.eng)?AIF[CFG.eng].name:'Google';
 const escRe=t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 let GL=[];
-function setGlossary(pairs){
+function glPairs(pairs){
   const mp=new Map();
   pairs.forEach(([a,b])=>{a=String(a).trim();b=String(b).trim();if(a&&b)mp.set(a.toLowerCase(),[a,b])});
-  GL=[...mp.values()].sort((x,y)=>y[0].length-x[0].length).map(([a,b])=>({s:a,t:b,re:new RegExp('(?<![\\p{L}\\p{N}])'+escRe(a)+'(?![\\p{L}\\p{N}])','iu')}));
+  return [...mp.values()].sort((x,y)=>y[0].length-x[0].length);
+}
+function setGlossary(pairs){
+  GL=glPairs(pairs).map(([a,b])=>({s:a,t:b,re:new RegExp('(?<![\\p{L}\\p{N}])'+escRe(a)+'(?![\\p{L}\\p{N}])','iu')}));
   QV++;
 }
 const saveGl=()=>{try{localStorage.setItem('glossary',JSON.stringify(GL.map(e=>[e.s,e.t])))}catch(e){alert('The glossary is too large to store on this device')}};
@@ -404,17 +442,90 @@ function tcls(t){
   return '';
 }
 /* XLIFF 2.0 validation module: <val:rule isPresent / isNotPresent / startsWith / endsWith, occurs, existsInSource, caseSensitive, normalization> checked against the target text.
-   existsInSource="yes": the isPresent rule only applies when the source contains the string too. occurs is read as a minimum. */
+   When supplied, occurs requires an exact count; without it, isPresent requires at least one occurrence. */
 function vrCheck(u,c){
   const ld=x=>W_dec(x.replace(/<[^>]*>/g,'')),t0=ld(c),s0=ld(u.rs),out=[];
   u.vr.forEach(r=>{
     const f=x=>{if(r.nm!=='none')x=x.normalize(r.nm==='nfd'?'NFD':'NFC');return r.cs?x:x.toLowerCase()},t=f(t0);
-    if(r.pr){const p=f(r.pr);if(!(r.es&&!f(s0).includes(p))&&t.split(p).length-1<r.oc)out.push('Rule: must contain "'+r.pr+'"'+(r.oc>1?' \u00d7'+r.oc:''))}
+    if(r.pr){
+      const p=f(r.pr),n=t.split(p).length-1,bad=r.oc===null?n<1:n!==r.oc;
+      if(!(r.es&&!f(s0).includes(p))&&bad)out.push('Rule: must contain "'+r.pr+'"'+(r.oc!==null?' exactly '+(r.oc===1?'once':r.oc+' times'):''));
+    }
     if(r.np&&t.includes(f(r.np)))out.push('Rule: must not contain "'+r.np+'"');
     if(r.sw&&!t.startsWith(f(r.sw)))out.push('Rule: must start with "'+r.sw+'"');
     if(r.ew&&!t.endsWith(f(r.ew)))out.push('Rule: must end with "'+r.ew+'"');
   });
   return [...new Set(out)];
+}
+/* XLIFF 2.x inline codes: Core 3.7.2.6 (Editing Hints), 3.7.7 (Target Content Modification), 3.7.2.4.1 (copyOf) and 3.3.1.21 (id).
+   inlineCodes(x) lists the codes of a <source>/<target> content in order, by id: a <pc> counts once, and an <sc> with its <ec> counts once, so a <pc>
+   turned into <sc>+<ec> (which the standard allows) is still the same code. inlineViol(u,c) returns what the target text c of unit u breaks. Only what the
+   standard states as MUST is reported; what it allows (removing a removable code, copying a cloneable one, <pc> <-> <sc>+<ec>, adding or removing
+   annotations) passes. A code must stay if the source or the existing target says canDelete="no" (a segment with no target yet starts from the source). */
+const IC_RX=/<(?:[\w.\-]+:)?(ph|pc|sc|ec)(?=[\s\/>])((?:"[^"]*"|'[^']*'|[^>"'])*)>/g;
+const IC_STRIP=/<\/?(?:[\w.\-]+:)?(?:ph|pc|sc|ec|mrk|sm|em)(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*>/g;
+const IC_HAS=/<(?:[\w.\-]+:)?(?:ph|pc|sc|ec)[\s\/>]/;
+const icAttr=(t,n)=>{const r=new RegExp('\\s'+n+'\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')').exec(t);return r?(r[1]!==undefined?r[1]:r[2]):null};
+function inlineCodes(x){
+  const list=[],by=new Map();
+  maskRaw(x).replace(IC_RX,(m,el,a)=>{
+    const no=n=>icAttr(a,n)==='no'?'no':'yes',iso=icAttr(a,'isolated')==='yes';
+    const id=el==='ec'&&!iso?icAttr(a,'startRef'):icAttr(a,'id');
+    if(id===null)return m;
+    const old=by.get(id);
+    if(old){if(el==='ec'&&old.el==='sc'){if(no('canCopy')==='no')old.cc='no';if(no('canDelete')==='no')old.cd='no'}else old.n++;return m}
+    const cr=icAttr(a,'canReorder'),k={id,el,n:1,cc:no('canCopy'),cd:no('canDelete'),cr:cr==='firstNo'||cr==='no'?cr:'yes',co:icAttr(a,'copyOf'),
+      sig:['dataRef','dataRefStart','dataRefEnd'].map(n=>icAttr(a,n)||'').join('|').replace(/^\|\|$/,'')};
+    by.set(id,k);list.push(k);return m;
+  });
+  return{list,by};
+}
+/* non-reorderable sequences: a canReorder="firstNo" code plus the codes with canReorder="no" that follow it (a single code is no constraint) */
+function icSeqs(list){
+  const seqs=[];let cur=null;
+  for(const k of list){
+    if(k.cr==='firstNo'){cur=[k.id];seqs.push(cur)}
+    else if(k.cr==='no'){if(cur)cur.push(k.id);else{cur=[k.id];seqs.push(cur)}}
+    else cur=null;
+  }
+  return seqs.filter(q=>q.length>1);
+}
+function inlineViol(u,c){
+  const t0=!!u.rt;
+  if(!IC_HAS.test(u.rs)&&!IC_HAS.test(c)&&!(t0&&IC_HAS.test(u.rt)))return[];
+  const S=inlineCodes(u.rs),T=inlineCodes(c),T0=t0?inlineCodes(u.rt):{list:[],by:new Map()},out=[];
+  const lst=a=>a.slice(0,4).join(', ')+(a.length>4?'\u2026':''),base=new Map();
+  [S,T0].forEach(X=>X.list.forEach(k=>{const b=base.get(k.id);
+    if(!b)base.set(k.id,{...k});
+    else{if(k.cd==='no')b.cd='no';if(k.cc==='no')b.cc='no';if(b.cr==='yes')b.cr=k.cr;if(!b.sig)b.sig=k.sig}}));
+  const gone=[],copied=[],dup=[],added=[],bad=[],reord=[];
+  base.forEach(k=>{
+    const t=T.by.get(k.id);
+    if(k.cd==='no'&&!t)gone.push(k.id);
+    if(k.cc==='no'){   /* the code itself again, a clone of it (copyOf), or a new code sharing its original data */
+      let n=t?t.n:0;
+      T.list.forEach(x=>{if(!base.has(x.id)&&(x.co===k.id||(k.sig&&x.sig===k.sig)))n+=x.n});
+      if(n>1)copied.push(k.id);
+    }
+  });
+  T.list.forEach(k=>{
+    if(k.n>1)dup.push(k.id);
+    if(!base.has(k.id)&&k.cr!=='yes')added.push(k.id);
+    const b=k.co&&base.get(k.co);if(b&&b.sig)bad.push(k.id);
+  });
+  const seen=new Set();
+  [...icSeqs(S.list),...icSeqs(T0.list)].forEach(q=>{
+    const key=q.join('\u0001');if(seen.has(key))return;seen.add(key);
+    const got=T.list.filter(k=>k.n===1&&q.includes(k.id)).map(k=>k.id);
+    if(got.join()!==q.filter(id=>got.includes(id)).join())reord.push(q);
+  });
+  if(gone.length)out.push('Required code removed (canDelete=no): id '+lst(gone));
+  if(copied.length)out.push('Code copied (canCopy=no): id '+lst(copied));
+  reord.slice(0,2).forEach(q=>out.push('Codes reordered (canReorder): id '+lst(q)));
+  if(added.length)out.push('Non-reorderable code added: id '+lst(added));
+  if(dup.length)out.push('Duplicate code id: '+lst(dup)+' (a copy needs a new id)');
+  if(bad.length)out.push('copyOf not allowed (base code has original data): id '+lst(bad));
+  return out;
 }
 function qaOf(u){
   const c=cur(u),tr=u.tr!==undefined?u.tr:u.oTr;
@@ -422,11 +533,13 @@ function qaOf(u){
   const out=[];
   if(c.trim()&&(tr!=='no'||CFG.qa.hid)){
     const Q=CFG.qa,s=u.rs;
-    if(Q.ph){const a=tokCount(s),b=tokCount(c),miss=[],extra=[];
+    const ni=u.v2&&Q.ic;   /* XLIFF 2: inline codes are judged by their editing hints (inlineViol), not by plain tag equality */
+    if(Q.ph){const a=tokCount(ni?s.replace(IC_STRIP,''):s),b=tokCount(ni?c.replace(IC_STRIP,''):c),miss=[],extra=[];
       a.forEach((n,t)=>{if((b.get(t)||0)<n)miss.push(t)});
       b.forEach((n,t)=>{if((a.get(t)||0)<n)extra.push(t)});
       if(miss.length)out.push('Missing: '+miss.slice(0,4).join(' '));
       if(extra.length)out.push('Extra: '+extra.slice(0,4).join(' '))}
+    if(ni)inlineViol(u,c).forEach(x=>out.push(x));
     if(Q.ws){
       if(/^\s*/.exec(s)[0]!==/^\s*/.exec(c)[0]||/\s*$/.exec(s)[0]!==/\s*$/.exec(c)[0])out.push('Leading/trailing spaces differ');
       if((s.match(/\n/g)||[]).length!==(c.match(/\n/g)||[]).length)out.push('Line breaks differ')}
@@ -438,8 +551,8 @@ function qaOf(u){
     if(Q.gl&&GL.length){const lcc=c.toLowerCase();glossHits(s).forEach(h=>{if(!lcc.includes(h.t.toLowerCase()))out.push('Glossary: '+h.s+' \u2192 '+h.t)})}
     if(Q.gl&&u.gl){const lcc=c.toLowerCase(),ls=s.toLowerCase();u.gl.forEach(g=>{if(g.t.length&&ls.includes(g.s.toLowerCase())&&!g.t.some(x=>lcc.includes(x.toLowerCase())))out.push('Glossary: '+g.s+' \u2192 '+g.t.join(' / '))})}
     if(Q.val&&u.vr)vrCheck(u,c).forEach(x=>out.push(x));
-    if(Q.len&&u.max){const cl=u.slr?txtlen(c):clen(CFG.pv?pvDec(c):c);if(cl>u.max)out.push('Over max length ('+cl+'/'+u.max+')')}
-    if(Q.len&&u.mb){const t=W_dec(c.replace(/<[^>]*>/g,'')),e=u.mb[1],n=e===32?[...t].length*4:e===16?t.length*2:new TextEncoder().encode(t).length;if(n>u.mb[0])out.push('Over storage limit ('+n+'/'+u.mb[0]+' bytes, UTF-'+e+')')}
+    if(Q.len&&(u.max||u.mn)){const cl=u.slr?txtlen(c,u.nfG):clen(CFG.pv?pvDec(c):c);if(u.max&&cl>u.max)out.push('Over max length ('+cl+'/'+u.max+')');if(u.mn&&c.trim()&&cl<u.mn)out.push('Under min length ('+cl+'/'+u.mn+')')}
+    if(Q.len&&u.mb){let t=txtOf(c);if(u.nfS==='nfc'||u.nfS==='nfd')t=t.normalize(u.nfS.toUpperCase());const e=u.mb[1],n=e===32?[...t].length*4:e===16?t.length*2:new TextEncoder().encode(t).length;if(n>u.mb[0])out.push('Over storage limit ('+n+'/'+u.mb[0]+' bytes, UTF-'+e+')');if(u.mbMin&&c.trim()&&n<u.mbMin)out.push('Under minimum storage ('+n+'/'+u.mbMin+' bytes, UTF-'+e+')')}
     if(Q.apo&&!CFG.pv&&mode==='strings'&&!/CDATA/.test(c)&&/(?<!\\)['"]/.test(c.replace(/<[^>]+>/g,'')))out.push('Unescaped quote');
   }
   u._qv=QV;u._qm=mode;u._qt=tr;u._qc=c;u._qa=out;return out;
@@ -480,22 +593,22 @@ function fillLangs(keep){
 fillLangs();
 try{const v=localStorage.getItem('tl');if(v)fillLangs(v)}catch(e){}
 let clEdit=-1;
+let CLd=[];   /* draft of the custom languages shown in Settings: [code,name,original code or ''] - applied only by Save */
 const clReset=()=>{clEdit=-1;$('cl-code').value='';$('cl-name').value='';$('cl-save').textContent='Add';$('cl-cancel').hidden=true};
 const keepTl=()=>{try{localStorage.setItem('tl',$('tl').value)}catch(e){}};
 function clRender(){
   const L=$('cl-list');L.innerHTML='';
-  if(!CL.length){L.innerHTML='<div class="hint">No custom languages yet</div>';return}
-  CL.forEach((l,i)=>{
+  if(!CLd.length){L.innerHTML='<div class="hint">No custom languages yet</div>';return}
+  CLd.forEach((l,i)=>{
     const r=document.createElement('div');r.className='clr';
     const sp=document.createElement('span');sp.textContent=l[0]+(l[1]?' \u00b7 '+l[1]:'');
     const e=document.createElement('button');e.type='button';e.innerHTML=ic('edit');e.title='Edit';e.setAttribute('aria-label','Edit '+l[0]);
     const d=document.createElement('button');d.type='button';d.innerHTML=ic('close');d.title='Delete';d.setAttribute('aria-label','Delete '+l[0]);
-    e.onclick=()=>{clEdit=i;$('cl-code').value=l[0];$('cl-name').value=l[1]||'';$('cl-save').textContent='Save';$('cl-cancel').hidden=false};
+    e.onclick=()=>{clEdit=i;$('cl-code').value=l[0];$('cl-name').value=l[1]||'';$('cl-save').textContent='Update';$('cl-cancel').hidden=false};
     d.onclick=()=>{
-      if(!confirm('Delete language '+l[0]+'?'))return;
-      CL.splice(i,1);saveCL();
+      CLd.splice(i,1);
       if(clEdit===i)clReset();else if(clEdit>i)clEdit--;
-      fillLangs();keepTl();clRender();
+      clRender();
     };
     r.append(sp,e,d);L.appendChild(r);
   });
@@ -504,34 +617,52 @@ $('cl-cancel').onclick=clReset;
 $('cl-save').onclick=()=>{
   const code=$('cl-code').value.trim().replace(/_/g,'-'),name=$('cl-name').value.trim();
   if(!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(code)){alert('Enter a valid language code, e.g. pt-BR, fil or sr-Latn');return}
-  const dup=allLangs().some((l,i)=>l[0].toLowerCase()===code.toLowerCase()&&!(clEdit>=0&&i===LANGS.length+clEdit));
+  const dup=LANGS.concat(CLd).some((l,i)=>l[0].toLowerCase()===code.toLowerCase()&&!(clEdit>=0&&i===LANGS.length+clEdit));
   if(dup){alert('This language code already exists');return}
-  const sel=$('tl').value;let next;
-  if(clEdit>=0){const old=CL[clEdit][0];CL[clEdit]=[code,name];next=sel===old?code:sel}
-  else{CL.push([code,name]);next=code}
-  saveCL();fillLangs(next);keepTl();clRender();clReset();
+  if(clEdit>=0)CLd[clEdit]=[code,name,CLd[clEdit][2]];else CLd.push([code,name,'']);
+  clRender();clReset();
 };
+/* Save in Settings: the draft becomes the real list; the selected language follows a rename and falls back to the default if it was deleted */
+function clCommit(){
+  if(JSON.stringify(CLd.map(l=>[l[0],l[1]]))===JSON.stringify(CL))return;
+  const sel=$('tl').value,hit=CLd.find(l=>l[2]&&l[2]===sel);
+  CL=CLd.map(l=>[l[0],l[1]]);saveCL();fillLangs(hit?hit[0]:sel);keepTl();
+}
 $('tl').onchange=()=>{try{localStorage.setItem('tl',$('tl').value)}catch(e){}};
 function setMode(m){
   mode=m;document.body.classList.toggle('sm',m==='strings');
   $('tl').hidden=!(m==='strings'||(doc&&!langs().tl));   /* an XLIFF that names no target language needs the selector too */
   document.querySelector('#fl [data-f=id]').textContent=m==='strings'?'Key':'ID';
+  document.querySelector('#fl [data-f=ctx]').textContent=m==='strings'?'Comment':'Context';
   fillSort();fchips();
 }
 function parseStrings(txt){
-  const t=txt.replace(/<!\[CDATA\[[\s\S]*?\]\]>|<!--[\s\S]*?-->/g,x=>x.startsWith('<!--')?'':x),tm=maskRaw(t);   /* match on a copy with CDATA blanked (same length), so a "</string>" inside CDATA cannot end the string; the texts are cut from the real one */
-  const res=[];let fm=false,prod='';const re=/<(string-array|plurals|string)(?=[\s>\/])([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g;let m;
-  const add=(kind,name,sub,rs)=>res.push({kind,name,sub,rs,fm,prod,id:name,rn:(kind==='p'?sub:kind==='a'?'['+sub+']':'')+(prod?(kind==='s'?'product: ':' \u00b7 ')+prod:''),
-    rt:'',is12:false,oAp:false,oTr:'yes',ctx:[],labels:[],max:0,ct:'',idx:res.length});
+  const cms=[];let gone=0;   /* cms: [position in t, text] of every comment, which is cut out of t */
+  const t=txt.replace(/<!\[CDATA\[[\s\S]*?\]\]>|<!--[\s\S]*?-->/g,(x,off)=>{if(!x.startsWith('<!--'))return x;cms.push([off-gone,x.slice(4,-3)]);gone+=x.length;return ''}),tm=maskRaw(t);
+  /* the comments that sit directly before position s (only whitespace between them) */
+  const cmBefore=s=>{
+    let j=cms.length-1;while(j>=0&&cms[j][0]>s)j--;
+    const out=[];let end=s;
+    for(;j>=0;j--){
+      if(t.slice(cms[j][0],end).trim()!=='')break;
+      end=cms[j][0];
+      const c=cms[j][1].split('\n').map(x=>x.trim()).filter(x=>x).join('\n');
+      if(c)out.unshift(c);   /* every non-empty comment is kept, banner lines such as ===== included: nobody can predict how a developer writes them */
+    }
+    return out;
+  };   /* match on a copy with CDATA blanked (same length), so a "</string>" inside CDATA cannot end the string; the texts are cut from the real one */
+  const res=[];let fm=false,prod='';const re=/<(string-array|plurals|string)(?=[\s>\/])((?:"[^"]*"|'[^']*'|[^>"'])*?)(?:\/>|>([\s\S]*?)<\/\1\s*>)/g;let m;
+  const add=(kind,name,sub,rs,cm)=>res.push({kind,name,sub,rs,fm,prod,id:name,rn:(kind==='p'?sub:kind==='a'?'['+sub+']':'')+(prod?(kind==='s'?'product: ':' \u00b7 ')+prod:''),
+    rt:'',is12:false,oAp:false,oTr:'yes',ctx:cm,labels:[],max:0,ct:cm.join('\n'),idx:res.length});
   const inner=(src,r,g)=>{const c=r[g];if(c===undefined)return '';const e=r.index+r[0].lastIndexOf('</');return src.slice(e-c.length,e)};
   while((m=re.exec(tm))){
     const at=' '+m[2],name=ga(at,'name');
     if(!name||ga(at,'translatable')==='false')continue;
     fm=ga(at,'formatted')==='false';prod=ga(at,'product')||'';
-    const body=inner(t,m,3),bodyM=m[3]||'';
-    if(m[1]==='string')add('s',name,'',body);
-    else{const ir=/<item\b([^>]*?)(?:\/>|>([\s\S]*?)<\/item>)/g;let im,i=0;   /* <item/> (self-closing) is an empty item and must not swallow the next one */
-      while((im=ir.exec(bodyM)))add(m[1]==='plurals'?'p':'a',name,m[1]==='plurals'?(ga(' '+im[1],'quantity')||'other'):String(i++),inner(body,im,2))}
+    const body=inner(t,m,3),bodyM=m[3]||'',cp=cmBefore(m.index),bs=m.index+m[0].lastIndexOf('</')-bodyM.length;
+    if(m[1]==='string')add('s',name,'',body,cp);
+    else{const ir=/<item(?=[\s>\/])((?:"[^"]*"|'[^']*'|[^>"'])*?)(?:\/>|>([\s\S]*?)<\/item\s*>)/g;let im,i=0;   /* <item/> (self-closing) is an empty item and must not swallow the next one */
+      while((im=ir.exec(bodyM)))add(m[1]==='plurals'?'p':'a',name,m[1]==='plurals'?(ga(' '+im[1],'quantity')||'other'):String(i++),inner(body,im,2),cp.concat(cmBefore(bs+im.index)))}
   }
   return res;
 }
@@ -556,9 +687,12 @@ function buildStrings(){
 }
 const ckey=(u,np)=>(u.kind==='s'?u.name:u.kind==='p'?u.name+':'+u.sub:u.name+'['+u.sub+']')+(u.prod&&!np?'@'+u.prod:'');   /* np: key without the product (an XLIFF import knows only the name) */
 const maskRaw=s=>s.replace(/<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>/g,x=>' '.repeat(x.length));
+/* index of the end tag </name> at or after from in t, or -1. XML 1.0 [42] allows white space before the ">" (</unit >), so a plain indexOf('</unit>') is not enough.
+   Self-contained: it is also copied into the worker (see workerSrc). */
+const endTag=(t,name,from)=>{const s='</'+name;for(let i=t.indexOf(s,from);i>=0;i=t.indexOf(s,i+1)){let j=i+s.length;while(j<t.length&&t.charCodeAt(j)<=32)j++;if(t[j]==='>')return i}return -1};
 /* like grabTag, but finds the tag in bm (b with comments/CDATA blanked, same length) and returns the text from b */
-const grabTagM=(b,bm,n)=>{const r=new RegExp('<(?:[\\w.\\-]+:)?'+n+'\\b[^>]*?(?:\\/>|>([\\s\\S]*?)<\\/(?:[\\w.\\-]+:)?'+n+'>)').exec(bm);if(!r||r[1]===undefined)return '';const e=r.index+r[0].lastIndexOf('</');return b.slice(e-r[1].length,e)};
-const grabTag=(b,n)=>{const r=new RegExp('<(?:[\\w.\\-]+:)?'+n+'\\b[^>]*?(?:\\/>|>([\\s\\S]*?)<\\/(?:[\\w.\\-]+:)?'+n+'>)').exec(b);return r?(r[1]||''):''};
+const grabTagM=(b,bm,n)=>{const r=new RegExp('<(?:[\\w.\\-]+:)?'+n+'(?=[\\s/>])(?:"[^"]*"|\'[^\']*\'|[^>"\'])*?(?:/>|>([\\s\\S]*?)<\\/(?:[\\w.\\-]+:)?'+n+'\\s*>)').exec(bm);if(!r||r[1]===undefined)return '';const e=r.index+r[0].lastIndexOf('</');return b.slice(e-r[1].length,e)};
+const grabTag=(b,n)=>{const r=new RegExp('<(?:[\\w.\\-]+:)?'+n+'(?=[\\s/>])(?:"[^"]*"|\'[^\']*\'|[^>"\'])*?(?:/>|>([\\s\\S]*?)<\\/(?:[\\w.\\-]+:)?'+n+'\\s*>)').exec(b);return r?(r[1]||''):''};
 async function readTranslations(txt){
   if(new DOMParser().parseFromString(txt,'application/xml').querySelector('parsererror'))return null;
   let pairs;
@@ -571,11 +705,18 @@ $('imp').onclick=()=>$('f2').click();
 $('f2').onchange=async e=>{
   const file=e.target.files[0];e.target.value='';if(!file||!doc)return;
   if(!fileOk(file))return;
-  let txt;try{txt=await readText(file)}catch(err){alert(err.message);return}
+  let r;try{r=await readTextEx(file)}catch(err){alert(err.message);return}
+  if(!r)return;const txt=r.text;
   busy('Reading\u2026');
   const mp=await readTranslations(txt);busy('');upd(true);
   if(!mp){await errorFlow(file.name,txt);return}
-  const kOf=u=>mode==='strings'?(mp.has(ckey(u))?ckey(u):ckey(u,1)):(mp.has(u.rn)?u.rn:u.id);
+  const bmap=new Map();mp.forEach((v,k)=>{const i=k.indexOf('\u0001');if(i>0){const b=k.slice(0,i);if(!bmap.has(b))bmap.set(b,k)}});
+  const kOf=u=>{if(mode==='strings')return mp.has(ckey(u))?ckey(u):ckey(u,1);
+    const ns=[u.rn,u.id].filter(Boolean);
+    if(u.fi!==undefined)for(const n of ns){const s=n+'\u0001'+u.fi;if(mp.has(s))return s}   /* same file first */
+    for(const n of ns)if(mp.has(n))return n;
+    for(const n of ns)if(bmap.has(n))return bmap.get(n);   /* other file layout: first unit of that name */
+    return u.rn?u.rn:u.id};
   /* between formats the quote escaping differs: XLIFF -> strings.xml escapes quotes; strings.xml -> XLIFF unescapes them
      (unless that XLIFF keeps \' in its own source texts); XLIFF inline codes (<ph/>, <pc>...) cannot go into strings.xml */
   const inl=/<(?:[\w.\-]+:)?(?:ph|pc|sc|ec|sm|em|cp|mrk)(?=[\s\/>])/;
@@ -606,7 +747,7 @@ function previewImport(plan,nf,no,same,skipped){
     const items=plan.filter(p=>p.k!=='same');
     items.slice(0,150).forEach(p=>{
       const d=document.createElement('div');d.className='pi';
-      const k=document.createElement('div');k.className='pk';k.textContent=(p.u.rn?p.u.id+' · '+p.u.rn:p.u.id);
+      const k=document.createElement('div');k.className='pk';k.textContent=(p.u.rn?p.u.id+' · '+rnShow(p.u):p.u.id);
       const tg=document.createElement('span');tg.className='tag '+(p.k==='over'?'o':'n');tg.textContent=p.k==='over'?'overwrite':'new';k.appendChild(tg);
       d.appendChild(k);
       if(p.k==='over'){const o=document.createElement('div');o.className='po';o.textContent=clip(cur(p.u));d.appendChild(o)}
@@ -622,16 +763,17 @@ function previewImport(plan,nf,no,same,skipped){
     $('ip').hidden=false;
   });
 }
-let uiEng='',draft={};   /* the engine shown in the dialog, and unsaved per-engine field values */
+let uiEng='',draft={},mdl={};   /* mdl: model lists loaded while Settings is open, kept only by Save */
+const mList=f=>mdl[f.models]||CFG[f.models]||[];   /* the engine shown in the dialog, and unsaved per-engine field values */
 function fillModels(cur){
   const f=AIF[uiEng]||AIF.gemini;
   cur=cur||$('c-model').value||CFG[f.model]||f.def;
   const sel=$('c-model');sel.innerHTML='';
-  [...new Set([...(CFG[f.models]||[]),cur])].forEach(m=>sel.add(new Option(m,m)));
+  [...new Set([...mList(f),cur])].forEach(m=>sel.add(new Option(m,m)));
   sel.value=cur;
 }
 function showModelHint(msg){
-  const f=AIF[uiEng]||AIF.gemini,L=CFG[f.models]||[],n=L.length,cur=$('c-model').value;
+  const f=AIF[uiEng]||AIF.gemini,L=mList(f),n=L.length,cur=$('c-model').value;
   $('c-mhint').textContent=msg||(n?(n+' models from the server'+(L.includes(cur)?'':' \u00b7 "'+cur+'" is not in the list')+'. Tap \u21bb to refresh.'):'Enter your API key, then tap \u21bb to load the available models.');
 }
 async function listGemini(key){
@@ -666,7 +808,7 @@ async function loadModels(){
   try{
     const out=await f.list(key);
     if(!out.length)throw new Error('The server returned no usable models');
-    CFG[f.models]=[...new Set(out)];saveCfg();
+    mdl[f.models]=[...new Set(out)];
     if(uiEng===e){fillModels($('c-model').value);showModelHint()}
   }catch(err){if(uiEng===e)showModelHint('Could not load models: '+err.message)}
   loadingModels=false;b.disabled=false;
@@ -685,41 +827,47 @@ function aiShow(e){
   $('c-key').value=d.key;$('c-key').type='password';
   $('c-rpmg').value=d.rpm;$('c-ghint').textContent=f.hint;
   fillModels(d.model);showModelHint();
-  if(d.key.trim()&&!(CFG[f.models]||[]).length)loadModels();
+  if(d.key.trim()&&!mList(f).length)loadModels();
 }
 function openCfg(){
-  draft={};uiEng='';
-  $('c-eng').value=CFG.eng;$('c-notes').value=CFG.gnotes;$('c-rpmf').value=CFG.rpmF;
+  draft={};mdl={};GLd=null;CLd=CL.map(l=>[l[0],l[1],l[0]]);uiEng='';
+  $('c-theme').value=CFG.theme||'system';$('c-eng').value=CFG.eng;$('c-notes').value=CFG.gnotes;$('c-rpmf').value=CFG.rpmF;
   document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);$('c-pv').checked=!!CFG.pv;pvUi();glInfo();clRender();clReset();
   $('cfg').hidden=false;aiShow(CFG.eng);
 }
-function applyCfg(){
-  CFG.eng=$('c-eng').value;aiStash();CFG.gnotes=$('c-notes').value;
+function applyCfg(persist=true){
+  CFG.theme=$('c-theme').value;if(persist)applyTheme();CFG.eng=$('c-eng').value;aiStash();CFG.gnotes=$('c-notes').value;
   const rp=(v,d)=>{v=String(v==null?'':v).trim();return v===''?d:Math.max(0,Math.floor(+v)||0)};
   for(const e in AIF){const f=AIF[e],d=draft[e];if(!d)continue;CFG[f.key]=d.key;CFG[f.model]=d.model||f.def;CFG[f.rpm]=rp(d.rpm,f.rpmDef)}
   CFG.rpmF=rp($('c-rpmf').value,30);
-  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);CFG.pv=$('c-pv').checked?1:0;QV++;
-  saveCfg();
+  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);CFG.pv=$('c-pv').checked?1:0;
+  for(const k in mdl)CFG[k]=mdl[k];
+  if(persist){QV++;saveCfg()}
 }
 $('qac').innerHTML=QALAB.map(([k,t])=>'<label class="ck"><input type="checkbox" data-q="'+k+'"> '+t+'</label>').join('');
+/* A QA option is greyed out when it cannot apply: because of Edit on preview, or because of the open file's format.
+   strings.xml: no ic / val / len / hid.  XLIFF 1.2: no ic / val / apo.  XLIFF 2: no apo.  No file open: only the Edit on preview rules apply. */
 function pvUi(){
-  const off={xml:$('c-pv').checked,apo:$('c-pv').checked,len:mode==='strings',hid:mode==='strings',val:!(mode==='xliff'&&v2)};
+  const pv=$('c-pv').checked,sm=!!doc&&mode==='strings',x2=!!doc&&mode==='xliff'&&v2,has=!!doc;
+  const off={xml:pv,apo:pv||(has&&!sm),ic:has&&!x2,val:has&&!x2,len:sm,hid:sm};
   document.querySelectorAll('#qac input').forEach(x=>{const d=!!off[x.dataset.q];x.disabled=d;x.parentElement.style.opacity=d?.5:''});
 }
 $('c-pv').onchange=pvUi;
-function glInfo(){$('g-info').textContent=GL.length?GL.length+' terms \u00b7 e.g. '+GL.slice(0,2).map(e=>e.s+' \u2192 '+e.t).join(', '):'No glossary loaded'}
+let GLd=null;   /* draft glossary [[source,target]...] while Settings is open; null = unchanged. Applied only by Save */
+const glCur=()=>GLd||GL.map(e=>[e.s,e.t]);
+function glInfo(){const g=glCur();$('g-info').textContent=g.length?g.length+' terms \u00b7 e.g. '+g.slice(0,2).map(e=>e[0]+' \u2192 '+e[1]).join(', '):'No glossary loaded'}
 $('g-imp').onclick=()=>$('f3').click();
 $('f3').onchange=async e=>{
   const file=e.target.files[0];e.target.value='';if(!file)return;
   let pairs;try{const txt=(await file.text()).replace(/^\uFEFF/,'');pairs=txt.trimStart().startsWith('<')?parseGlossary(txt):await glMap(txt)}catch(err){alert('Could not read the glossary: '+err.message);return}
   if(pairs===null)return;
   if(!pairs.length){alert('No terms found. Use a CSV / TSV with source and target columns, or a TBX file.');return}
-  const old=GL.map(x=>[x.s,x.t]);
+  const old=glCur();
   const replace=!old.length||confirm('The glossary already has '+old.length+' terms. OK = replace it, Cancel = merge the new terms into it.');
-  setGlossary(replace?pairs:old.concat(pairs));saveGl();glInfo();render();
-  alert('Glossary: '+GL.length+' terms');
+  GLd=glPairs(replace?pairs:old.concat(pairs));glInfo();
+  alert('Glossary: '+GLd.length+' terms (applied when you tap Save)');
 };
-$('g-clr').onclick=()=>{if(!GL.length)return;if(!confirm('Remove all '+GL.length+' glossary terms?'))return;setGlossary([]);saveGl();glInfo();render()};
+$('g-clr').onclick=()=>{const n=glCur().length;if(!n)return;if(!confirm('Remove all '+n+' glossary terms?'))return;GLd=[];glInfo()};
 $('c-eye').innerHTML=ic('eye');$('c-ref').innerHTML=ic('refresh');
 $('c-ref').onclick=loadModels;
 $('c-key').onchange=()=>{if($('c-key').value.trim())loadModels()};
@@ -728,15 +876,21 @@ $('c-eye').onclick=()=>{const k=$('c-key');k.type=k.type==='password'?'text':'pa
 $('c-eng').onchange=()=>{aiStash();aiShow($('c-eng').value)};
 $('cfgb').onclick=openCfg;
 $('c-cancel').onclick=()=>{$('cfg').hidden=true};
-$('c-save').onclick=()=>{applyCfg();$('cfg').hidden=true;render()};
+$('c-save').onclick=()=>{
+  applyCfg();clCommit();
+  if(GLd){setGlossary(GLd);saveGl();GLd=null}
+  $('cfg').hidden=true;render();
+};
 $('c-test').onclick=async()=>{
-  applyCfg();
-  if(!aiOn(CFG.eng)){alert('Select an AI engine (Gemini or Groq) to test it');return}
-  if(!aiKey()){alert('Enter your '+engName()+' API key first');return}
+  /* test with the values on screen without keeping them: the settings only take effect on Save */
+  const bak=JSON.parse(JSON.stringify(CFG)),undo=()=>{Object.keys(CFG).forEach(k=>delete CFG[k]);Object.assign(CFG,bak)};
+  applyCfg(false);
+  if(!aiOn(CFG.eng)){undo();alert('Select an AI engine (Gemini or Groq) to test it');return}
+  if(!aiKey()){const n=engName();undo();alert('Enter your '+n+' API key first');return}
   const b=$('c-test');b.disabled=true;
   try{const t=await (CFG.eng==='groq'?groqTest():geminiTest());alert(t)}
   catch(e){alert('Failed: '+e.message)}
-  b.disabled=false;
+  undo();b.disabled=false;
 };
 const BM=[['mt','Machine translate selected','mt',0],['check','Approve selected','ap',1],['close','Unapprove selected','un',1],['eyeoff','Hide selected','hd',1],['eye','Unhide selected','sh',1],['copy','Copy source to selected','cs',0],['undo','Undo changes in selected','ud',0],['clip','Save to clipboard','cb',0],['trash','Clear clipboard of selected','cc',0],['close','Clear selection','cl',0]];
 $('bl').innerHTML=BM.map(([i,t,a,x])=>'<button class="mi'+(x?' x':'')+'" data-a="'+a+'" type="button">'+ic(i)+'<span>'+t+'</span></button>').join('');
@@ -767,6 +921,48 @@ async function bulkMT(sel){
   alert('Translated '+done+' / '+list.length+(warn?', '+warn+' to review (placeholders differ)':'')+(err?'. Stopped: '+err:stop?'. Stopped by you':''));
   render();
 }
+/* ---- multi-segment units: hide / unhide confirmation ---- */
+function msAsk(o){
+  return new Promise(res=>{
+    $('ms-h').textContent=o.h;$('ms-t').textContent=o.t;$('ms-l').textContent=o.l||'';$('ms-l').hidden=!o.l;
+    $('ms-v').hidden=!o.view;
+    const done=v=>{$('ms').hidden=true;res(v)};
+    $('ms-c').onclick=()=>done('cancel');$('ms-v').onclick=()=>done('view');$('ms-a').onclick=()=>done('apply');
+    $('ms').hidden=false;
+  });
+}
+const msNames=a=>a.slice(0,8).join('\n')+(a.length>8?'\n\u2026 and '+(a.length-8)+' more':'');
+const msBase=u=>u.id.slice(0,u.id.lastIndexOf('#'));
+/* the multi-segment units among sel whose visibility would change when set to `to` */
+function msGroups(sel,to){
+  const seen=new Set(),out=[];
+  for(const u of sel){
+    if(u.gk===undefined||!(u.is12||u.v2)||seen.has(u.gk))continue;
+    seen.add(u.gk);const g=grpOf(u);
+    if(g.some(x=>trOf(x)!==to))out.push(g);
+  }
+  return out;
+}
+function msBulkAsk(gs,hide){
+  const n=gs.length,seg=gs.reduce((t,g)=>t+g.length,0),extra=gs.reduce((t,g)=>t+g.filter(x=>!x.sel).length,0);
+  return msAsk({
+    h:(hide?'Hide ':'Unhide ')+n+' multi-segment unit'+(n>1?'s':'')+'?',
+    t:'Your selection includes segments of '+n+' multi-segment unit'+(n>1?'s':'')+'. Visibility is set per unit, so all '+seg+' segments of '+(n>1?'these units':'this unit')+' will be '+(hide?'hidden':'unhidden')+(extra?', including '+extra+' you did not select':'')+'. Tap View to go back and see them marked.',
+    l:msNames(gs.map(g=>msBase(g[0])+' ('+g.length+' segments)')),view:true});
+}
+/* View: back to the edit screen with every affected segment marked */
+function msMark(gs){
+  MARK=new Set();gs.forEach(g=>g.forEach(u=>MARK.add(u)));
+  $('mkt').textContent=MARK.size+' segment'+(MARK.size>1?'s':'')+' of '+gs.length+' multi-segment unit'+(gs.length>1?'s':'')+' marked';
+  MKJ=true;render();
+}
+function msUnmark(){MARK=null;MKJ=false;document.querySelectorAll('#list .u.mk').forEach(e=>e.classList.remove('mk'));upd(true)}
+$('mkc').onclick=msUnmark;
+/* a hide / unhide changed other segments of the same unit: refresh the cards that are on screen */
+function msRefresh(u){
+  const g=grpOf(u);if(g.length<2)return;
+  document.querySelectorAll('#list .u').forEach(e=>{if(e._rf&&e._u!==u&&g.includes(e._u))e._rf()});
+}
 async function bulk(a){
   const sel=units.filter(u=>u.sel);
   if(!sel.length)return;
@@ -775,7 +971,7 @@ async function bulk(a){
     const n=sel.filter(changed).length;
     if(!n){alert('No changes in the selected units');return}
     if(!confirm('Discard the changes in '+n+' selected units?'))return;
-    sel.forEach(u=>{delete u.val;delete u.ap;delete u.tr});render();return;
+    sel.forEach(u=>{delete u.val;delete u.ap;delete u.apAuto;delete u.tr});render();return;
   }
   if(a==='cb'){
     let n=0,same=0,full=0,skip=0;
@@ -799,10 +995,16 @@ async function bulk(a){
     if(diff&&!confirm('Replace '+diff+' existing translations with the source text?'))return;
     sel.forEach(u=>setVal(u,u.rs));
   }else{
+    let noTr=0;
+    if(a==='hd'||a==='sh'){
+      const gs=msGroups(sel,a==='hd'?'no':'yes');
+      if(gs.length){const r=await msBulkAsk(gs,a==='hd');if(r!=='apply'){if(r==='view')msMark(gs);return}}
+      MARK=null;MKJ=false;
+    }
     sel.forEach(u=>{if(!(u.is12||u.v2))return;
-      if(a==='ap')setAp(u,true);else if(a==='un')setAp(u,false);
-      else if(u.ntr)return;
-      else if(a==='hd')setTr(u,'no');else if(a==='sh')setTr(u,'yes')});
+      if(a==='ap'){if(u.v2&&!cur(u).trim())noTr++;else setAp(u,true)}else if(a==='un')setAp(u,false);
+      else if(a==='hd')setTrG(u,'no');else if(a==='sh')setTrG(u,'yes')});
+    if(noTr)alert(noTr+' XLIFF 2 segment(s) have no translation and were not approved (without a translation the state must stay "initial").');
   }
   render();
 }
@@ -814,7 +1016,7 @@ async function sessClear(){clearTimeout(svT);try{const db=await sIdb();await new
 function sessSnap(){
   const d={};
   units.forEach((u,i)=>{const o={};
-    if(u.val!==undefined)o.v=u.val;if(u.ap!==undefined)o.a=u.ap?1:0;if(u.tr!==undefined)o.r=u.tr;
+    if(u.val!==undefined)o.v=u.val;if(u.ap!==undefined)o.a=u.ap?1:0;if(u.tr!==undefined)o.r=u.tr;if(u.apAuto)o.z=1;
     if(cbHas(u))o.c=u.cb;if(u.sel)o.s=1;if(u.showCtx)o.x=1;
     if(Object.keys(o).length)d[i]=o});
   return {t:Date.now(),name,n:units.length,d,ui:{q:$('q').value,F:Object.assign({},F),rx:RX,sz:$('sz').value,so:$('so').value,page}};
@@ -837,7 +1039,7 @@ async function sessCheck(){
     const good=await loadText(f.raw,f.name,()=>{
       if(!ok||st.n!==units.length)return;
       units.forEach((u,i)=>{const o=st.d[i];if(!o)return;
-        if(o.v!==undefined)u.val=o.v;if(o.a!==undefined)u.ap=!!o.a;if(o.r!==undefined)u.tr=o.r;
+        if(o.v!==undefined)u.val=o.v;if(o.a!==undefined)u.ap=!!o.a;if(o.r!==undefined)u.tr=o.r;if(o.z)u.apAuto=true;
         if(o.c)u.cb=o.c;if(o.s)u.sel=true;if(o.x)u.showCtx=true});
       const ui=st.ui||{};
       $('q').value=ui.q||'';Object.assign(F,ui.F||{});RX=!!ui.rx;
@@ -862,23 +1064,163 @@ function fileOk(file){
   if(file.size>MAX_BYTES){alert('"'+file.name+'" is too large ('+(file.size/1048576).toFixed(1)+' MB). The limit is '+(MAX_BYTES/1048576)+' MB.');return false}
   return true;
 }
-async function readText(file){
-  const buf=await file.arrayBuffer(),v=new Uint8Array(buf,0,Math.min(2,buf.byteLength));
-  if(v.length===2&&((v[0]===0xFF&&v[1]===0xFE)||(v[0]===0xFE&&v[1]===0xFF)))
-    throw new Error('"'+file.name+'" is encoded as UTF-16. Please convert it to UTF-8 and open it again.');
-  const t=new TextDecoder('utf-8').decode(buf);
-  if(t.indexOf('\u0000')>=0)throw new Error('"'+file.name+'" does not look like a text file.');
-  return t;
+/* Encoding (XML 1.0 4.3.3, XLIFF 1.2 3.1): a document is UTF-8 or UTF-16 (with a BOM) unless its XML declaration names another encoding.
+   readTextEx() decodes a file the way its own bytes and declaration say (UTF-8, UTF-16 with or without BOM, or the declared legacy encoding such
+   as ISO-8859-1). It returns {text,note} (note = what was converted, to tell the user), or null if the user declines to open a file with
+   unreadable bytes. The app always saves UTF-8, so utf8Decl() makes the declaration of the text being saved say so. */
+const XDECL_ENC=/^(<\?xml\s[^>]*?\sencoding\s*=\s*)(["'])([A-Za-z][A-Za-z0-9._-]*)\2/;
+const utf8Decl=t=>t.replace(XDECL_ENC,(m,a,q,e)=>/^utf-8$/i.test(e)?m:a+q+'UTF-8'+q);
+async function readTextEx(file){
+  const buf=await file.arrayBuffer(),b=new Uint8Array(buf),nm='"'+file.name+'"';
+  const at=(...v)=>v.every((x,i)=>b[i]===x);
+  if(at(0xFF,0xFE,0,0)||at(0,0,0xFE,0xFF)||at(0x3C,0,0,0)||at(0,0,0,0x3C))throw new Error(nm+' is encoded as UTF-32, which this app cannot read. Please convert it to UTF-8 and open it again.');
+  let enc='utf-8',declared='',mislabeled=false;
+  if(at(0xFF,0xFE))enc='utf-16le';
+  else if(at(0xFE,0xFF))enc='utf-16be';
+  else if(at(0x3C,0,0x3F,0))enc='utf-16le';   /* UTF-16 without a BOM, recognised by its "<?" (XML 1.0 appendix F) */
+  else if(at(0,0x3C,0,0x3F))enc='utf-16be';
+  else if(!at(0xEF,0xBB,0xBF)){   /* ASCII-compatible bytes: the XML declaration says which encoding it is */
+    const m=XDECL_ENC.exec(new TextDecoder('windows-1252').decode(b.subarray(0,512)));
+    declared=m?m[3]:'';
+    const dl=declared.toLowerCase();
+    if(!declared||dl==='utf-8'||dl==='utf8'){}
+    else if(/^(?:utf-?(?:16|32)|ucs-?[24]|iso-10646-ucs-[24]|unicode)/.test(dl))mislabeled=true;   /* claims UTF-16/32 but the bytes are ASCII-compatible: a mislabelled UTF-8 file */
+    else enc=declared;
+  }
+  let dec;try{dec=new TextDecoder(enc,{fatal:true})}catch(e){throw new Error(nm+' declares the encoding "'+declared+'", which this browser cannot read. Please convert it to UTF-8 and open it again.')}
+  let t;try{t=dec.decode(buf)}catch(e){
+    if(!confirm(nm+' contains bytes that are not valid '+enc.toUpperCase()+'. They will be replaced by the character \uFFFD and saved that way.\n\nOpen anyway?'))return null;
+    t=new TextDecoder(enc).decode(buf);
+  }
+  if(t.indexOf('\u0000')>=0)throw new Error(nm+' does not look like a text file.');
+  let note='';
+  if(enc!=='utf-8')note=nm+' was read as '+(enc.startsWith('utf-16')?'UTF-16':declared)+' and will be saved as UTF-8 (its XML declaration is updated to match).';
+  else if(mislabeled)note=nm+' declares encoding="'+declared+'" but its bytes are UTF-8. It will be saved as UTF-8 with the declaration corrected.';
+  return{text:t,note};
 }
 $('f').onchange=async e=>{
   const file=e.target.files[0];e.target.value='';
   if(!fileOk(file))return;
-  let txt;try{txt=await readText(file)}catch(err){alert(err.message);return}
-  await loadText(txt,file.name);
+  let r;try{r=await readTextEx(file)}catch(err){alert(err.message);return}
+  if(!r)return;
+  if(await loadText(r.text,file.name)&&r.note)alert(r.note);
 };
 let LSEQ=0,WSYNC=false;
 const busy=msg=>{document.body.classList.toggle('busy',!!msg);if(msg)$('info').textContent=msg};
 function parseLocal(txt){const out=[];const info=W_parse(txt,c=>{for(const u of c)out.push(u)});info.units=out;return info}
+/* XLIFF 1.2 conformance (Core spec: required attributes, id unique per <file>, content model of <trans-unit>). Never blocks opening.
+   Core 3.1: the namespace is optional ("if necessary, you can also specify a namespace"), so a document without xmlns is valid and its elements are XLIFF elements;
+   only a different namespace is reported. */
+function xliff12Issues(txt){
+  const out=[];let d;try{d=new DOMParser().parseFromString(txt,'application/xml')}catch(e){return out}
+  const X='urn:oasis:names:tc:xliff:document:1.2',r=d.documentElement;
+  if(!r||d.querySelector('parsererror')||r.localName!=='xliff')return out;
+  const own=r.namespaceURI||'';
+  if(own&&own!==X)out.push('<xliff> is not in the namespace '+X);
+  if(!r.getAttribute('version'))out.push('<xliff> has no version attribute');
+  const isX=e=>(e.namespaceURI||'')===own,all=n=>[...d.getElementsByTagNameNS('*',n)].filter(isX);
+  const cnt={},addc=(k,ex)=>{const o=cnt[k]||(cnt[k]={n:0,ex:ex});o.n++};
+  const need=(n,attrs)=>{for(const e of all(n))for(const a of attrs)if(!(e.getAttribute(a)||'').trim())addc('<'+n+'> element(s) without the required "'+a+'" attribute');};
+  /* Core 3.2 / 3.3: required attributes of each element */
+  need('file',['original','source-language','datatype']);
+  need('phase',['phase-name','process-name']);need('tool',['tool-id','tool-name']);
+  need('count-group',['name']);need('count',['count-type']);need('context',['context-type']);need('prop',['prop-type']);
+  need('bin-unit',['mime-type']);need('external-file',['href']);
+  for(const n of ['g','x','bx','ex','ph','bpt','ept'])need(n,['id']);
+  need('it',['id','pos']);need('mrk',['mtype']);
+  for(const e of all('it')){const p=e.getAttribute('pos');if(p&&p!=='open'&&p!=='close')addc('<it> element(s) whose pos is neither "open" nor "close"')}
+  /* Core 3.2.1: <file> holds zero or one <header> followed by one <body> */
+  for(const f of all('file')){
+    const k=[...f.children].filter(isX).map(e=>e.localName),nb=k.filter(x=>x==='body').length,nh=k.filter(x=>x==='header').length;
+    if(nb!==1)addc('<file> element(s) without exactly one <body>');
+    if(nh>1||(nh===1&&k.indexOf('header')>k.indexOf('body')&&nb))addc('<file> element(s) whose <header> is repeated or follows the <body>');
+  }
+  /* boolean and enumerated values (Core 3.3.1) */
+  for(const [n,at] of [['trans-unit','approved'],['trans-unit','translate'],['group','translate'],['bin-unit','approved'],['bin-unit','translate']])
+    for(const e of all(n)){const v=e.getAttribute(at);if(v!==null&&v!=='yes'&&v!=='no')addc('"'+at+'" value(s) other than yes / no')}
+  for(const n of ['file','group','trans-unit','alt-trans'])for(const e of all(n)){const v=e.getAttributeNS('http://www.w3.org/XML/1998/namespace','space');if(v&&v!=='default'&&v!=='preserve')addc('xml:space value(s) other than default / preserve')}
+  const ST=/^(?:final|needs-adaptation|needs-l10n|needs-review-adaptation|needs-review-l10n|needs-review-translation|needs-translation|new|signed-off|translated|x-.+)$/,
+    SQ=/^(?:exact-match|fuzzy-match|id-match|leveraged-glossary|leveraged-inherited|leveraged-mt|leveraged-repository|leveraged-tm|mt-suggestion|rejected-grammar|rejected-inaccurate|rejected-length|rejected-spelling|tm-suggestion|x-.+)$/;
+  for(const e of [...all('target'),...all('bin-target')]){
+    const s=e.getAttribute('state'),q=e.getAttribute('state-qualifier');
+    if(s!==null&&!ST.test(s))addc('"state" value(s) that are neither predefined nor start with "x-"');
+    if(q!==null&&!SQ.test(q))addc('"state-qualifier" value(s) that are neither predefined nor start with "x-"');
+  }
+  const seen=new Map(),c={noid:0,dup:0,tgt:0,ord:0,nosrc:0,sseg:0},ex={};
+  const rk=e=>isX(e)?0:1;   /* Core 3.2.1: no order is enforced among the XLIFF children; only the non-XLIFF elements must come last */
+  for(const tu of [...all('trans-unit'),...all('bin-unit')]){
+    const isBin=tu.localName==='bin-unit',id=tu.getAttribute('id'),tid=id||'?';let f=tu.parentNode;while(f&&f.localName!=='file')f=f.parentNode;
+    if(!id){c.noid++;ex.noid=ex.noid||'#'+(c.noid)}
+    else{let ss=seen.get(f);if(!ss)seen.set(f,ss=new Set());if(ss.has(id)){c.dup++;ex.dup=ex.dup||id}else ss.add(id)}
+    let nt=0,ns=0,ng=0,last=-1,bad=false;
+    for(const e of tu.children){const q=rk(e);if(isX(e)&&e.localName==='target')nt++;if(isX(e)&&e.localName==='source')ns++;if(isX(e)&&e.localName==='seg-source')ng++;if(q<last)bad=true;last=Math.max(last,q)}
+    if(isBin)continue;   /* bin-unit: only its id takes part in the uniqueness check */
+    if(nt>1){c.tgt++;ex.tgt=ex.tgt||tid}if(bad){c.ord++;ex.ord=ex.ord||tid}if(ns!==1){c.nosrc++;ex.nosrc=ex.nosrc||tid}if(ng>1){c.sseg++;ex.sseg=ex.sseg||tid}
+  }
+  for(const k in cnt)out.push(cnt[k].n+' '+k);
+  if(c.noid)out.push(c.noid+' <trans-unit> without the required id');
+  if(c.dup)out.push(c.dup+' <trans-unit>/<bin-unit> id(s) repeated inside the same <file> (e.g. '+ex.dup+')');
+  if(c.nosrc)out.push(c.nosrc+' <trans-unit> without exactly one <source> (e.g. '+ex.nosrc+')');
+  if(c.sseg)out.push(c.sseg+' <trans-unit> with more than one <seg-source> (e.g. '+ex.sseg+')');
+  if(c.tgt)out.push(c.tgt+' <trans-unit> with more than one <target> (e.g. '+ex.tgt+')');
+  if(c.ord)out.push(c.ord+' <trans-unit> with a non-XLIFF element before an XLIFF one (non-XLIFF elements must come last) (e.g. '+ex.ord+')');
+  return out;
+}
+/* XLIFF 2.x conformance (Core 3.2.2 structure, 3.3.1 attribute rules). Never blocks opening. */
+function xliff2Issues(txt){
+  const out=[];let d;try{d=new DOMParser().parseFromString(txt,'application/xml')}catch(e){return out}
+  const r=d.documentElement,XN=/^urn:oasis:names:tc:xliff:document:2\.\d+$/,XL='http://www.w3.org/XML/1998/namespace';
+  if(!r||d.querySelector('parsererror')||r.localName!=='xliff')return out;
+  if(!XN.test(r.namespaceURI||''))out.push('<xliff> is not in an XLIFF 2 namespace (urn:oasis:names:tc:xliff:document:2.0)');
+  const isX=e=>e.namespaceURI===r.namespaceURI,all=n=>[...d.getElementsByTagNameNS('*',n)].filter(isX);
+  const cnt={},add=k=>{cnt[k]=(cnt[k]||0)+1},ex={};
+  const ver=r.getAttribute('version');
+  if(!ver)add('<xliff> without the required version attribute');else if(!/^2\.[012]$/.test(ver))add('<xliff> with version "'+ver+'" (Core 3.3.1.42: 2.0, 2.1 or 2.2)');
+  const src=(r.getAttribute('srcLang')||'').trim(),trg=(r.getAttribute('trgLang')||'').trim();
+  if(!src)add('<xliff> without the required srcLang attribute');
+  if(!all('file').length)add('<xliff> without a <file>');
+  const lc=v=>v.toLowerCase().replace(/_/g,'-');
+  const inh=(e,n)=>{for(let p=e;p&&p.nodeType===1;p=p.parentNode){const v=p.getAttributeNS(XL,n);if(v!==null&&v!=='')return v}return null};
+  const uniq=(els,attr,scope,label)=>{const m=new Map();for(const e of els){const id=e.getAttribute(attr);if(!id)continue;const sc=scope(e);let ss=m.get(sc);if(!ss)m.set(sc,ss=new Set());if(ss.has(id)){add(label+' id(s) repeated inside the same '+(sc.localName||'document'));ex[label]=ex[label]||id}else ss.add(id)}};
+  const up=(e,names)=>{let p=e.parentNode;while(p&&p.nodeType===1&&!names.includes(p.localName))p=p.parentNode;return p};
+  for(const n of ['file','group','unit'])for(const e of all(n))if(!(e.getAttribute('id')||'').trim())add('<'+n+'> without the required id attribute');
+  uniq(all('file'),'id',()=>r,'<file>');
+  uniq(all('group'),'id',e=>up(e,['file']),'<group>');
+  uniq(all('unit'),'id',e=>up(e,['file']),'<unit>');
+  for(const e of all('data'))if(!(e.getAttribute('id')||'').trim())add('<data> without the required id attribute');
+  uniq(all('data'),'id',e=>up(e,['unit']),'<data>');
+  /* yes / no flags */
+  for(const [n,at] of [['file','translate'],['group','translate'],['unit','translate'],['file','canResegment'],['group','canResegment'],['unit','canResegment'],['segment','canResegment']])
+    for(const e of all(n)){const v=e.getAttribute(at);if(v!==null&&v!=='yes'&&v!=='no')add('"'+at+'" value(s) other than yes / no')}
+  /* <unit> content (Core 3.2.2.5-3.2.2.7) */
+  let noTrg=false,hasTrg=false;
+  for(const u of all('unit')){
+    const sg=[...u.children].filter(e=>isX(e)&&e.localName==='segment'),ch=[...u.children].filter(e=>isX(e)&&(e.localName==='segment'||e.localName==='ignorable'));
+    if(!sg.length)add('<unit> without a <segment> (Core 3.2.2.5)');
+    uniq(ch,'id',()=>u,'<segment>/<ignorable>');
+    for(const c of ch){
+      const kids=[...c.children].filter(isX),ns=kids.filter(e=>e.localName==='source').length,nt=kids.filter(e=>e.localName==='target').length;
+      if(ns!==1)add('<'+c.localName+'> without exactly one <source>');
+      if(nt>1)add('<'+c.localName+'> with more than one <target>');
+      if(kids.length&&kids[0].localName!=='source')add('<'+c.localName+'> whose <source> is not first');
+      if(nt)hasTrg=true;
+      for(const t of kids.filter(e=>e.localName==='source'||e.localName==='target')){
+        const l=inh(t,'lang'),want=t.localName==='source'?src:trg;
+        if(l&&want&&lc(l)!==lc(want))add('<'+t.localName+'> whose xml:lang differs from '+(t.localName==='source'?'srcLang':'trgLang')+' (Core 3.2.2.12 / 3.2.2.13)');
+      }
+      if(c.localName==='segment'){
+        const st=c.getAttribute('state'),ss=c.getAttribute('subState');
+        if(st!==null&&!/^(?:initial|translated|reviewed|final)$/.test(st))add('segment "state" value(s) outside initial / translated / reviewed / final');
+        if(st&&st!=='initial'&&!nt)add('segment(s) with state "'+st+'" but without a <target> (Core 3.3.1.31)');
+        if(ss!==null&&st===null)add('segment(s) with subState but without an explicit state (Core 3.3.1.35)');
+        if(ss!==null&&!/^[^:\s]+:.+$/.test(ss))add('subState value(s) not of the form prefix:value');
+      }
+    }
+  }
+  if(hasTrg&&!trg)add('<xliff> without trgLang although it contains <target> elements (Core 3.2.2.1)');
+  for(const k in cnt)out.push(cnt[k]+' \u00d7 '+k+(/repeated/.test(k)&&ex[k.split(' ')[0]]?' (e.g. '+ex[k.split(' ')[0]]+')':''));
+  return out;
+}
 async function loadText(txt,fname,pre){
   const my=++LSEQ;
   busy('Opening\u2026');
@@ -901,18 +1243,20 @@ async function loadText(txt,fname,pre){
   if(!list.length){busy('');upd(true);alert(info.mode==='strings'?'No translatable strings were found in this file.':'No translation units were found in this XLIFF file.');return false}
   GEN++;qaJob++;qaN=0;
   name=fname;raw=txt;doc={mode:info.mode};units=list;crowdin=!!info.crowdin;v2=!!info.v2;WSYNC=sync;
-  units.forEach(u=>{u._gen=GEN});
+  units.forEach(u=>{u._gen=GEN});MARK=null;MKJ=false;
   page=0;$('q').value='';
   setMode(info.mode);
   if(pre){pre();fchips()}
   busy('');
-  render(1);sessNew();return true;
+  render(1);sessNew();
+  if(info.mode==='xliff'){const iss=info.v2?xliff2Issues(txt):xliff12Issues(txt);if(iss.length)setTimeout(()=>alert('This file does not follow XLIFF '+(info.v2?'2.x':'1.2')+':\n\n- '+iss.slice(0,8).join('\n- ')+'\n\nIt is still opened; saving keeps these parts as they are.'),0)}
+  return true;
 }
 $('close').onclick=()=>{
   if(!doc)return;
   if(edited()&&!confirm('Close this file? Unsaved changes will not be saved.'))return;
   LSEQ++;GEN++;qaJob++;qaN=0;qaBusy=false;WSYNC=false;wDrop();
-  doc=null;raw='';units=[];crowdin=false;v2=false;page=0;$('q').value='';setMode('xliff');sessClear();render();
+  doc=null;raw='';units=[];MARK=null;MKJ=false;crowdin=false;v2=false;page=0;$('q').value='';setMode('xliff');sessClear();render();
 };
 let qt;$('q').oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{RES=null;page=0;render(1)},150)};   /* every edit of the search box refreshes the results, even back to the earlier text */
 $('rx').onclick=()=>{RX=!RX;fchips();page=0;render(1)};
@@ -935,10 +1279,10 @@ const sortKey=(k,u)=>{
     case 'qa':return -qaOf(u).length;
     case 'cb':return cbHas(u)?0:1;
     case 'unap':return (u.is12||u.v2)&&!ap?0:1;
-    case 'hid':return (u.is12||(u.v2&&!u.ntr))&&tr==='no'?0:1;
+    case 'hid':return (u.is12||u.v2)&&tr==='no'?0:1;
     case 'untr':return c.trim()===''?0:1;
     case 'same':return c!==''&&c===u.rs?0:1;
-    case 'over':return u.max&&(u.slr?txtlen(c):clen(c))>u.max?0:1;
+    case 'over':return u.max&&(u.slr?txtlen(c,u.nfG):clen(c))>u.max?0:1;
     case 'lsrc':return -clen(u.rs);
     case 'ssrc':return clen(u.rs);
     case 'ltgt':return -clen(c);
@@ -1012,18 +1356,18 @@ function card(u){
   const q=s=>d.querySelector(s);
   const clb=q('.cb'),mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
   mtb.innerHTML=ic('mt');ap.innerHTML=ic('check');cx.innerHTML=ic('help');cp.innerHTML=ic('copy');un.innerHTML=ic('undo');clb.innerHTML=ic('clip');
-  [[ap,'Approve'],[hd,'Visible'],[cx,'Context'],[mtb,'Machine translate · '+engName()],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
+  [[ap,'Approve'],[hd,'Visible'],[cx,mode==='strings'?'Comment':'Context'],[mtb,'Machine translate · '+engName()],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
   const cb=q('.sel');cb.setAttribute('aria-label','Select unit');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
-  q('.id').textContent=u.id;q('.rn').textContent=u.rn;q('.rn').hidden=!u.rn;
+  q('.id').textContent=u.id;q('.rn').textContent=rnShow(u);q('.rn').hidden=!u.rn;
   q('.lb').textContent=u.labels.length?'Label: '+u.labels.join(', '):'';q('.lb').hidden=!u.labels.length;
   const sv=CFG.pv?pvDec(u.rs):u.rs;
   q('.src').innerHTML=hlight(sv);
   q('.sc').textContent=clen(sv)+' chars';
-  cxt.textContent=(crowdin||v2)?(ctxLines(u).join('\n')||(v2?'No notes or module data':'No context')):'For Crowdin Only'
+  cxt.textContent=mode==='strings'?(ctxLines(u).join('\n')||'No comment'):(crowdin||v2)?(ctxLines(u).join('\n')||(v2?'No notes or module data':'No context')):'For Crowdin Only'
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
   const allow=CFG.pv?pvAllow(u.rs,u.rt,cur(u)):null,P=!!CFG.pv&&pvSafe(cur(u),allow);
   const toTa=r=>P?pvDec(r):r,fromTa=v=>P?pvEnc(v,allow):v;
-  const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=(u.slr&&!P?txtlen:clen)(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars'+(CFG.pv&&!P?' \u00b7 raw':'');tc.classList.toggle('over',!!u.max&&n>u.max)};
+  const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=(u.slr&&!P?(x=>txtlen(x,u.nfG)):clen)(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars'+(CFG.pv&&!P?' \u00b7 raw':'');tc.classList.toggle('over',!!u.max&&n>u.max)};
   const setText=v=>{ta.value=toTa(v);paint();fit()};
   ta.value=toTa(cur(u));ta.setAttribute('aria-label','Translation');paint();
   const refresh=()=>{
@@ -1031,9 +1375,9 @@ function card(u){
     d.classList.toggle('ch',changed(u));un.disabled=!changed(u);
     ap.classList.toggle('on',a);ap.title=a?'Approved':'Not approved';
     hd.innerHTML=ic(t==='yes'?'eye':'eyeoff');hd.classList.toggle('on',t==='yes');
-    hd.title=t==='yes'?'translate=yes (tap to hide)':'translate=no (tap to unhide)';
-    ap.disabled=!(u.is12||u.v2);hd.disabled=!(u.is12||(u.v2&&!u.ntr));
-    if(u.v2)ap.title=a?'state="final" (tap to unapprove)':'Approve (sets state="final")';
+    hd.title=(t==='yes'?'translate=yes (tap to hide)':'translate=no (tap to unhide)')+(u.gk!==undefined?' \u00b7 multi-segment unit: applies to all its segments':'');
+    ap.disabled=!(u.is12||u.v2)||(u.v2&&!a&&!cur(u).trim());hd.disabled=!(u.is12||u.v2);
+    if(u.v2)ap.title=a?'state="final" (tap to unapprove)':cur(u).trim()?'Approve (sets state="final")':'Translate first: without a translation the state stays "initial"';
     const qe=q('.qa'),iss=qaOf(u);qaSet(u,iss.length>0);qe.hidden=!iss.length;qe.textContent=iss.map(x=>'\u26a0 '+x).join('\n');
     cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;
     const nb=(u.cb||[]).length,ct='Clipboard'+(nb?' ('+nb+'/'+CB_MAX+')':'');
@@ -1043,9 +1387,19 @@ function card(u){
   ta.oninput=()=>{setVal(u,fromTa(ta.value));paint();fit();sync()};
   cp.onclick=()=>{setText(u.rs);setVal(u,u.rs);sync()};
   clb.onclick=()=>openClip(u,v=>{setText(v);setVal(u,v);sync()},sync);
-  un.onclick=()=>{setText(u.rt);delete u.val;delete u.ap;delete u.tr;sync()};
-  ap.onclick=()=>{setAp(u,!(u.ap!==undefined?u.ap:u.oAp));sync()};
-  hd.onclick=()=>{setTr(u,(u.tr!==undefined?u.tr:u.oTr)==='yes'?'no':'yes');sync()};
+  un.onclick=()=>{setText(u.rt);delete u.val;delete u.ap;delete u.apAuto;delete u.tr;sync()};
+  ap.onclick=()=>{const a=u.ap!==undefined?u.ap:u.oAp;if(u.v2&&!a&&!cur(u).trim())return;setAp(u,!a);sync()};
+  hd.onclick=async()=>{
+    const to=trOf(u)==='yes'?'no':'yes';
+    if(u.gk!==undefined){
+      const hide=to==='no',oth=grpOf(u).filter(x=>x!==u),n=oth.length;
+      const r=await msAsk({h:(hide?'Hide':'Unhide')+' multi-segment unit?',
+        t:'Segment '+u.id+' belongs to a multi-segment unit ('+u.gn+' segments). Visibility is set for the whole unit, so '+(n?'the other '+n+' segment'+(n>1?'s':'')+' will also be ':'the whole unit will be ')+(hide?'hidden':'unhidden')+'.',
+        l:n?msNames(oth.map(x=>x.id)):'',view:false});
+      if(r!=='apply')return;
+    }
+    setTrG(u,to);sync();msRefresh(u);
+  };
   mtb.onclick=async()=>{
     if(!u.rs.trim())return;
     if(u.val!==undefined&&!confirm('Replace your edit with machine translation?'))return;
@@ -1056,15 +1410,19 @@ function card(u){
     catch(e){alert('Translation failed: '+e.message)}
     mtb.classList.remove('on');mtb.disabled=false;sync()};
   cx.onclick=()=>{u.showCtx=!u.showCtx;refresh();vsNudge()};
-  refresh();d._fit=fit;
+  refresh();d._fit=fit;d._u=u;d._rf=refresh;
+  d.classList.toggle('mk',!!(MARK&&MARK.has(u)));
   return d;
 }
 /* ---------- Pure code shared by the Web Worker and the main-thread fallback ---------- */
 const W_dec=s=>s.replace(/&(?:#(\d+)|#x([0-9a-fA-F]+)|(lt|gt|amp|quot|apos));/g,(m,d,h,n)=>{
   if(n)return {lt:'<',gt:'>',amp:'&',quot:'"',apos:"'"}[n];
   try{return String.fromCodePoint(d!==undefined?+d:parseInt(h,16))}catch(e){return m}});
-/* length in characters of an XML fragment as text: inline tags dropped, entities decoded (XLIFF 2.0 size restriction counts text only) */
-const txtlen=t=>[...W_dec(t.replace(/<[^>]*>/g,''))].length;
+/* text of an XML fragment: CDATA sections give their content (Core 3.4), comments and inline tags are dropped, <cp hex=".."/> is the one character it stands for
+   (Core 3.7.1.1), entities are decoded */
+const txtOf=t=>W_dec(t.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,(m,c)=>c.replace(/&/g,'&amp;').replace(/</g,'&lt;')).replace(/<!--[\s\S]*?-->/g,'').replace(/<(?:[\w.\-]+:)?cp\s[^>]*?hex\s*=\s*["']([0-9A-Fa-f]+)["'][^>]*>/g,(m,h)=>'&#x'+h+';').replace(/<[^>]*>/g,''));
+/* length in characters of an XML fragment as text (XLIFF 2.x size restriction and XLIFF 1.2 size-unit=char count text only) */
+const txtlen=(t,nf)=>{let x=txtOf(t);if(nf==='nfc'||nf==='nfd')x=x.normalize(nf.toUpperCase());return [...x].length};
 /* local name of the root element (skips BOM, <?xml?>, comments, DOCTYPE) */
 function W_root(t){
   let i=0;const n=t.length;
@@ -1093,24 +1451,37 @@ function W_parse(txt,emit){
   const xr=/<(?:[\w.\-]+:)?xliff\b(?:"[^"]*"|'[^']*'|[^>"'])*>/.exec(txt);
   if(xr&&(/^2/.test(ga(xr[0],'version')||'')||/xliff:document:2\./.test(xr[0])))return W_parse2(txt,emit);
   const crowdin=/tool-id="crowdin"|tool-name="crowdin"/i.test(txt);
-  const mr=maskRaw(txt),re=/<((?:[\w.\-]+:)?)(trans-unit|unit)\b/g;
+  const mr=maskRaw(txt),re=/<((?:[\w.\-]+:)?)(trans-unit|unit)(?=[\s>\/])/g;
   const rSrcTag=/<(?:[\w.\-]+:)?source(?=[\s>\/])/,rSeg=/<(?:[\w.\-]+:)?segment(?=[\s>])[\s\S]*?<(?:[\w.\-]+:)?source(?=[\s>\/])/;
-  const rSrc=/<(?:[\w.\-]+:)?source\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?source>)/,rTgt=/<(?:[\w.\-]+:)?target\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?target>)/;
-  const rCx=/<(?:[\w.\-]+:)?context(?=[\s>])([^>]*)>([\s\S]*?)<\/(?:[\w.\-]+:)?context>/g,rCx0=/<(?:[\w.\-]+:)?context[\s>]/,rAlt0=/<(?:[\w.\-]+:)?alt-trans[\s>]/,rAlt=/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans>/g;
+  const rSrc=/<(?:[\w.\-]+:)?source(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?source\s*>)/,rTgt=/<(?:[\w.\-]+:)?target(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?target\s*>)/;
+  const rCx=/<(?:[\w.\-]+:)?context(?=[\s>])((?:"[^"]*"|'[^']*'|[^>"'])*)>([\s\S]*?)<\/(?:[\w.\-]+:)?context\s*>/g,rCx0=/<(?:[\w.\-]+:)?context[\s>]/,rAlt0=/<(?:[\w.\-]+:)?alt-trans[\s>]/,rAlt=/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans\s*>/g;
+  /* XLIFF 1.2 scope: translate, size-unit, maxwidth and maxbytes of a <group> apply to the units inside it, nearest ancestor wins (<file> has none of these attributes, Core 3.2.1) */
+  const scRe=/<((?:[\w.\-]+:)?)(file|group)(?=[\s>\/])((?:"[^"]*"|'[^']*'|[^>"'])*)>|<\/(?:[\w.\-]+:)?(file|group)\s*>/g,stk=[];
+  let scM=scRe.exec(mr),fIdx=-1;
+  const scopeAt=pos=>{while(scM&&scM.index<pos){
+    if(scM[4]){for(let j=stk.length-1;j>=0;j--)if(stk[j].t===scM[4]){stk.length=j;break}}
+    else{if(scM[2]==='file')fIdx++;if(!/\/$/.test(scM[3]))stk.push({t:scM[2],a:scM[3]})}
+    scM=scRe.exec(mr)}};
+  const inh=(n,grp)=>{for(let j=stk.length-1;j>=0;j--){if(grp&&stk[j].t!=='group')continue;const v=ga(stk[j].a,n);if(v!==null)return v}return null};
   let m,k=0,total=0,buf=[];
   while((m=re.exec(mr))){
-    const a=m.index,pfx=m[1],tag=m[2],idx=k++,e2=mr.indexOf('</'+pfx+tag+'>',a),end=e2<0?undefined:e2;
+    const a=m.index,pfx=m[1],tag=m[2],idx=k++,e2=endTag(mr,pfx+tag,a),end=e2<0?undefined:e2;
+    scopeAt(a);
     const bc=mr.slice(a,end);let bm=bc;
     if(rAlt0.test(bm))bm=bm.replace(rAlt,x=>' '.repeat(x.length));   /* blank, keep the length so indexes still match b */
     if(!(tag==='unit'?rSeg:rSrcTag).test(bm))continue;   /* units without a <source> are skipped, but still counted in idx */
     const b=txt.slice(a,end),sm=START.exec(b),stg=sm?sm[0]:'';
     const u={idx,id:W_dec(ga(stg,'id')||''),rs:grabTagM(b,bm,'source'),rt:grabTagM(b,bm,'target'),is12:tag==='trans-unit',
-      rn:ga(stg,'resname')||ga(stg,'name')||'',oAp:ga(stg,'approved')==='yes',oTr:ga(stg,'translate')==='no'?'no':'yes',
-      ctx:[],labels:[],max:0,ct:''};
-    const mw=ga(stg,'maxwidth');if(ga(stg,'size-unit')==='char'&&/^\d+$/.test(mw||''))u.max=+mw;
-    if(rCx0.test(bc)){
+      rn:ga(stg,'resname')||(tag==='unit'?ga(stg,'name'):'')||'',oAp:ga(stg,'approved')==='yes',
+      oTr:(ga(stg,'translate')!==null?ga(stg,'translate'):inh('translate',1))==='no'?'no':'yes',
+      ctx:[],labels:[],max:0,ct:'',fi:Math.max(fIdx,0)};
+    {const su=ga(stg,'size-unit')||inh('size-unit',1)||'pixel',mw=ga(stg,'maxwidth')!==null?ga(stg,'maxwidth'):inh('maxwidth',1),
+      mbv=ga(stg,'maxbytes')!==null?ga(stg,'maxbytes'):inh('maxbytes',1);
+    if(su==='char'&&/^\d+$/.test(mw||'')){u.max=+mw;u.slr=1}   /* size-unit char = Unicode characters of the text: entities decoded, inline tags not counted */
+    if(/^\d+$/.test(mbv||''))u.mb=[+mbv,8];else if(su==='byte'&&/^\d+$/.test(mw||''))u.mb=[+mw,8]}
+    if(rCx0.test(bm)){   /* bm: <alt-trans> blanked, so its own <context-group> is not taken as the unit's context */
       rCx.lastIndex=0;let cm;
-      while((cm=rCx.exec(bc))){
+      while((cm=rCx.exec(bm))){
         const ce=cm.index+cm[0].lastIndexOf('</'),ty=ga(cm[1],'context-type')||'context',tx=b.slice(ce-cm[2].length,ce);u.ctx.push(ty+': '+tx);
         if(ty==='x-crowdin-label'&&tx.trim())u.labels.push(tx.trim());
       }
@@ -1128,29 +1499,34 @@ function W_parse(txt,emit){
    length limits; val rules and unit glossaries feed the QA checks. Anything else is kept untouched. */
 function W_parse2(txt,emit){
   const mr=maskRaw(txt),reU=/<((?:[\w.\-]+:)?)unit\b/g,reSg=/<((?:[\w.\-]+:)?)segment\b(?:"[^"]*"|'[^']*'|[^>"'])*>/g;
-  const rSrc=/<(?:[\w.\-]+:)?source\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?source>)/,rTgt=/<(?:[\w.\-]+:)?target\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?target>)/;
-  const rNote=/<(?:[\w.\-]+:)?note\b((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?note>)/g;
-  const pm={},rxn=/xmlns:([\w.\-]+)\s*=\s*["']urn:oasis:names:tc:xliff:(\w+):2\.0["']/g;let xn;
+  const rSrc=/<(?:[\w.\-]+:)?source(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?source\s*>)/,rTgt=/<(?:[\w.\-]+:)?target(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?target\s*>)/;
+  const rNote=/<(?:[\w.\-]+:)?note\b((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?note\s*>)/g;
+  const pm={},rxn=/xmlns:([\w.\-]+)\s*=\s*["']urn:oasis:names:tc:xliff:(\w+):[12]\.0["']/g;let xn;
   while((xn=rxn.exec(mr))){const k=xn[2].toLowerCase();(pm[k]=pm[k]||[]).push(xn[1])}
   const PX=k=>pm[k]?'(?:'+[...new Set(pm[k])].map(s=>s.replace(/[.\-]/g,'\\$&')).join('|')+')':null;
-  const pM=PX('matches'),pG=PX('glossary'),pD=PX('metadata'),pR=PX('resourcedata'),pC=PX('changetracking'),pV=PX('validation'),pS=PX('sizerestriction'),pF=PX('fs');
+  const pM=PX('matches'),pG=PX('glossary'),pD=PX('metadata'),pR=PX('resourcedata'),pC=PX('changetracking'),pV=PX('validation'),pS=PX('sizerestriction'),pF=PX('fs'),pP=PX('pgs');
   const hasM=!!(pM||pG||pD||pR||pC||pV||pS||pF);
+  /* slr (Size and Length Restriction 4.6.4.3): <normalization general= storage=> child of <profiles>; absent or "none" = no normalization */
+  const nrm=(inner,a)=>{const m=inner&&new RegExp('<(?:[\\w.\\-]+:)?normalization\\b[^>]*?\\s'+a+'\\s*=\\s*["\']([^"\']*)["\']').exec(inner);return m?m[1]:'none'};
+  /* slr 4.6.6.1.1 / 4.6.6.2.1: the value is "[minsize,]maxsize", maxsize may be * (unbounded); returns null when it is not of that form */
+  const rng=v=>{const m=v==null?null:/^\s*(?:(\d+)\s*,\s*)?(\d+|\*)\s*$/.exec(v);return m?{mn:m[1]?+m[1]:0,mx:m[2]==='*'?0:+m[2],un:m[2]==='*'}:null};
   const gaP=(t,P,n)=>P&&t?ga(t,P+':'+n):null;
   const T=x=>W_dec(x.replace(/<[^>]*>/g,'')).replace(/\s+/g,' ').trim();
-  const rb=(P,tag)=>new RegExp('<('+P+'):'+tag+'\\b((?:"[^"]*"|\'[^\']*\'|[^>"\'])*?)(?:/>|>([\\s\\S]*?)</\\1:'+tag+'>)','g');
+  const rb=(P,tag)=>new RegExp('<('+P+'):'+tag+'(?=[\\s/>])((?:"[^"]*"|\'[^\']*\'|[^>"\'])*?)(?:/>|>([\\s\\S]*?)(</\\1:'+tag+'\\s*>))','g');
   /* calls f(attrs, realInner, maskedInner) for every <prefix:tag> of a module inside the block r (real) / rm (masked, same length) */
   const each=(P,tag,r,rm,f)=>{if(!P)return;const re=rb(P,tag);let x;
-    while((x=re.exec(rm))){const im=x[3]===undefined?'':x[3],o=x[3]===undefined?0:x[0].length-im.length-('</'+x[1]+':'+tag+'>').length;f(x[2],r.slice(x.index+o,x.index+o+im.length),im)}};
+    while((x=re.exec(rm))){const im=x[3]===undefined?'':x[3],o=x[3]===undefined?0:x[0].length-im.length-x[4].length;f(x[2],r.slice(x.index+o,x.index+o+im.length),im)}};
   const mkRule=at=>{const g=n=>{const v=ga(at,n);return v==null?null:W_dec(v)};
-    return {pr:g('isPresent'),np:g('isNotPresent'),sw:g('startsWith'),ew:g('endsWith'),oc:Math.max(1,parseInt(g('occurs'),10)||1),
+    const ov=g('occurs'),oc=ov!==null&&/^\d+$/.test(ov)&&+ov>=1?+ov:null;
+    return {pr:g('isPresent'),np:g('isNotPresent'),sw:g('startsWith'),ew:g('endsWith'),oc,
       es:g('existsInSource')==='yes',cs:g('caseSensitive')!=='no',nm:g('normalization')||'nfc',dis:g('disabled')==='yes'}};
   /* file/group level: units are blanked so that only rules and profiles declared outside units are seen here */
-  const outer=(pV||pS)?mr.replace(/<((?:[\w.\-]+:)?)unit\b[\s\S]*?<\/\1unit>/g,x=>' '.repeat(x.length)):mr;
+  const outer=(pV||pS)?mr.replace(/<((?:[\w.\-]+:)?)unit\b[\s\S]*?<\/\1unit\s*>/g,x=>' '.repeat(x.length)):mr;
   /* translate / slr / val / profiles are inherited: <file>/<group> open/close events (plus rule and profile markers) are swept along with the units */
   const evs=[],reC=/<(\/?)(?:[\w.\-]+:)?(?:file|group)\b((?:"[^"]*"|'[^']*'|[^>"'])*)>/g;let ev;
   while((ev=reC.exec(outer)))evs.push({p:ev.index,c:!!ev[1],t:ev[2],sc:!ev[1]&&/\/\s*$/.test(ev[2])});
   if(pV){const rr=rb(pV,'rule');let x;while((x=rr.exec(outer)))evs.push({p:x.index,m:{rule:mkRule(x[2])}})}
-  if(pS){const rr=rb(pS,'profiles');let x;while((x=rr.exec(outer)))evs.push({p:x.index,m:{prof:{g:ga(x[2],'generalProfile'),s:ga(x[2],'storageProfile')}}})}
+  if(pS){const rr=rb(pS,'profiles');let x;while((x=rr.exec(outer)))evs.push({p:x.index,m:{prof:{g:ga(x[2],'generalProfile'),s:ga(x[2],'storageProfile'),ng:nrm(x[3],'general'),ns:nrm(x[3],'storage')}}})}
   if(pV||pS)evs.sort((x,y)=>x.p-y.p);
   /* everything the modules say about one unit */
   const mods=(b,bm,stg,fr)=>{
@@ -1175,7 +1551,7 @@ function W_parse2(txt,emit){
       if(!rv.length)return;rv.sort((x,y)=>x[0]<y[0]?-1:1);const l=rv[rv.length-1];
       ml.push('Revisions'+(ap?' ('+ap+')':'')+': '+rv.length+(l[0]||l[1]?', latest '+[l[0],l[1]].filter(Boolean).join(' '):''))});
     each(pV,'rule',b,bm,at=>ur.push(mkRule(at)));
-    each(pS,'profiles',b,bm,at=>{pf={g:ga(at,'generalProfile'),s:ga(at,'storageProfile')}});
+    each(pS,'profiles',b,bm,(at,r2)=>{pf={g:ga(at,'generalProfile'),s:ga(at,'storageProfile'),ng:nrm(r2,'general'),ns:nrm(r2,'storage')}});
     const f1=gaP(stg,pF,'fs'),f2=gaP(stg,pF,'subFs');
     if(f1||f2)ml.push('Format: '+[f1&&'fs='+f1,f2&&'subFs='+f2].filter(Boolean).join(' '));
     let sz=gaP(stg,pS,'sizeRestriction'),st=gaP(stg,pS,'storageRestriction');
@@ -1183,17 +1559,22 @@ function W_parse2(txt,emit){
       if(sz==null)sz=gaP(t,pS,'sizeRestriction');if(st==null)st=gaP(t,pS,'storageRestriction');if(!pf&&fr[j].pf)pf=fr[j].pf}
     const rl=[];fr.forEach(f=>f.rl.forEach(x=>rl.push(x)));ur.forEach(x=>rl.push(x));
     const vr=rl.filter(x=>!x.dis&&(x.pr||x.np||x.sw||x.ew));
-    /* slr: general profile xliff:codepoints (default) counts characters; storage profile xliff:utf8 (default) / utf16 / utf32 counts bytes. Custom profiles cannot be evaluated and are skipped */
-    const gp=pf&&pf.g,sp=pf&&pf.s,en=!sp?8:({'xliff:utf8':8,'xliff:utf16':16,'xliff:utf32':32})[sp]||0;
+    /* slr 4.6.2 / 4.6.4.2: with no generalProfile / storageProfile selected (the default is empty) restriction checking is disabled for that kind;
+       the standard general profile is xliff:codepoints, the standard storage profiles are xliff:utf8 / utf16 / utf32 (bytes). Custom profiles cannot be evaluated and are skipped. */
+    const gp=pf&&pf.g,sp=pf&&pf.s,en=sp?({'xliff:utf8':8,'xliff:utf16':16,'xliff:utf32':32})[sp]||0:0;
+    const rs=gp==='xliff:codepoints'?rng(sz):null,rb2=en?rng(st):null;
     return {ml,mt,gl,vr:vr.length?vr:null,
-      mx:sz!=null&&/^\d+$/.test(sz)&&(!gp||gp==='xliff:codepoints')?+sz:0,
-      mb:st!=null&&/^\d+$/.test(st)&&en?[+st,en]:null};
+      mx:rs?rs.mx:0,mn:rs?rs.mn:0,nfG:pf&&pf.ng||'none',
+      mb:rb2&&(rb2.mx||rb2.un&&rb2.mn)?[rb2.un?Infinity:rb2.mx,en]:null,mbMin:rb2?rb2.mn:0,nfS:pf&&pf.ns||'none'};
   };
   let ei=0;const fr=[];
+  const fst=[],reF=/<(?:[\w.\-]+:)?file(?=[\s>\/])/g;let fm;while((fm=reF.exec(mr)))fst.push(fm.index);
+  let fp=0;   /* unit ids are unique per <file>, not per document: remember the file of each unit */
   let m,k=0,total=0,buf=[];
   while((m=reU.exec(mr))){
-    const a=m.index,pf=m[1],e2=mr.indexOf('</'+pf+'unit>',a);
+    const a=m.index,pf=m[1],e2=endTag(mr,pf+'unit',a);
     if(e2<0)break;
+    while(fp<fst.length&&fst[fp]<a)fp++;
     while(ei<evs.length&&evs[ei].p<a){const x=evs[ei++];
       if(x.m){const f=fr[fr.length-1];if(f){if(x.m.rule)f.rl.push(x.m.rule);else f.pf=x.m.prof}}
       else if(x.c)fr.pop();else if(!x.sc)fr.push({t:x.t,rl:[],pf:null})}
@@ -1205,14 +1586,15 @@ function W_parse2(txt,emit){
       const full=b.slice(nm.index,nm.index+nm[0].length),tx=full.slice(nm[0].length-nm[2].length+1,full.lastIndexOf('</'));
       if(tx.trim())notes.push((ga(nm[1],'category')||'note')+': '+tx)}
     const sgs=[];let sg;reSg.lastIndex=0;
-    while((sg=reSg.exec(bm))){const sa=sg.index,se=bm.indexOf('</'+sg[1]+'segment>',sa);if(se<0)break;sgs.push([sa,se,sg[0]]);reSg.lastIndex=se}
+    while((sg=reSg.exec(bm))){const sa=sg.index,se=endTag(bm,sg[1]+'segment',sa);if(se<0)break;sgs.push([sa,se,sg[0]]);reSg.lastIndex=se}
     const uid=W_dec(ga(stg,'id')||''),nme=ga(stg,'name')||'',many=sgs.length>1,ids=sgs.map((s,i)=>ga(s[2],'id')||String(i+1));
     const R=hasM?mods(b,bm,stg,fr):null;
+    const g0=k;
     sgs.forEach(([sa,se,tag],i)=>{
       const idx=k++,body=b.slice(sa,se),bodyM=bm.slice(sa,se),s1=rSrc.exec(bodyM);
       if(!s1)return;   /* counted in idx, but nothing to translate */
       const sid=ids[i],st=ga(tag,'state')||'initial';
-      const u={idx,id:many?uid+'#'+sid:uid,rs:grabTagM(body,bodyM,'source'),rt:grabTagM(body,bodyM,'target'),is12:false,v2:true,ntr:many,
+      const u={idx,id:many?uid+'#'+sid:uid,rs:grabTagM(body,bodyM,'source'),rt:grabTagM(body,bodyM,'target'),is12:false,v2:true,gk:many?g0:undefined,gn:many?sgs.length:undefined,fi:Math.max(fp-1,0),
         rn:many&&nme?nme+'#'+sid:nme,oAp:st==='final',oTr:(ga(stg,'translate')||inh)==='no'?'no':'yes',
         ctx:notes.slice(),labels:[],max:0,ct:''};
       if(R){
@@ -1220,9 +1602,13 @@ function W_parse2(txt,emit){
         u.ctx=u.ctx.concat(R.ml,R.mt.filter(x=>!x.rf||!ids.includes(x.rf)||x.rf===sid).slice(0,5).map(x=>x.l));
         if(R.gl.length)u.gl=R.gl;
         if(R.vr)u.vr=R.vr;
-        if(R.mx){u.max=R.mx;u.slr=1}
-        if(R.mb)u.mb=R.mb;
+        if(R.mx||R.mn){u.max=R.mx;u.mn=R.mn;u.slr=1;u.nfG=R.nfG}
+        if(R.mb){u.mb=R.mb;u.mbMin=R.mbMin;u.nfS=R.nfS}
       }
+      /* PGS module: the unit says what selects the variant (plural:count gender:host), each segment which value it is for (one, 1 feminine, ...) */
+      if(pP){const sw=W_dec(gaP(stg,pP,'switch')||'').trim(),cs=W_dec(gaP(tag,pP,'case')||'').trim();
+        if(sw||cs){const it=sw.split(/\s+/).filter(Boolean),vl=cs.split(/\s+/).filter(Boolean);
+          u.ctx.push('Variant: '+(it.length&&it.length===vl.length?it.map((x,j)=>x.replace(':',' ')+' = '+vl[j]).join(', '):'switch="'+sw+'" case="'+cs+'"'))}}
       u.ct=ctxLines(u).join('\n');
       buf.push(u);total++;
       if(buf.length>=3000){emit(buf);buf=[]}
@@ -1240,18 +1626,22 @@ function W_trans(txt){
   if(W_root(txt)==='resources'){
     parseStrings(txt).forEach(x=>{if(x.rs.trim())mp.set(ckey(x),x.rs)});
   }else{
-    const mr=maskRaw(txt),re=/<((?:[\w.\-]+:)?(?:trans-unit|unit))\b[\s\S]*?<\/\1>/g,reSg=/<((?:[\w.\-]+:)?)segment\b(?:"[^"]*"|'[^']*'|[^>"'])*>/g,
-      rAlt=/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans>/g;
+    const mr=maskRaw(txt),fre=/<(?:[\w.\-]+:)?file(?=[\s>\/])/g,fst=[];let fm;while((fm=fre.exec(mr)))fst.push(fm.index);
+    let fp=0;   /* file index of the unit (ids are unique per <file>, not per document) */
+    const re=/<((?:[\w.\-]+:)?(?:trans-unit|unit))(?=[\s>\/])[\s\S]*?<\/\1\s*>/g,reSg=/<((?:[\w.\-]+:)?)segment\b(?:"[^"]*"|'[^']*'|[^>"'])*>/g,
+      rAlt=/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans\s*>/g;
     let m;
     while((m=re.exec(mr))){
       const bm=m[0],b=txt.slice(m.index,m.index+bm.length),st=START.exec(b),tg=st?st[0]:'';
-      const kn=ga(tg,'resname')||ga(tg,'name'),id=W_dec(ga(tg,'id')||''),k=kn||id;
-      if(/(?:^|:)unit$/.test(m[1])){
+      const isU=/(?:^|:)unit$/.test(m[1]),kn=ga(tg,'resname')||(isU?ga(tg,'name'):'')||'',id=W_dec(ga(tg,'id')||''),k0=kn||id;
+      while(fp<fst.length&&fst[fp]<m.index)fp++;
+      const fk=b=>fst.length>1&&b?b+'\u0001'+Math.max(fp-1,0):b,k=fk(k0);   /* ids are unique per <file> in XLIFF 1.2 and 2.x */
+      if(isU){
         /* XLIFF 2.x: one entry per <segment>; a unit with several segments is keyed name#segmentId (as when it is opened) */
         const sgs=[];let sg;reSg.lastIndex=0;
-        while((sg=reSg.exec(bm))){const sa=sg.index,se=bm.indexOf('</'+sg[1]+'segment>',sa);if(se<0)break;sgs.push([sg[0],sa,se]);reSg.lastIndex=se}
+        while((sg=reSg.exec(bm))){const sa=sg.index,se=endTag(bm,sg[1]+'segment',sa);if(se<0)break;sgs.push([sg[0],sa,se]);reSg.lastIndex=se}
         sgs.forEach(([t,sa,se],i)=>{
-          const v=grabTagM(b.slice(sa,se),bm.slice(sa,se),'target'),key=sgs.length>1?(kn||id)+'#'+(ga(t,'id')||String(i+1)):k;
+          const v=grabTagM(b.slice(sa,se),bm.slice(sa,se),'target'),key=sgs.length>1?fk((kn||id)+'#'+(ga(t,'id')||String(i+1))):k;
           if(key&&v.trim()&&!mp.has(key))mp.set(key,v);
         });
       }else{
@@ -1295,10 +1685,10 @@ function W_query(U,LC,p){
         case 'mod':return d&&(d.v!==undefined||d.a!==undefined||d.r!==undefined)?0:1;
         case 'cb':return d&&d.c?0:1;
         case 'unap':return (u.is12||u.v2)&&!ap?0:1;
-        case 'hid':return (u.is12||(u.v2&&!u.ntr))&&tr==='no'?0:1;
+        case 'hid':return (u.is12||u.v2)&&tr==='no'?0:1;
         case 'untr':return c.trim()===''?0:1;
         case 'same':return c!==''&&c===u.rs?0:1;
-        case 'over':return u.max&&(u.slr?txtlen(c):clen(c))>u.max?0:1;
+        case 'over':return u.max&&(u.slr?txtlen(c,u.nfG):clen(c))>u.max?0:1;
         case 'lsrc':return -clen(u.rs);
         case 'ssrc':return clen(u.rs);
         case 'ltgt':return -clen(c);
@@ -1336,7 +1726,7 @@ function W_main(){
 }
 const workerSrc=()=>[
   'const ga='+ga,'const START='+START,'const maskRaw='+maskRaw,'const clen='+clen,'const ctxLines='+ctxLines,
-  'const ckey='+ckey,'const grabTag='+grabTag,'const grabTagM='+grabTagM,'const W_dec='+W_dec,'const txtlen='+txtlen,
+  'const ckey='+ckey,'const grabTag='+grabTag,'const grabTagM='+grabTagM,'const endTag='+endTag,'const W_dec='+W_dec,'const txtOf='+txtOf,'const txtlen='+txtlen,
   parseStrings,W_root,W_parse,W_parse2,W_trans,W_query,
   'const XNAME='+JSON.stringify(XNAME),'const NAME_RX='+NAME_RX,'const CLOSE_RX='+CLOSE_RX,'const ATTR_RX='+ATTR_RX,'const validCP='+validCP,
   checkXml,'('+W_main+')()'
@@ -1486,7 +1876,11 @@ function render(top){
   const nc=!!doc&&mode==='xliff'&&!crowdin&&!v2;document.body.classList.toggle('nc',nc);
   if(!doc){
     vsOff();L.classList.remove('wait');shown=[];vsCap=0;RES=RK=null;
-    L.innerHTML='<div id="empty">Tap the folder icon to open a .xlf / .xliff or strings.xml file</div>';pages=1;page=0;upd();return;
+    L.innerHTML='<div id="empty"><div class="tip">Tip 1: Tap the menu icon '+ic('menu')+' at the top right, then choose <b>Open file</b> to open an .xlf / .xliff or strings.xml file</div><div class="tip">Tip 2: Visit the project repository on GitHub for the source code, updates and to report issues<br><button id="repo" type="button" class="p">Open repository</button></div></div>';
+    $('repo').onclick=()=>{const u='https://github.com/HoangDeXiong01/Android-Localization',P=window.Capacitor&&window.Capacitor.Plugins;
+      try{if(P&&P.Browser){P.Browser.open({url:u});return}if(P&&P.App&&P.App.openUrl){P.App.openUrl({url:u});return}}catch(e){}
+      window.open(u,'_blank','noopener')};
+    pages=1;page=0;upd();return;
   }
   const qs=$('q').value,sk=$('so').value;let bad=false,re=null;
   if(RX&&qs){try{re=new RegExp(qs,'i')}catch(e){bad=true}}
@@ -1524,6 +1918,12 @@ function paintList(f,bad,top){
   const L=$('list');
   pages=size>0?Math.max(1,Math.ceil(f.length/size)):1;
   if(page>=pages)page=pages-1;
+  let mki=-1;
+  if(MKJ){MKJ=false;
+    const i=MARK?f.findIndex(u=>MARK.has(u)):-1;
+    if(i<0&&MARK&&$('q').value){$('q').value='';MKJ=true;render(1);return}   /* the search hides them: clear it */
+    if(i>=0){mki=i;if(size>0)page=Math.floor(i/size)}
+  }
   const msg='<div id="empty">'+(bad?'Invalid regular expression':'No matches')+'</div>';
   vsCap=0;
   if(size>0){
@@ -1538,12 +1938,17 @@ function paintList(f,bad,top){
     if(!f.length){vsOff();L.innerHTML=msg}
     else vsOn(f,top);
   }
+  if(mki>=0){
+    if(size>0)requestAnimationFrame(()=>{const e=document.querySelector('#list .u.mk');if(e)e.scrollIntoView({block:'center'})});
+    else if(VS.on&&mki<VS.items.length)scrollTo(0,Math.max(0,vsListTop()+VS.off[mki]-120));
+  }
   qaScan();upd();
 }
 function upd(quiet){
   if(!quiet)sessDirty();
   $('fn').textContent=doc?name:'No file';
-  $('imp').hidden=!doc;
+  $('imp').hidden=!doc;$('save').disabled=!doc;$('close').disabled=!doc;
+  {const x=!!doc&&mode==='xliff';$('sv2').hidden=!x;$('save').querySelector('span').textContent=x?'Save as XLIFF (.xlf)':'Save'}   /* an XLIFF can be saved as XLIFF or exported as strings.xml: both are offered in the menu */
   let ne=0,nsel=0,ncb=0,nd=0;
   if(doc){const sm=mode==='strings';
     for(let i=0;i<units.length;i++){const x=units[i];
@@ -1551,7 +1956,8 @@ function upd(quiet){
       if(x.sel)nsel++;if(x.cb&&x.cb.length)ncb++;
       if(sm&&cur(x).trim())nd++}}
   const nqa=doc?qaN:0;
-  $('info').textContent=!doc?'':(mode==='strings'?`${nd} / ${units.length} done`:(v2?'XLIFF 2.0 \u00b7 ':'')+`${ne} edited / ${units.length}`)+(nqa?` \u00b7 ${nqa}${qaBusy?'+':''} QA issues`:'')+(vsCap?` \u00b7 first ${vsCap.toLocaleString()} shown`:'');
+  $('info').textContent=!doc?'':(mode==='strings'?`${nd} / ${units.length} done`:(v2?'XLIFF 2 \u00b7 ':'')+`${ne} edited / ${units.length}`)+(nqa?` \u00b7 ${nqa}${qaBusy?'+':''} QA issues`:'')+(vsCap?` \u00b7 first ${vsCap.toLocaleString()} shown`:'');
+  $('mkb').hidden=!(doc&&MARK);
   $('selc').textContent=nsel+' selected';$('selc').hidden=!doc||!nsel;
   $('bulk').disabled=!nsel;
   const sc=shown.filter(x=>x.sel).length;
@@ -1569,7 +1975,7 @@ function upd(quiet){
 const lc=c=>{if(!c||c==='auto')return c;const l=c.toLowerCase();
   if(l.startsWith('zh'))return /tw|hk|hant/.test(l)?'zh-TW':'zh-CN';return l.split(/[-_]/)[0]};
 function langs(){
-  const ft=/<(?:[\w.\-]+:)?file\b[^>]*>/.exec(raw),xt=/<(?:[\w.\-]+:)?xliff\b[^>]*>/.exec(raw);
+  const ft=/<(?:[\w.\-]+:)?file\b(?:"[^"]*"|'[^']*'|[^>"'])*>/.exec(raw),xt=/<(?:[\w.\-]+:)?xliff\b(?:"[^"]*"|'[^']*'|[^>"'])*>/.exec(raw);
   const g=(t,n)=>t?ga(t[0],n):null,fx=s=>String(s||'').trim().replace(/_/g,'-');
   const sr=fx(g(ft,'source-language')||g(xt,'srcLang')),tr=fx(g(ft,'target-language')||g(xt,'trgLang'));
   /* sl / tl: the language only (free engines); slr / tlr: the full code with region or script, e.g. fr-CA, sr-Latn (AI engines) */
@@ -1609,10 +2015,10 @@ function mtPrompt(src,u,sl,tl){
   const info=['Key: '+(mode==='strings'?u.id:(u.rn||u.id))];
   if(u.kind==='p')info.push('Plural quantity: '+u.sub);
   if(u.kind==='a')info.push('Array item index: '+u.sub);
-  if((crowdin||v2)&&ctxLines(u).length)info.push('Context: '+ctxLines(u).join('; '));
+  if((crowdin||v2||mode==='strings')&&ctxLines(u).length)info.push('Context: '+ctxLines(u).join('; '));
   if(u.labels&&u.labels.length)info.push('Label: '+u.labels.join(', '));
-  if(u.max)info.push('Maximum length of the translation: '+u.max+' characters (hard limit)');
-  if(u.mb)info.push('Storage limit of the translation: '+u.mb[0]+' bytes in UTF-'+u.mb[1]+' (hard limit)');
+  if(u.max||u.mn)info.push((u.max?'Maximum':'Minimum')+' length of the translation: '+(u.max?(u.mn?u.mn+' to ':'')+u.max:u.mn)+' characters (hard limit)');
+  if(u.mb)info.push('Storage limit of the translation: '+(u.mbMin?u.mbMin+' to ':'')+(u.mb[0]===Infinity?'no maximum':u.mb[0])+' bytes in UTF-'+u.mb[1]+' (hard limit)');
   if(u.gl&&u.gl.length)info.push('Glossary of this unit (use exactly these translations):\n'+u.gl.map(g=>'- '+g.s+' => '+(g.t.join(' / ')||'(keep)')).join('\n'));
   if(u.vr&&u.vr.length)info.push('The translation must satisfy these rules: '+u.vr.map(r=>[r.pr&&'contain "'+r.pr+'"',r.np&&'not contain "'+r.np+'"',r.sw&&'start with "'+r.sw+'"',r.ew&&'end with "'+r.ew+'"'].filter(Boolean).join(', ')).join('; '));
   const gh=glossHits(src).slice(0,40);
@@ -1900,7 +2306,7 @@ async function exportStrings(){
   if(badName.length)lines.push('Skipped (resname missing or not a valid Android name): '+badName.length);
   if(dup)lines.push('Skipped (duplicate resname): '+dup);
   if(badXml.length)lines.push('Skipped (invalid XML in translation): '+badXml.length);
-  if(v2tags)lines.push('Skipped (contains XLIFF 2.0 inline codes): '+v2tags);
+  if(v2tags)lines.push('Skipped (contains XLIFF 2 inline codes): '+v2tags);
   if(tags)lines.push('Inline XLIFF tags flattened to text: '+tags);
   if(quoted)lines.push('Quotes escaped for Android (\\\' and \\\"): '+quoted);
   if(kept)lines.push('Kept in their XLIFF form (not valid after decoding): '+kept);
@@ -1918,28 +2324,18 @@ async function exportStrings(){
   const tl=(tlNow()||'').trim();
   await shareFile(tl?'strings-'+tl+'.xml':'strings.xml',out);
 }
-function askFormat(){
-  return new Promise(res=>{
-    const b=document.querySelectorAll('#sf .mi');
-    b[0].innerHTML=ic('save')+'<span>XLIFF (.xlf)</span>';
-    b[1].innerHTML=ic('save')+'<span>strings.xml (Android)</span>';
-    const done=v=>{$('sf').hidden=true;res(v)};
-    b.forEach(x=>x.onclick=()=>done(x.dataset.f));$('sf-c').onclick=()=>done(null);
-    $('sf').hidden=false;
-  });
-}
 /* XLIFF 2.x: edits the matching <segment> (target + state) and <unit translate=...> in place */
 function buildXlf2(){
   const mr=maskRaw(raw),reU=/<((?:[\w.\-]+:)?)unit\b/g,reSg=/<((?:[\w.\-]+:)?)segment\b(?:"[^"]*"|'[^']*'|[^>"'])*>/g;
-  const want=new Map(units.filter(changed).map(u=>[u.idx,u])),ops=[];
+  const want=new Map(units.filter(changed).map(u=>[u.idx,u])),ops=[],trDone=new Set();   /* trDone: translate is written once per <unit>, not once per segment */
   const rTag=/^<(?:[\w.\-]+:)?segment\b(?:"[^"]*"|'[^']*'|[^>"'])*>/;
-  const tre=/<((?:[\w.\-]+:)?)target\b([^>]*?)\s*(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?target>)/;
-  const sre=/([ \t]*)<((?:[\w.\-]+:)?)source\b[^>]*?(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?source>)/;
+  const tre=/<((?:[\w.\-]+:)?)target(?=[\s\/>])((?:"[^"]*"|'[^']*'|[^>"'])*?)\s*(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?target\s*>)/;
+  const sre=/([ \t]*)<((?:[\w.\-]+:)?)source(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*?(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?source\s*>)/;
   let m,k=0;
   while((m=reU.exec(mr))){
-    const a=m.index,pf=m[1],e2=mr.indexOf('</'+pf+'unit>',a);if(e2<0)break;
+    const a=m.index,pf=m[1],e2=endTag(mr,pf+'unit',a);if(e2<0)break;
     const bm=mr.slice(a,e2),sgs=[];let sg;reSg.lastIndex=0;
-    while((sg=reSg.exec(bm))){const sa=sg.index,se=bm.indexOf('</'+sg[1]+'segment>',sa);if(se<0)break;sgs.push([sa,se]);reSg.lastIndex=se}
+    while((sg=reSg.exec(bm))){const sa=sg.index,se=endTag(bm,sg[1]+'segment',sa);if(se<0)break;sgs.push([sa,se]);reSg.lastIndex=se}
     for(const [sa,se] of sgs){
       const u=want.get(k++);if(!u)continue;
       let blk=raw.slice(a+sa,a+se);
@@ -1950,11 +2346,11 @@ function buildXlf2(){
         else{const sm=sre.exec(bk);if(sm){const z=sm.index+sm[0].length;blk=blk.slice(0,z)+'\n'+sm[1]+'<'+sm[2]+'target>'+u.val+'</'+sm[2]+'target>'+blk.slice(z)}}
       }
       const tg=rTag.exec(blk),st=(tg&&ga(tg[0],'state'))||'initial';let ns=null;
-      if(u.ap!==undefined)ns=u.ap?'final':(cur(u).trim()?'translated':'initial');
+      if(u.ap!==undefined)ns=cur(u).trim()?(u.ap?'final':'translated'):'initial';   /* Core 3.3.1.31: a segment without a <target> must stay state="initial", so an empty translation is never final */
       else if(u.val!==undefined)ns=cur(u).trim()?'translated':'initial';   /* text changed without an explicit approve: the old state (e.g. final) no longer applies */
-      if(ns&&ns!==st)blk=blk.replace(rTag,t=>setAttr(t,'state',ns).replace(/\ssubState=(?:"[^"]*"|'[^']*')/,''));
+      if(ns&&ns!==st)blk=blk.replace(rTag,t=>setAttr(t,'state',ns).replace(/\ssubState\s*=\s*(?:"[^"]*"|'[^']*')/,''));
       ops.push({s:a+sa,e:a+se,t:blk});
-      if(u.tr!==undefined&&!u.ntr){const sm=START.exec(raw.slice(a,e2));if(sm)ops.push({s:a,e:a+sm[0].length,t:setAttr(sm[0],'translate',u.tr)})}
+      if(u.tr!==undefined&&!trDone.has(a)){trDone.add(a);const sm=START.exec(raw.slice(a,e2));if(sm)ops.push({s:a,e:a+sm[0].length,t:setAttr(sm[0],'translate',u.tr)})}
     }
   }
   /* ascending order + one join: replacing in a growing string per edit was quadratic (14 s for 15,000 edits) */
@@ -1963,30 +2359,51 @@ function buildXlf2(){
   parts.push(raw.slice(pos));return parts.join('');
 }
 /* XLIFF 1.2: edits the matching <trans-unit> in place */
-/* XLIFF 1.2: the state of an edited <target> follows its text: translated text is no longer "needs-translation", a cleared one is no longer "translated" */
-function trState(a,txt){
-  const s=ga(a,'state');if(s===null)return a;
-  const need=/^(?:new|needs-[\w-]+)$/.test(s),has=txt.trim()!=='';
-  return has&&need?setAttr(a,'state','translated'):!has&&!need?setAttr(a,'state','needs-translation'):a;
+/* XLIFF 1.2: the state of an edited <target> follows its text: translated text is no longer "needs-translation", a cleared one is no longer "translated",
+   and a final / signed-off one is no longer final unless the unit is (still) approved (keep). state-qualifier says how the old text came to be (exact-match,
+   mt-suggestion, rejected-spelling...), which no longer holds for new text, so it is dropped. */
+function trState(a,txt,keep){
+  a=a.replace(/\sstate-qualifier\s*=\s*(?:"(?!x-)[^"]*"|'(?!x-)[^']*')/,'');   /* predefined qualifiers describe the old text; x- ones are not ours to judge */
+  const s=ga(a,'state');if(s===null||/^x-/.test(s))return a;
+  if(txt.trim()!==''){
+    /* translated / needs-l10n / needs-adaptation / needs-review-* are still true after a text change; only "no text yet" and "reviewed" states are overtaken */
+    return s==='new'||s==='needs-translation'||((s==='final'||s==='signed-off')&&!keep)?setAttr(a,'state','translated'):a;
+  }
+  return /^(?:new|needs-translation|needs-l10n)$/.test(s)?a:setAttr(a,'state','needs-translation');
+}
+/* XLIFF 1.2 Segmentation: when <seg-source> holds exactly one <mrk mtype="seg">, the target must hold the matching one (same mid) */
+function segWrap(mk,val,pfx){
+  if(!val.trim()||/mtype\s*=\s*["']seg["']/.test(val))return val;
+  const gs=/<((?:[\w.\-]+:)?)seg-source(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*?>([\s\S]*?)<\/\1seg-source\s*>/.exec(mk);if(!gs)return val;
+  const ms=[...gs[2].matchAll(/<(?:[\w.\-]+:)?mrk(?=[\s>])((?:"[^"]*"|'[^']*'|[^>"'])*)>/g)].filter(x=>/mtype\s*=\s*["']seg["']/.test(x[1]));
+  if(ms.length!==1)return val;
+  const mid=ga(ms[0][1],'mid');
+  return '<'+pfx+'mrk mtype="seg"'+(mid!==null?' mid="'+mid+'"':'')+'>'+val+'</'+pfx+'mrk>';
 }
 function buildXlf12(){
-  const starts=[];const re=/<((?:[\w.\-]+:)?)(trans-unit|unit)\b/g;let m;
+  const starts=[];const re=/<((?:[\w.\-]+:)?)(trans-unit|unit)(?=[\s>\/])/g;let m;
   const mr=maskRaw(raw);while((m=re.exec(mr)))starts.push([m.index,m[1]+m[2]]);
   const ed=units.filter(changed).sort((x,y)=>x.idx-y.idx),parts=[];let pos=0;
   for(const u of ed){
     const sx=starts[u.idx];if(!sx)continue;
     const [st,tag]=sx;
-    let en=mr.indexOf('</'+tag+'>',st);if(en<0)continue;
+    let en=endTag(mr,tag,st);if(en<0)continue;
     let blk=raw.slice(st,en);
     if(u.val!==undefined){
-    const tre=/<((?:[\w.\-]+:)?)target\b([^>]*?)\s*(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?target>)/;
-    const mk=mr.slice(st,en).replace(/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans>/g,x=>' '.repeat(x.length)),tm=tre.exec(mk);
+    const tre=/<((?:[\w.\-]+:)?)target(?=[\s\/>])((?:"[^"]*"|'[^']*'|[^>"'])*?)\s*(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?target\s*>)/;
+    const mk=mr.slice(st,en).replace(/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans\s*>/g,x=>' '.repeat(x.length)),tm=tre.exec(mk);
     if(tm){
-      blk=blk.slice(0,tm.index)+'<'+tm[1]+'target'+trState(tm[2],u.val)+'>'+u.val+'</'+tm[1]+'target>'+blk.slice(tm.index+tm[0].length);
+      blk=blk.slice(0,tm.index)+'<'+tm[1]+'target'+trState(tm[2],u.val,u.ap!==undefined?u.ap:u.oAp)+'>'+segWrap(mk,u.val,tm[1])+'</'+tm[1]+'target>'+blk.slice(tm.index+tm[0].length);
     }else{
-      const sm=/([ \t]*)<((?:[\w.\-]+:)?)source\b[^>]*?(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?source>)/.exec(mk);
-      if(sm){const z=sm.index+sm[0].length;blk=blk.slice(0,z)+'\n'+sm[1]+'<'+sm[2]+'target>'+u.val+'</'+sm[2]+'target>'+blk.slice(z)}
+      const sm=/([ \t]*)<((?:[\w.\-]+:)?)source(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*?(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?source\s*>)/.exec(mk);
+      /* <trans-unit> content model: source, seg-source?, target?, ... so a new target goes after the seg-source when there is one */
+      const gm=/([ \t]*)<((?:[\w.\-]+:)?)seg-source(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*?(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?seg-source\s*>)/.exec(mk),at=gm&&sm&&gm.index>=sm.index?gm:sm;
+      if(at){const z=at.index+at[0].length;blk=blk.slice(0,z)+'\n'+at[1]+'<'+at[2]+'target>'+segWrap(mk,u.val,at[2])+'</'+at[2]+'target>'+blk.slice(z)}
     }}
+    if(u.val===undefined&&u.ap===false){   /* approval withdrawn without a text change: the target is no longer final */
+      const mk2=mr.slice(st,en).replace(/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans\s*>/g,x=>' '.repeat(x.length)),
+        t2=/<(?:[\w.\-]+:)?target(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*>/.exec(mk2);
+      if(t2&&/\sstate\s*=\s*["'](?:final|signed-off)["']/.test(t2[0]))blk=blk.slice(0,t2.index)+setAttr(blk.slice(t2.index,t2.index+t2[0].length),'state','translated')+blk.slice(t2.index+t2[0].length)}
     blk=blk.replace(START,t=>{
       if(u.ap!==undefined)t=setAttr(t,'approved',u.ap?'yes':'no');
       if(u.tr!==undefined)t=setAttr(t,'translate',u.tr);
@@ -1995,9 +2412,66 @@ function buildXlf12(){
   }
   parts.push(raw.slice(pos));return parts.join('');
 }
+/* XLIFF 2.x Core 3.2.2.1: trgLang is REQUIRED if and only if the document contains <target> children of <segment> or <ignorable>.
+   Takes the text about to be saved and its parsed DOM. Returns it with trgLang added when that is needed but missing, unchanged when nothing
+   is needed, or null when the user cancels. An existing trgLang is never changed. The language is the one the targets already declare with
+   xml:lang (if they all agree), else the one picked in the selector, confirmed once per opened file. */
+const XML_NS='http://www.w3.org/XML/1998/namespace';
+function withTrgLang(out,d){
+  const root=d.documentElement;
+  if(!root||root.localName!=='xliff'||(root.getAttribute('trgLang')||'').trim())return out;
+  let any=false;const own=new Set();
+  for(const t of d.getElementsByTagNameNS('*','target')){
+    const p=t.parentNode&&t.parentNode.localName;
+    if((p!=='segment'&&p!=='ignorable')||!/^urn:oasis:names:tc:xliff:document:2\./.test(t.namespaceURI||''))continue;
+    any=true;const l=t.getAttributeNS(XML_NS,'lang');if(l)own.add(l);
+  }
+  if(!any)return out;
+  const code=own.size===1?[...own][0]:$('tl').value;
+  if(!/^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[xXiI](?:-[A-Za-z0-9]{1,8})+)$/.test(code)){alert('Not saved: XLIFF 2 needs a trgLang (target language) and "'+code+'" is not a valid language code.');return null}
+  if(doc.trgOk!==code&&!confirm('This XLIFF 2 file does not name its target language, but it now contains translations, and XLIFF 2 requires trgLang in that case.\n\nSave with trgLang="'+code+'"?\n\nCancel to choose another language in the selector first.'+(/\s[\w.\-]+:localeFilterList\s*=/.test(maskRaw(out))?'\n\nNote: this file has ITS locale filters (localeFilterList), which depend on the target language. This app cannot re-evaluate them, so check them after setting the language.':'')))return null;
+  doc.trgOk=code;
+  const m=/<(?:[\w.\-]+:)?xliff\b(?:"[^"]*"|'[^']*'|[^>"'])*>/.exec(maskRaw(out));
+  if(!m)return out;
+  const e=m.index+m[0].length;
+  return out.slice(0,m.index)+setAttr(out.slice(m.index,e),'trgLang',code)+out.slice(e);
+}
+/* XLIFF 1.2: the language of the <target> elements of a <file> is given by its target-language attribute or by xml:lang on each <target>.
+   Neither is mandatory, but a translation of unknown language is of little use, so when this session wrote target text into a <file> that names no
+   language, target-language is offered: the language all its targets already declare with xml:lang (if they agree), else the one picked in the
+   selector. OK adds it to the file, Cancel saves without it; asked once per language for an opened file. An existing value is never changed. */
+function withTgtLang(out,d){
+  if(!units.some(u=>u.is12&&u.val!==undefined))return out;
+  const files=[...d.getElementsByTagNameNS('*','file')],todo=[];
+  files.forEach((f,i)=>{
+    if((f.getAttribute('target-language')||'').trim())return;
+    let bare=false;const own=new Set();
+    for(const tu of f.getElementsByTagNameNS('*','trans-unit'))for(const c of tu.childNodes)if(c.nodeType===1&&c.localName==='target'){const l=c.getAttributeNS(XML_NS,'lang');if(l)own.add(l);else bare=true}
+    if(bare)todo.push([i,own.size===1?[...own][0]:$('tl').value]);
+  });
+  const ok=todo.filter(x=>/^(?:[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[xXiI](?:-[A-Za-z0-9]{1,8})+)$/.test(x[1]));
+  if(!ok.length)return out;
+  doc.tgtAns=doc.tgtAns||{};const use=new Set();
+  for(const c of new Set(ok.map(x=>x[1]))){
+    if(doc.tgtAns[c]===undefined)doc.tgtAns[c]=confirm('This XLIFF 1.2 file does not say which language its translations are in (no target-language on <file>, no xml:lang on its <target> elements).\n\nAdd target-language="'+c+'" to the file?\n\nOK adds it. Cancel saves without it.');
+    if(doc.tgtAns[c])use.add(c);
+  }
+  const sel=ok.filter(x=>use.has(x[1]));
+  if(!sel.length)return out;
+  const tags=[],mo=maskRaw(out),re=/<(?:[\w.\-]+:)?file\b(?:"[^"]*"|'[^']*'|[^>"'])*>/g;let m;
+  while((m=re.exec(mo)))tags.push([m.index,m[0].length]);
+  if(tags.length!==files.length)return out;
+  let res=out;
+  for(const [i,c] of sel.slice().reverse()){const [p,l]=tags[i];res=res.slice(0,p)+setAttr(out.slice(p,p+l),'target-language',c)+res.slice(p+l)}
+  return res;
+}
+$('sv2').onclick=async()=>{if(!doc||mode!=='xliff'){alert('No XLIFF file open');return}await exportStrings()};
 $('save').onclick=async()=>{
   if(!doc){alert('No file open');return}
-  if(mode==='xliff'){const f=await askFormat();if(!f)return;if(f==='strings'){await exportStrings();return}}
+  if(v2&&CFG.qa.ic){   /* Core 3.7.7: a target written by this app must keep the editing hints of its inline codes */
+    const bad=units.filter(u=>u.v2&&u.val!==undefined&&(u.tr!==undefined?u.tr:u.oTr)!=='no'&&cur(u).trim()&&inlineViol(u,cur(u)).length);
+    if(bad.length&&!confirm(bad.length+' segment(s) you edited break XLIFF 2 rules for inline codes, e.g. '+bad[0].id+': '+inlineViol(bad[0],cur(bad[0]))[0]+'\n\nThe standard does not allow such a translation. Save anyway?'))return;
+  }
   let out,outName=name;
   if(mode==='strings'){out=buildStrings();outName='strings-'+$('tl').value+'.xml'}
   else if(v2){out=buildXlf2()}
@@ -2006,11 +2480,13 @@ $('save').onclick=async()=>{
   }
   const chk=new DOMParser().parseFromString(out,'application/xml');
   if(chk.querySelector('parsererror')){alert('Your edits make the XML invalid (e.g. a bare & or < instead of &amp; / &lt;). Not saved.');return}
-  await shareFile(outName,out);
+  if(v2&&mode==='xliff'){out=withTrgLang(out,chk);if(out===null)return}
+  else if(mode==='xliff')out=withTgtLang(out,chk);
+  await shareFile(outName,utf8Decl(out));   /* we always write UTF-8, so the XML declaration must say so */
 };
 [['q','Search'],['sz','Units per page'],['sa','Select all shown'],['tl','Target language'],['so','Sort order']].forEach(([i,t])=>$(i).setAttribute('aria-label',t));
 document.querySelectorAll('.dlg').forEach(d=>{d.setAttribute('role','dialog');d.setAttribute('aria-modal','true')});
-document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const [d,b] of [['cm','cm-c'],['gm','gm-c'],['sf','sf-c'],['ip','ip-c'],['rp','rp-c'],['bm','bclose'],['cfg','c-cancel']])if(!$(d).hidden){e.preventDefault();$(b).click();return}});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const [d,b] of [['mn','mn-x'],['ms','ms-c'],['cm','cm-c'],['gm','gm-c'],['ip','ip-c'],['rp','rp-c'],['bm','bclose'],['cfg','c-cancel']])if(!$(d).hidden){e.preventDefault();$(b).click();return}});
 addEventListener('beforeunload',e=>{if(doc&&edited()){e.preventDefault();e.returnValue=''}});
 sessCheck();
 let lastW=innerWidth,rz;addEventListener('resize',()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(rz);rz=setTimeout(()=>{if(VS.on)vsResize();else fitAll([...document.querySelectorAll('#list .u')])},150)});
