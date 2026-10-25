@@ -641,7 +641,7 @@ function parseStrings(txt){
   const t=txt.replace(/<!\[CDATA\[[\s\S]*?\]\]>|<!--[\s\S]*?-->/g,(x,off)=>{if(!x.startsWith('<!--'))return x;cms.push([off-gone,x.slice(4,-3)]);gone+=x.length;return ''}),tm=maskRaw(t);
   /* the comments that sit directly before position s (only whitespace between them) */
   const cmBefore=s=>{
-    let j=cms.length-1;while(j>=0&&cms[j][0]>s)j--;
+    let lo=0,hi=cms.length;while(lo<hi){const md=(lo+hi)>>1;if(cms[md][0]>s)hi=md;else lo=md+1}let j=lo-1;   /* binary search: a linear walk from the end made big files quadratic */
     const out=[];let end=s;
     for(;j>=0;j--){
       if(t.slice(cms[j][0],end).trim()!=='')break;
@@ -720,9 +720,12 @@ function patchStrings(){
     }
   }
   if(k!==units.length)return null;
-  let out=raw;
-  ed.sort((a,b)=>b[0]-a[0]).forEach(([a,b,t])=>{out=out.slice(0,a)+t+out.slice(b)});
-  return out;
+  /* edits were collected in document order and never overlap: join the pieces once (repeated slicing of a big file is quadratic) */
+  if(!ed.length)return raw;
+  const parts=[];let pos=0;
+  for(const [a,b,t] of ed){if(a<pos)return null;parts.push(raw.slice(pos,a),t);pos=b}
+  parts.push(raw.slice(pos));
+  return parts.join('');
 }
 const ckey=(u,np)=>(u.kind==='s'?u.name:u.kind==='p'?u.name+':'+u.sub:u.name+'['+u.sub+']')+(u.prod&&!np?'@'+u.prod:'');   /* np: key without the product (an XLIFF import knows only the name) */
 const maskRaw=s=>s.replace(/<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>/g,x=>' '.repeat(x.length));
