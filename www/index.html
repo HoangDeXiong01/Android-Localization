@@ -347,10 +347,6 @@ function applyTheme(){
     if(!m.dataset.m)m.dataset.m=m.getAttribute('media')||'all';
     const k=/dark/.test(m.dataset.m)?'dark':'light';
     if(t==='system'){m.setAttribute('media',m.dataset.m);m.setAttribute('content',TCOL[k])}else{m.setAttribute('media','all');m.setAttribute('content',TCOL[t])}});
-  /* Capacitor 8 (targetSdk 36) draws the app edge-to-edge under the system bars, so their icons must match the in-app theme,
-     not only the device theme. 'DARK' = light icons for a dark page, 'LIGHT' = dark icons for a light page, 'DEFAULT' = follow the device. */
-  try{const C=window.Capacitor,B=C&&C.Plugins&&C.Plugins.SystemBars;
-    if(B&&C.isNativePlatform&&C.isNativePlatform()){const r=B.setStyle({style:t==='dark'?'DARK':t==='light'?'LIGHT':'DEFAULT'});if(r&&r.catch)r.catch(()=>{})}}catch(e){}
 }
 applyTheme();
 if(GQDEAD[CFG.qmodel])CFG.qmodel=GQDEAD[CFG.qmodel];
@@ -2353,28 +2349,6 @@ function vsOn(items,top){
   vsUpdate();
 }
 addEventListener('scroll',()=>{if(VS.on&&!VS.sraf)VS.sraf=requestAnimationFrame(()=>{VS.sraf=0;vsUpdate()})},{passive:true});
-/* Focus fix (Capacitor 8 / edge-to-edge): the sticky header is not counted by the WebView when it scrolls a focused field into view,
-   and the keyboard resizes the viewport a moment later, so a field right below the header was left under it. We tell the browser how tall the
-   header is (scroll-padding-top) and, once the keyboard has settled, move the focused field into the free area between header and keyboard. */
-(()=>{
-  const H=document.querySelector('header'),R=document.documentElement;if(!H)return;
-  const hh=()=>{R.style.scrollPaddingTop=(H.getBoundingClientRect().height+8)+'px'};
-  hh();if(typeof ResizeObserver!=='undefined')new ResizeObserver(hh).observe(H);
-  const reveal=()=>{
-    const a=document.activeElement;if(!a||a.tagName!=='TEXTAREA'||!a.closest('#list'))return;
-    const vv=window.visualViewport,vb=(vv?vv.offsetTop+vv.height:innerHeight)-8,top=H.getBoundingClientRect().bottom+8,r=a.getBoundingClientRect();
-    let d=0;
-    if(r.top<top&&r.height<=(vb-top)/2)d=r.top-top;          /* hidden under the header (short field): bring it just below the header */
-    else if(r.bottom>vb)d=Math.min(r.bottom-vb,r.top-top);    /* hidden behind the keyboard: lift it, but never past the header */
-    if(Math.abs(d)>=1)scrollBy(0,d);
-  };
-  let ts=[];
-  addEventListener('focusin',e=>{
-    if(!e.target.matches||!e.target.matches('#list textarea'))return;
-    ts.forEach(clearTimeout);ts=[0,150,350,700].map(ms=>setTimeout(reveal,ms));
-  });
-  addEventListener('resize',()=>{if(ts.length){ts.forEach(clearTimeout);ts=[0,120].map(ms=>setTimeout(reveal,ms))}});
-})();
 function vsResize(){
   VS.W=$('list').clientWidth;VS.h.fill(0);VS.sum=0;VS.cnt=0;
   const els=[...VS.nodes.values()];fitAll(els);els.forEach(vsMeasure);vsRelayout();
