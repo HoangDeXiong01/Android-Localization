@@ -1805,7 +1805,8 @@ function openMtm(u,apply){
   const fill=(el,opts,v)=>{el.textContent='';opts.forEach(([k,t])=>{const o=document.createElement('option');o.value=k;o.textContent=t;el.appendChild(o)});el.value=v};
   fill($('sm-alg'),SIM_ALG,SIM.alg);fill($('sm-min'),SIM_MIN.map(x=>[x,x+'%'+(x===100?' (exact)':'')]),SIM.min);
   $('sm-by').value=SIM.by;szs.value=SIM.sz;
-  list.textContent='';info.textContent='Finds translated units in this file whose '+(SIM.by==='src'?'source':'translation')+' is similar to this one.';pgr.hidden=true;
+  const hint=()=>{info.textContent='Finds translated units in this file whose '+($('sm-by').value==='src'?'source':'translation')+' is similar to this one.'};
+  list.textContent='';hint();pgr.hidden=true;
   const draw=()=>{
     const n=res.length,pgs=Math.max(1,Math.ceil(n/SIM.sz));if(sp>=pgs)sp=pgs-1;
     list.textContent='';
@@ -1836,7 +1837,7 @@ function openMtm(u,apply){
     capped=r.length>2000;res=capped?r.slice(0,2000):r;sp=0;draw();
   };
   $('sm-go').onclick=go;
-  ['sm-alg','sm-min','sm-by'].forEach(i=>{$(i).onchange=()=>{if(res)go()}});
+  ['sm-alg','sm-min','sm-by'].forEach(i=>{$(i).onchange=()=>{if(res)go();else if(i==='sm-by'){SIM.by=$('sm-by').value;hint()}}});
   szs.onchange=()=>{SIM.sz=+szs.value;sp=0;if(res)draw()};
   const jump=n=>{if(!res)return;const pgs=Math.max(1,Math.ceil(res.length/SIM.sz)),t=Math.min(pgs,Math.max(1,n))-1;if(t!==sp){sp=t;draw();info.scrollIntoView({block:'start'})}else pi.value=sp+1};
   prev.onclick=()=>jump(sp);next.onclick=()=>jump(sp+2);
