@@ -83,7 +83,7 @@ mark.es{background:rgba(102,187,106,.42)}
 .dr{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 .dr button{padding:0 16px}
 #fnw{flex:1;min-width:0}
-#bm,#prog,#ip,#rp,#gm,#cm,#sr,#ms,#mn{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
+#bm,#prog,#ip,#rp,#gm,#cm,#sr,#ms,#mn,#mtm{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
 #sw{width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex:none}
 .sel,#sa{width:20px;height:20px;accent-color:var(--ac);margin:2px 0 0;flex:none}
 #sa{margin:0}
@@ -114,6 +114,25 @@ body.sm .mi.x{display:none}
 #list.vs .u{position:absolute;left:0;right:0;margin:10px 10px 0}
 #list.wait{opacity:.55;transition:opacity .15s .2s}
 body.busy,body.busy *{cursor:progress}
+
+#mtm .dlg{max-width:480px}
+.mtsrc,.mtout{font-size:14px;white-space:pre-wrap;word-break:break-word;max-height:7.5em;overflow:auto;padding:8px 10px;border-radius:8px;background:var(--card)}
+.mtsrc{color:var(--mut)}
+.mtout{margin-top:8px;border:1px solid var(--ac)}
+#mtm-load{gap:6px}
+#mtm hr{border:0;border-top:1px solid var(--card);margin:16px 0 4px}
+.sm2{display:flex;gap:8px}.sm2 label{flex:1;min-width:0}
+#sm-i{margin:10px 0 4px}
+.smi{padding:8px 0;border-top:1px solid var(--card)}
+.smh{display:flex;align-items:center;gap:8px;margin-bottom:4px}.smh .id{flex:1;min-width:0}
+.smh button{height:32px;font-size:13px;padding:0 12px}
+.pc{font-size:12px;font-weight:700;border-radius:6px;padding:1px 7px;background:#f57c00;color:#fff;flex:none}.pc.f{background:#43a047}
+.smt{font-size:13px;white-space:pre-wrap;word-break:break-word;max-height:6em;overflow:auto;padding:2px 0 2px 8px;margin-top:3px;border-left:3px solid var(--card)}
+.smt.m{border-left-color:var(--ac)}
+.smt::before{content:attr(data-l);display:block;font-size:11px;color:var(--mut)}
+#sm-pgr{justify-content:center;margin:8px 0 0}
+#sm-pi{width:52px;padding:0 4px;text-align:center}
+#sm-sz{width:auto}
 </style></head><body>
 <header>
 <div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div><div id="selc" hidden></div></div><select id="tl" title="Target language" hidden></select><button id="cfgb" title="Settings" aria-label="Settings"></button><button id="mnb" title="Menu" aria-label="Menu"></button></div>
@@ -166,6 +185,23 @@ body.busy,body.busy *{cursor:progress}
 <div id="sr" hidden><div class="dlg"><h3>Restore previous session?</h3><div id="sr-i" class="hint"></div><div class="hint">Your edits, approvals and clipboards from the last session were kept on this device.</div><div class="dr"><button id="sr-d" type="button">Discard</button><button id="sr-r" type="button" class="p">Restore</button></div></div></div>
 <div id="cm" hidden><div class="dlg"><h3 id="cm-h">Clipboard</h3><div id="cm-i" class="hint"></div><div id="cm-l"></div><div class="dr"><button id="cm-c" type="button">Close</button><button id="cm-s" type="button" class="p">Save current</button></div></div></div>
 <div id="gm" hidden><div class="dlg"><h3>Glossary columns</h3><div id="gm-i" class="hint"></div><label>Delimiter<select id="gm-d"><option value="&#9;">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label><label class="ck"><input type="checkbox" id="gm-h"> First row is a header</label><label>Source column<select id="gm-s"></select></label><label>Target column<select id="gm-t"></select></label><div id="gm-p"></div><div class="dr"><button id="gm-c" type="button">Cancel</button><button id="gm-ok" type="button" class="p">Import</button></div></div></div>
+<div id="mtm" hidden><div class="dlg">
+<h3 id="mtm-h">Translate</h3>
+<div class="hint" id="mtm-eng" style="margin:0 0 8px"></div>
+<div class="mtsrc" id="mtm-src"></div>
+<div class="mtout" id="mtm-out" hidden></div>
+<div class="qa" id="mtm-w" hidden style="margin-top:6px"></div>
+<div class="dr" style="margin-top:10px"><button id="mtm-load" type="button"></button><button id="mtm-apply" type="button" class="p" disabled>Apply</button></div>
+<hr>
+<h3 style="font-size:15px">Similar translations</h3>
+<label>Algorithm<select id="sm-alg"></select></label>
+<div class="sm2"><label>Min. match<select id="sm-min"></select></label><label>Compare by<select id="sm-by"><option value="src">Source</option><option value="tgt">Target</option></select></label></div>
+<div class="dr" style="margin-top:10px"><button id="sm-go" type="button">Load similar</button></div>
+<div class="hint" id="sm-i"></div>
+<div id="sm-l"></div>
+<div class="row" id="sm-pgr" hidden><select id="sm-sz" title="Matches per page" aria-label="Matches per page"><option>10</option><option>20</option><option>50</option><option>100</option></select><button id="sm-prev" type="button" title="Previous page" aria-label="Previous page"></button><span style="display:inline-flex;align-items:center;gap:4px"><input id="sm-pi" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" title="Go to page" aria-label="Go to page"><span id="sm-pg"></span></span><button id="sm-next" type="button" title="Next page" aria-label="Next page"></button></div>
+<div class="dr"><button id="mtm-c" type="button">Close</button></div>
+</div></div>
 <div id="prog" hidden><div class="dlg"><div id="pt"></div><div class="dr"><button id="pstop" type="button">Stop</button></div></div></div>
 <div id="list"></div>
 <script>
@@ -1641,6 +1677,7 @@ if(typeof ResizeObserver!=='undefined')new ResizeObserver(sbUpd).observe(documen
 $('prev').onclick=()=>{if(page>0){page--;render();scrollTo(0,0)}};
 $('next').onclick=()=>{if(page<pages-1){page++;render();scrollTo(0,0)}};
 
+$('sm-prev').innerHTML=ic('prev');$('sm-next').innerHTML=ic('next');
 const ctxLines=u=>u.ctx.filter(x=>!x.startsWith('x-crowdin-label: ')).map(x=>x.replace(/^source: /,'')).filter(x=>x.trim()&&!/^[\w:-]+: $/.test(x));
 const hesc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const pcls=m=>m[0]==='%'||m[0]==='{'?'ph':(m[0]==='<'||m[0]==='&')?'tg':'es';
@@ -1650,13 +1687,172 @@ function hlight(t){
   return out+hesc(t.slice(last));
 }
 const clen=t=>[...t].length;
+/* ---- per-unit translation menu: machine translation + similar translations from the open file ---- */
+const SIM={alg:'lev',min:70,by:'src',sz:10};
+const SIM_ALG=[['lev','Levenshtein (characters)'],['levw','Levenshtein (words)'],['dice','Dice (character bigrams)'],['jac','Jaccard (words)']];
+const SIM_MIN=[100,95,90,85,80,70,60,50];
+const simNorm=t=>t.replace(/\s+/g,' ').trim().toLowerCase();
+const simWords=t=>(t.match(/[\p{L}\p{N}_]+/gu)||[]).slice(0,200);
+/* edit distance of two strings / arrays, giving up (dmax+1) as soon as it must exceed dmax */
+function simLevD(a,b,dmax){
+  const n=a.length,m=b.length;
+  if(Math.abs(n-m)>dmax)return dmax+1;
+  const BIG=Math.min(dmax+1,65535);   /* banded table: only cells within dmax of the diagonal can matter */
+  let p=new Uint16Array(m+2).fill(BIG),c=new Uint16Array(m+2).fill(BIG);
+  for(let j=0;j<=m&&j<=dmax;j++)p[j]=j;
+  for(let i=1;i<=n;i++){
+    const lo=Math.max(1,i-dmax),hi=Math.min(m,i+dmax),ai=a[i-1];
+    c[0]=i<=dmax?i:BIG;let mn=c[0];
+    if(lo>1)c[lo-1]=BIG;
+    for(let j=lo;j<=hi;j++){
+      let v=p[j-1]+(ai===b[j-1]?0:1);const x=p[j]+1,y=c[j-1]+1;
+      if(x<v)v=x;if(y<v)v=y;if(v>BIG)v=BIG;
+      c[j]=v;if(v<mn)mn=v;
+    }
+    if(hi<m)c[hi+1]=BIG;
+    if(mn>dmax)return dmax+1;
+    const t=p;p=c;c=t;
+  }
+  return Math.min(p[m],BIG);
+}
+const simBg=s=>{const m=new Map();for(let i=0;i<s.length-1;i++){const k=s.slice(i,i+2);m.set(k,(m.get(k)||0)+1)}return m};
+/* returns f(text)->similarity 0..1 (0 when below mn); mn lets each algorithm skip hopeless candidates early */
+function simScorer(alg,qt,mn){
+  const q0=simNorm(qt);
+  if(alg==='lev'||alg==='levw'){
+    const W=alg==='levw',prep=t=>{t=simNorm(t);return W?simWords(t):t.slice(0,400)},q=prep(qt),qm=W?null:simBg(q);
+    return t=>{
+      const c=prep(t);if(!q.length&&!c.length)return 0;
+      if(W?(q.join(' ')===c.join(' ')):q===c)return 1;
+      const L=Math.max(q.length,c.length),dmax=Math.floor((1-mn)*L+1e-9);
+      if(Math.abs(q.length-c.length)>dmax)return 0;
+      /* q-gram lemma: strings within edit distance d share at least L-1-2d bigrams, so most unrelated candidates are rejected without the O(n*m) table */
+      if(!W){const need=L-1-2*dmax;if(need>0){const used=new Map();let x=0;
+        for(let i=0;i<c.length-1;i++){const k=c.slice(i,i+2),h=qm.get(k)||0,u=used.get(k)||0;if(u<h){x++;used.set(k,u+1)}}
+        if(x<need)return 0}}
+      const d=simLevD(q,c,dmax);
+      return d>dmax?0:1-d/L;
+    };
+  }
+  if(alg==='dice'){
+    const q=q0.slice(0,1000),qm=simBg(q),nq=Math.max(0,q.length-1);
+    return t=>{
+      const c=simNorm(t).slice(0,1000);if(c===q)return q?1:0;
+      const nc=Math.max(0,c.length-1);if(!nq||!nc||2*Math.min(nq,nc)/(nq+nc)<mn)return 0;
+      const used=new Map();let x=0;
+      for(let i=0;i<nc;i++){const k=c.slice(i,i+2),h=qm.get(k)||0,u=used.get(k)||0;if(u<h){x++;used.set(k,u+1)}}
+      return 2*x/(nq+nc);
+    };
+  }
+  const q=new Set(simWords(q0));
+  return t=>{
+    const c=new Set(simWords(simNorm(t)));if(!q.size||!c.size)return 0;
+    if(Math.min(q.size,c.size)/Math.max(q.size,c.size)<mn)return 0;
+    let x=0;c.forEach(w=>{if(q.has(w))x++});
+    return x/(q.size+c.size-x);
+  };
+}
+let SIMSEQ=0,MTM=0;
+/* scans the open file in short slices (the page stays responsive); resolves null when superseded or closed */
+async function simRun(u,by,alg,mn,qt,onProg){
+  const seq=++SIMSEQ,sc=simScorer(alg,qt,mn),all=units,n=all.length,out=[];
+  let i=0;
+  while(i<n){
+    const t0=performance.now();
+    while(i<n&&performance.now()-t0<8){
+      const x=all[i++];if(x===u)continue;
+      const tr=cur(x);if(!tr.trim())continue;
+      const f=by==='src'?x.rs:tr;if(!f||!f.trim())continue;
+      const s=sc(f);if(s>0&&s>=mn-1e-9)out.push({u:x,s,tr});
+    }
+    onProg(i/n);
+    await new Promise(r=>setTimeout(r,0));
+    if(seq!==SIMSEQ)return null;
+  }
+  return out.sort((a,b)=>b.s-a.s);   /* stable: equal scores keep file order */
+}
+function openMtm(u,apply){
+  const dlg=$('mtm'),show=t=>CFG.pv?pvDec(t):t,ld=$('mtm-load'),ap=$('mtm-apply'),out=$('mtm-out'),wn=$('mtm-w');
+  const info=$('sm-i'),list=$('sm-l'),pgr=$('sm-pgr'),pi=$('sm-pi'),pg=$('sm-pg'),prev=$('sm-prev'),next=$('sm-next'),szs=$('sm-sz');
+  let mt=null,res=null,sp=0,capped=false;
+  ++MTM;SIMSEQ++;
+  const close=()=>{MTM++;SIMSEQ++;dlg.hidden=true};
+  /* machine translation */
+  $('mtm-h').textContent='Translate \u00b7 '+(u.rn||u.id);
+  $('mtm-eng').textContent='Engine: '+engName();
+  $('mtm-src').textContent=show(u.rs);
+  out.hidden=true;out.textContent='';wn.hidden=true;ap.disabled=true;
+  const lab=()=>{ld.disabled=false;ld.innerHTML=mt?ic('refresh')+'<span>Reload</span>':'<span>Load machine translation</span>'};
+  const warn=t=>{wn.textContent=t?'\u26a0 '+t:'';wn.hidden=!t};
+  lab();
+  ld.onclick=async()=>{
+    if(!u.rs.trim()){warn('The source is empty.');return}
+    if(aiOn(CFG.eng)&&!aiKey()){close();alert('Enter your '+engName()+' API key in the settings first');openCfg();return}
+    const my=++MTM;
+    ld.disabled=true;ap.disabled=true;ld.textContent='Loading\u2026';warn('');
+    try{
+      const r=await machine(u.rs,u);if(my!==MTM)return;
+      mt=r.text;out.textContent=show(mt);out.hidden=false;warn(r.warn?r.msg:'');
+    }catch(e){if(my!==MTM)return;warn('Translation failed: '+e.message)}
+    lab();ap.disabled=!mt;
+  };
+  ap.onclick=()=>{
+    if(!mt)return;
+    if(u.val!==undefined&&!confirm('Replace your edit with machine translation?'))return;
+    close();apply(mt);
+  };
+  /* similar translations */
+  const fill=(el,opts,v)=>{el.textContent='';opts.forEach(([k,t])=>{const o=document.createElement('option');o.value=k;o.textContent=t;el.appendChild(o)});el.value=v};
+  fill($('sm-alg'),SIM_ALG,SIM.alg);fill($('sm-min'),SIM_MIN.map(x=>[x,x+'%'+(x===100?' (exact)':'')]),SIM.min);
+  $('sm-by').value=SIM.by;szs.value=SIM.sz;
+  list.textContent='';info.textContent='Finds translated units in this file whose '+(SIM.by==='src'?'source':'translation')+' is similar to this one.';pgr.hidden=true;
+  const draw=()=>{
+    const n=res.length,pgs=Math.max(1,Math.ceil(n/SIM.sz));if(sp>=pgs)sp=pgs-1;
+    list.textContent='';
+    res.slice(sp*SIM.sz,sp*SIM.sz+SIM.sz).forEach(({u:x,s,tr})=>{
+      const r=document.createElement('div');r.className='smi';
+      const h=document.createElement('div');h.className='smh';
+      const b=document.createElement('span');b.className='pc'+(s>=1?' f':'');b.textContent=(s>=1?100:Math.floor(s*100))+'%';
+      const id=document.createElement('span');id.className='id';id.textContent=x.id;
+      const use=document.createElement('button');use.type='button';use.textContent='Use';
+      use.onclick=()=>{if(cbCan(u)&&!confirm('Replace the current translation? It is not saved in the clipboard.'))return;close();apply(tr)};
+      h.append(b,id,use);
+      const cut=t=>{t=show(t);return t.length>300?t.slice(0,300)+'\u2026':t};
+      const a=document.createElement('div');a.className='smt'+(SIM.by==='src'?' m':'');a.dataset.l='Source';a.textContent=cut(x.rs);
+      const c=document.createElement('div');c.className='smt'+(SIM.by==='tgt'?' m':'');c.dataset.l='Translation';c.textContent=cut(tr);
+      r.append(h,a,c);list.appendChild(r);
+    });
+    pi.value=sp+1;pg.textContent='/ '+pgs;prev.disabled=sp<=0;next.disabled=sp>=pgs-1;pgr.hidden=!n;
+    info.textContent=n?n+' match'+(n>1?'es':'')+(capped?' (best 2000 kept)':'')+' \u00b7 '+SIM_ALG.find(a=>a[0]===SIM.alg)[1]+' \u00b7 \u2265 '+SIM.min+'%':'No similar translation found. Try a lower match level.';
+  };
+  const go=async()=>{
+    SIM.alg=$('sm-alg').value;SIM.min=+$('sm-min').value;SIM.by=$('sm-by').value;
+    const q=SIM.by==='src'?u.rs:(cur(u).trim()?cur(u):(mt||''));
+    res=null;list.textContent='';pgr.hidden=true;
+    if(!q.trim()){SIMSEQ++;info.textContent=SIM.by==='src'?'The source is empty.':'Compare by target needs a translation: type one or load a machine translation first.';return}
+    info.textContent='Searching\u2026 0%';
+    const r=await simRun(u,SIM.by,SIM.alg,SIM.min/100,q,f=>{info.textContent='Searching\u2026 '+Math.floor(f*100)+'%'});
+    if(r===null)return;
+    capped=r.length>2000;res=capped?r.slice(0,2000):r;sp=0;draw();
+  };
+  $('sm-go').onclick=go;
+  ['sm-alg','sm-min','sm-by'].forEach(i=>{$(i).onchange=()=>{if(res)go()}});
+  szs.onchange=()=>{SIM.sz=+szs.value;sp=0;if(res)draw()};
+  const jump=n=>{if(!res)return;const pgs=Math.max(1,Math.ceil(res.length/SIM.sz)),t=Math.min(pgs,Math.max(1,n))-1;if(t!==sp){sp=t;draw();info.scrollIntoView({block:'start'})}else pi.value=sp+1};
+  prev.onclick=()=>jump(sp);next.onclick=()=>jump(sp+2);
+  pi.oninput=()=>{pi.value=pi.value.replace(/\D/g,'')};pi.onfocus=()=>pi.select();
+  pi.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();pi.blur()}else if(e.key==='Escape'){e.stopPropagation();pi.value=sp+1;pi.blur()}};
+  pi.onblur=()=>{const n=parseInt(pi.value,10);if(isNaN(n))pi.value=sp+1;else jump(n)};
+  $('mtm-c').onclick=close;
+  dlg.hidden=false;dlg.firstElementChild.scrollTop=0;
+}
 function card(u){
   const d=document.createElement('div');d.className='u';
   d.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div><div class="lb" hidden></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button></div><div class="cxt" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="cnt tc"></div><div class="qa" hidden></div>';
   const q=s=>d.querySelector(s);
   const clb=q('.cb'),mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
   mtb.innerHTML=ic('mt');ap.innerHTML=ic('check');cx.innerHTML=ic('help');cp.innerHTML=ic('copy');un.innerHTML=ic('undo');clb.innerHTML=ic('clip');
-  [[ap,'Approve'],[hd,'Visible'],[cx,mode==='strings'?'Comment':'Context'],[mtb,'Machine translate · '+engName()],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
+  [[ap,'Approve'],[hd,'Visible'],[cx,mode==='strings'?'Comment':'Context'],[mtb,'Machine translate \u00b7 '+engName()+' / similar translations'],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
   const cb=q('.sel');cb.setAttribute('aria-label','Select unit');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
   q('.id').textContent=u.id;q('.rn').textContent=rnShow(u);q('.rn').hidden=!u.rn;
   q('.lb').textContent=u.labels.length?'Label: '+u.labels.join(', '):'';q('.lb').hidden=!u.labels.length;
@@ -1700,15 +1896,7 @@ function card(u){
     }
     setTrG(u,to);sync();msRefresh(u);
   };
-  mtb.onclick=async()=>{
-    if(!u.rs.trim())return;
-    if(u.val!==undefined&&!confirm('Replace your edit with machine translation?'))return;
-    if(aiOn(CFG.eng)&&!aiKey()){alert('Enter your '+engName()+' API key in the settings first');openCfg();return}
-    mtb.disabled=true;mtb.classList.add('on');
-    try{const r=await machine(u.rs,u);setText(r.text);setVal(u,r.text);
-      if(r.warn)alert(r.msg)}
-    catch(e){alert('Translation failed: '+e.message)}
-    mtb.classList.remove('on');mtb.disabled=false;sync()};
+  mtb.onclick=()=>openMtm(u,v=>{setText(v);setVal(u,v);sync()});
   cx.onclick=()=>{u.showCtx=!u.showCtx;refresh();vsNudge()};
   refresh();d._fit=fit;d._u=u;d._rf=refresh;
   d.classList.toggle('mk',!!(MARK&&MARK.has(u)));
@@ -2787,7 +2975,7 @@ $('save').onclick=async()=>{
 };
 [['q','Search'],['sz','Units per page'],['sa','Select all shown'],['tl','Target language'],['so','Sort order']].forEach(([i,t])=>$(i).setAttribute('aria-label',t));
 document.querySelectorAll('.dlg').forEach(d=>{d.setAttribute('role','dialog');d.setAttribute('aria-modal','true')});
-document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const [d,b] of [['mn','mn-x'],['ms','ms-c'],['cm','cm-c'],['gm','gm-c'],['ip','ip-c'],['rp','rp-c'],['bm','bclose'],['cfg','c-cancel']])if(!$(d).hidden){e.preventDefault();$(b).click();return}});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const [d,b] of [['mn','mn-x'],['ms','ms-c'],['mtm','mtm-c'],['cm','cm-c'],['gm','gm-c'],['ip','ip-c'],['rp','rp-c'],['bm','bclose'],['cfg','c-cancel']])if(!$(d).hidden){e.preventDefault();$(b).click();return}});
 addEventListener('beforeunload',e=>{if(doc&&edited()){e.preventDefault();e.returnValue=''}});
 sessCheck();
 let lastW=innerWidth,rz;addEventListener('resize',()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(rz);rz=setTimeout(()=>{if(VS.on)vsResize();else fitAll([...document.querySelectorAll('#list .u')])},150)});
