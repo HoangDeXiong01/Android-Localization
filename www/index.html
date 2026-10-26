@@ -347,6 +347,10 @@ function applyTheme(){
     if(!m.dataset.m)m.dataset.m=m.getAttribute('media')||'all';
     const k=/dark/.test(m.dataset.m)?'dark':'light';
     if(t==='system'){m.setAttribute('media',m.dataset.m);m.setAttribute('content',TCOL[k])}else{m.setAttribute('media','all');m.setAttribute('content',TCOL[t])}});
+  /* Capacitor 8 (targetSdk 36) draws the app edge-to-edge under the system bars, so their icons must match the in-app theme,
+     not only the device theme. 'DARK' = light icons for a dark page, 'LIGHT' = dark icons for a light page, 'DEFAULT' = follow the device. */
+  try{const C=window.Capacitor,B=C&&C.Plugins&&C.Plugins.SystemBars;
+    if(B&&C.isNativePlatform&&C.isNativePlatform()){const r=B.setStyle({style:t==='dark'?'DARK':t==='light'?'LIGHT':'DEFAULT'});if(r&&r.catch)r.catch(()=>{})}}catch(e){}
 }
 applyTheme();
 if(GQDEAD[CFG.qmodel])CFG.qmodel=GQDEAD[CFG.qmodel];
