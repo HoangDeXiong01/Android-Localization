@@ -69,6 +69,12 @@ mark{background:none;color:inherit;border-radius:3px}
 mark.ph{background:rgba(255,167,38,.38)}
 mark.tg{background:rgba(66,165,245,.38)}
 mark.es{background:rgba(102,187,106,.42)}
+mark.xg{background:rgba(171,71,188,.34)}
+mark.xp{background:rgba(171,71,188,.14)}
+mark.cd{background:rgba(158,158,158,.42)}
+mark.lit{background:none;box-shadow:inset 0 -2px 0 rgba(158,158,158,.75)}
+.src mark{unicode-bidi:isolate}
+.src mark.iv::before{content:attr(data-u);font-size:.65em;vertical-align:super;color:var(--mut)}
 .hl mark{color:transparent}
 #cfg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
 .dlg{background:var(--bg);color:var(--fg);border-radius:16px;padding:16px;width:100%;max-width:420px;max-height:90vh;overflow:auto}
@@ -164,6 +170,9 @@ body.busy,body.busy *{cursor:progress}
 <div class="hint" id="c-ghint">The key is stored only on this device and sent only to Google. Get one at aistudio.google.com/apikey</div>
 </div>
 <div id="ff"><label>Rate limit (requests / minute, 0 = none)<input id="c-rpmf" type="number" min="0" inputmode="numeric"></label></div>
+<label class="ck"><input type="checkbox" id="c-mrg"> Merge requests (faster bulk translation)</label>
+<label>Units per merged request<input id="c-mrn" type="number" min="2" max="30" inputmode="numeric"></label>
+<div class="hint">Bulk translation sends several units in one request instead of one request per unit, so it needs far fewer requests and finishes sooner. Quality is the same: the AI engines receive each unit's key, context and limits, and any unit whose answer comes back incomplete is translated again on its own. The rate limit then counts merged requests. Single-unit translation is not affected.</div>
 <label>Glossary</label>
 <div class="kr"><button id="g-imp" type="button">Import CSV / TSV / TBX</button><button id="g-clr" type="button">Clear</button></div>
 <div class="hint" id="g-info"></div>
@@ -173,7 +182,9 @@ body.busy,body.busy *{cursor:progress}
 <div class="kr"><input id="cl-code" placeholder="Code, e.g. pt-BR" autocomplete="off" spellcheck="false"><input id="cl-name" placeholder="Name (optional)" autocomplete="off"></div>
 <div class="dr" style="margin-top:8px"><button id="cl-cancel" type="button" hidden>Cancel</button><button id="cl-save" type="button">Add</button></div>
 <label class="ck"><input type="checkbox" id="c-pv"> Edit on preview</label>
-<div class="hint">Shows text as it is displayed (&amp;amp; appears as &amp;) and escapes it again automatically when saved: quotes become &amp;quot; and &amp;apos; in XLIFF, \" and \' in strings.xml. The Valid XML QA check is unavailable while this is on.</div>
+<div class="hint">Shows text as it is displayed (&amp;amp; appears as &amp;) and escapes it again automatically when saved: quotes become &amp;quot; and &amp;apos; in XLIFF, \" and \' in strings.xml.</div>
+<label class="ck"><input type="checkbox" id="c-xh"> Export hidden units as translatable="false"</label>
+<div class="hint">Applies to Save (strings.xml) and to Save as strings.xml (XLIFF 1.2 and 2). On: hidden units are written with translatable="false". Off: hidden units are left out of the exported file.</div>
 <label>QA checks</label>
 <div id="qac"></div>
 <div class="dr"><button id="c-test" type="button">Test</button><button id="c-cancel" type="button">Close</button><button id="c-save" type="button" class="p">Save</button></div>
@@ -300,6 +311,12 @@ const PV_TAG=/<!\[CDATA\[[\s\S]*?\]\]>|<!--[\s\S]*?-->|<\/?[A-Za-z_][^<>]*>/;
 const PV_TOK=new RegExp(PV_TAG.source+'|&(?:[A-Za-z][\\w.-]*|#\\d+|#x[0-9A-Fa-f]+);','g');
 const pvXe=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const pvIsDec=m=>/^&(?:amp|lt|gt|quot|apos);$/.test(m);
+/* strings.xml: Android collapses the line breaks and indentation of the file's layout, so the preview shows the text without them (quoted strings and CDATA are left alone) */
+const pvWs=t=>{
+  if(mode!=='strings'||/(?<!\\)"/.test(t.replace(/<!\[CDATA\[[\s\S]*?\]\]>/g,'').replace(/<[^>]*>/g,'')))return t;
+  return t.replace(/^\s*\n\s*|\s*\n\s*$/g,'').split(/(<!\[CDATA\[[\s\S]*?\]\]>)/).map((p,i)=>i%2?p:p.replace(/[ \t]*\r?\n\s*/g,' ')).join('');
+};
+const pvOk=(m,allow)=>m.startsWith('<!')||allow.has(m)||(!!allow.xg&&XG_RX.test(m));   /* is this tag / entity real markup (not plain text)? */
 const PV_EN={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'"};
 // strings.xml: \' and \" are shown as ' and ", other backslash escapes stay visible
 const pvTxt=t=>t.replace(mode==='strings'?/\\[\s\S]|&(amp|lt|gt|quot|apos);/g:/&(amp|lt|gt|quot|apos);/g,(m,n)=>m[0]==='\\'?(m[1]==="'"||m[1]==='"'?m[1]:m):PV_EN[n]);
@@ -309,18 +326,18 @@ const pvSeg=t=>{t=pvXe(t);return mode==='strings'?pvQ(t):t.replace(/"/g,'&quot;'
 function pvDec(raw){
   let out='',last=0;
   raw.replace(new RegExp(PV_TAG.source,'g'),(m,off)=>{out+=pvTxt(raw.slice(last,off))+m;last=off+m.length;return m});
-  return out+pvTxt(raw.slice(last));
+  return pvWs(out+pvTxt(raw.slice(last)));
 }
 // Tags / entities that may stay as markup when typed (those already in the source or the translation)
 function pvAllow(...raws){
   const a=new Set();
-  raws.forEach(r=>(r||'').replace(new RegExp(PV_TOK.source,'g'),m=>{if(!m.startsWith('<!')&&!pvIsDec(m))a.add(m);return m}));
+  raws.forEach(r=>(r||'').replace(new RegExp(PV_TOK.source,'g'),m=>{if(!m.startsWith('<!')&&!pvIsDec(m))a.add(m);if(XG_RX.test(m))a.xg=true;return m}));   /* xg: <xliff:g> may be typed with another id / example */
   return a;
 }
 function pvEnc(t,allow){
   let out='',last=0;
   t.replace(new RegExp(PV_TOK.source,'g'),(m,off)=>{
-    out+=pvSeg(t.slice(last,off))+(m.startsWith('<!')||allow.has(m)?m:pvSeg(m));last=off+m.length;return m});
+    out+=pvSeg(t.slice(last,off))+(pvOk(m,allow)?m:pvSeg(m));last=off+m.length;return m});
   return out+pvSeg(t.slice(last));
 }
 // XLIFF content -> strings.xml content: quotes become \' and \" (used when exporting an XLIFF as strings.xml)
@@ -330,7 +347,7 @@ function pvToAndroid(c){
   c.replace(new RegExp(PV_TAG.source,'g'),(m,off)=>{o+=f(c.slice(last,off))+m;last=off+m.length;return m});
   return o+f(c.slice(last));
 }
-const pvNorm=t=>{t=t.replace(/&gt;/g,'>');return mode==='strings'?t.replace(/&quot;/g,'\\"').replace(/&apos;/g,"\\'"):t.replace(/&quot;/g,'"').replace(/&apos;/g,"'")};
+const pvNorm=t=>{t=pvWs(t).replace(/&gt;/g,'>');return mode==='strings'?t.replace(/&quot;/g,'\\"').replace(/&apos;/g,"\\'"):t.replace(/&quot;/g,'"').replace(/&apos;/g,"'")};
 const pvSafe=(raw,allow)=>pvNorm(pvEnc(pvDec(raw),allow))===pvNorm(raw);
 
 const DEFMODEL='gemini-3.6-flash';
@@ -340,7 +357,7 @@ let QV=0;
 const GQDEF='openai/gpt-oss-120b';
 /* models Groq has shut down: a stored choice or cached list that still has them is replaced / cleaned */
 const GQDEAD={'llama-3.3-70b-versatile':GQDEF,'llama-3.1-8b-instant':'openai/gpt-oss-20b'};
-const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,pv:0,qa:{},theme:'system'};
+const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,pv:0,xh:1,mrg:1,mrn:10,qa:{},theme:'system'};
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
 CFG.qa=Object.assign({},QADEF,CFG.qa||{});
 /* Theme: 'system' follows the device, 'light' / 'dark' force it. The browser bar colour (theme-color) follows too. */
@@ -472,7 +489,7 @@ function glMap(txt){
   });
 }
 function tcls(t){
-  t=W_dec(t).replace(/\s+$/,'');if(!t)return '';   /* decode entities first: "Loading&#8230;" ends with an ellipsis, not with a ";" */
+  t=txtOf(t).replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\s]+$/,'').replace(/(?:\\[nrt])+$/,'').replace(/\s+$/,'');if(!t)return '';   /* the text only: tags and CDATA marks dropped, entities decoded ("Loading&#8230;" ends with an ellipsis, not with a ";"), a trailing \n escape is no punctuation */
   if(/(\.\.\.|\u2026)$/.test(t))return 'ell';
   const c=t.slice(-1);
   if('.\u3002\uff0e'.includes(c))return 'dot';
@@ -579,16 +596,20 @@ function qaOf(u){
       a.forEach((n,t)=>{if((b.get(t)||0)<n)miss.push(t)});
       b.forEach((n,t)=>{if((a.get(t)||0)<n)extra.push(t)});
       if(miss.length)out.push('Missing: '+miss.slice(0,4).join(' '));
-      if(extra.length)out.push('Extra: '+extra.slice(0,4).join(' '))}
+      if(extra.length)out.push('Extra: '+extra.slice(0,4).join(' '));
+      if(!ni){const xc=xgChanged(s,c);if(xc.length)out.push('Protected text inside <xliff:g> changed: '+xc.slice(0,3).join(', '));}
+      if(mode==='strings'&&!u.fm&&(s.match(TOK)||[]).some(x=>x[0]==='%'&&x!=='%%')&&c.replace(TOK,'').includes('%'))out.push('Stray % (a literal percent must be written %%)')}
     if(ni)inlineViol(u,c).forEach(x=>out.push(x));
     if(Q.ws){
-      if(/^\s*/.exec(s)[0]!==/^\s*/.exec(c)[0]||/\s*$/.exec(s)[0]!==/\s*$/.exec(c)[0])out.push('Leading/trailing spaces differ');
-      if((s.match(/\n/g)||[]).length!==(c.match(/\n/g)||[]).length)out.push('Line breaks differ')}
+      /* strings.xml: indentation and line breaks around / inside the text are only layout of the file (Android collapses them); a real line break is the \n escape, which the tag check covers */
+      const ed=t=>mode==='strings'?t.replace(/^\s*\n\s*/,'').replace(/\s*\n\s*$/,''):t,s1=ed(s),c1=ed(c);
+      if(/^\s*/.exec(s1)[0]!==/^\s*/.exec(c1)[0]||/\s*$/.exec(s1)[0]!==/\s*$/.exec(c1)[0])out.push('Leading/trailing spaces differ');
+      if(mode!=='strings'&&(s.match(/\n/g)||[]).length!==(c.match(/\n/g)||[]).length)out.push('Line breaks differ')}
     if(Q.dsp&&/ {2,}/.test(c)&&!/ {2,}/.test(s))out.push('Double spaces');
     if(Q.pu&&tcls(s)!==tcls(c))out.push('End punctuation differs');
     if(Q.num){const n1=(s.replace(TOK,' ').match(/\d+/g)||[]).sort().join(),n2=(c.replace(TOK,' ').match(/\d+/g)||[]).sort().join();
       if(n1!==n2)out.push('Numbers differ')}
-    if(Q.xml&&!CFG.pv&&/[<&\x00-\x08\x0B\x0C\x0E-\x1F]/.test(c)&&new DOMParser().parseFromString(xmlWrap(c),'application/xml').querySelector('parsererror'))out.push('Invalid XML');
+    if(Q.xml&&/[<&\x00-\x08\x0B\x0C\x0E-\x1F]/.test(c)&&new DOMParser().parseFromString(xmlWrap(c),'application/xml').querySelector('parsererror'))out.push('Invalid XML');
     if(Q.gl&&GL.length){const lcc=c.toLowerCase();glossHits(s).forEach(h=>{if(!lcc.includes(h.t.toLowerCase()))out.push('Glossary: '+h.s+' \u2192 '+h.t)})}
     if(Q.gl&&u.gl){const lcc=c.toLowerCase(),ls=s.toLowerCase();u.gl.forEach(g=>{if(g.t.length&&ls.includes(g.s.toLowerCase())&&!g.t.some(x=>lcc.includes(x.toLowerCase())))out.push('Glossary: '+g.s+' \u2192 '+g.t.join(' / '))})}
     if(Q.val&&u.vr)vrCheck(u,c).forEach(x=>out.push(x));
@@ -720,6 +741,7 @@ function buildStrings(){
     const u=units[i];let j=i+1;
     if(u.kind!=='s')while(j<units.length&&units[j].kind===u.kind&&units[j].name===u.name&&units[j].prod===u.prod)j++;   /* the items of one <plurals> / <string-array>; every <string> stands alone */
     const g=units.slice(i,j);i=j;
+    if(!CFG.xh&&trOf(u)==='no')continue;   /* Settings: hidden units are not exported */
     if(u.kind==='s'){if(has(cur(u)))L.push('    <string name="'+u.name+'"'+pa(u)+'>'+cur(u)+'</string>')}
     else if(u.kind==='p'){const it=g.filter(x=>has(cur(x)));
       if(it.length){L.push('    <plurals name="'+u.name+'"'+pa(u)+'>');
@@ -736,7 +758,11 @@ function patchStrings(){
   if(!raw)return null;
   const tm=maskRaw(raw),ed=[];let k=0;
   const has=v=>v.trim()!=='';
-  const want=u=>{const c=cur(u);return has(c)&&c!==u.rs?c:null};   /* a hidden string keeps its translation too */
+  const want=u=>{const c=cur(u);return has(c)&&c!==u.rs?c:null};
+  /* Settings: hidden units (translatable="false") can be left out; the whole element goes, with its indentation and line break */
+  const drop=u=>!CFG.xh&&trOf(u)==='no';
+  const cut=(a,b)=>{while(a>0&&(raw[a-1]===' '||raw[a-1]==='\t'))a--;let bad=a>0&&raw[a-1]!=='\n'&&raw[a-1]!=='\r';let e=b;while(e<raw.length&&(raw[e]===' '||raw[e]==='\t'))e++;
+    if(!bad){if(raw[e]==='\r')e++;if(raw[e]==='\n')e++;return [a,e,'']}return [a,b,'']};   /* a hidden string keeps its translation too */
   /* hide / unhide: only the translatable attribute of the start tag changes (ed0 = position in ed where this element's edits begin) */
   const attrEdit=(u,m,ed0)=>{
     if(u.tr===undefined)return;
@@ -757,6 +783,7 @@ function patchStrings(){
     const bodyM=m[3];
     if(m[1]==='string'){
       const u=units[k++];if(!u||u.kind!=='s'||u.name!==name)return null;
+      if(drop(u)){ed.push(cut(m.index,m.index+m[0].length));continue}
       attrEdit(u,m,ed.length);
       if(bodyM===undefined)fill(u,'string',m.index,m[0].length,null);
       else{const e=m.index+m[0].lastIndexOf('</');fill(u,'string',0,0,[e-bodyM.length,e])}
@@ -773,6 +800,7 @@ function patchStrings(){
       if(im[2]===undefined)fill(u,'item',base+im.index,im[0].length,null);
       else{const e=base+im.index+im[0].lastIndexOf('</');fill(u,'item',0,0,[e-im[2].length,e])}
     }
+    if(first&&drop(first)){ed.length=ed0;ed.push(cut(m.index,m.index+m[0].length))}
   }
   if(k!==units.length)return null;
   /* edits were collected in document order and never overlap: join the pieces once (repeated slicing of a big file is quadratic) */
@@ -931,7 +959,7 @@ function aiShow(e){
 function openCfg(){
   draft={};mdl={};GLd=null;CLd=CL.map(l=>[l[0],l[1],l[0]]);uiEng='';
   $('c-theme').value=CFG.theme||'system';$('c-eng').value=CFG.eng;$('c-notes').value=CFG.gnotes;$('c-rpmf').value=CFG.rpmF;
-  document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);$('c-pv').checked=!!CFG.pv;pvUi();glInfo();clRender();clReset();
+  document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);$('c-pv').checked=!!CFG.pv;$('c-xh').checked=!!CFG.xh;$('c-mrg').checked=!!CFG.mrg;$('c-mrn').value=CFG.mrn;pvUi();glInfo();clRender();clReset();
   $('cfg').hidden=false;aiShow(CFG.eng);
 }
 function applyCfg(persist=true){
@@ -939,7 +967,7 @@ function applyCfg(persist=true){
   const rp=(v,d)=>{v=String(v==null?'':v).trim();return v===''?d:Math.max(0,Math.floor(+v)||0)};
   for(const e in AIF){const f=AIF[e],d=draft[e];if(!d)continue;CFG[f.key]=d.key;CFG[f.model]=d.model||f.def;CFG[f.rpm]=rp(d.rpm,f.rpmDef)}
   CFG.rpmF=rp($('c-rpmf').value,30);
-  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);CFG.pv=$('c-pv').checked?1:0;
+  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);CFG.pv=$('c-pv').checked?1:0;CFG.xh=$('c-xh').checked?1:0;CFG.mrg=$('c-mrg').checked?1:0;CFG.mrn=Math.min(30,Math.max(2,Math.floor(+$('c-mrn').value)||10));
   for(const k in mdl)CFG[k]=mdl[k];
   if(persist){QV++;saveCfg()}
 }
@@ -1004,20 +1032,37 @@ async function bulkMT(sel){
   let list=todo;
   if(have&&!confirm(have+' selected units already have a translation. OK = overwrite them, Cancel = translate empty ones only.'))list=todo.filter(u=>!cur(u).trim());
   if(!list.length){alert('Nothing to translate');return}
-  let stop=false,done=0,warn=0,err=null;
+  let stop=false,done=0,warn=0,err=null,reqs=0;
   $('pstop').onclick=()=>{stop=true;$('pt').textContent='Stopping...'};
-  const rpm=rpmOf();
+  const rpm=rpmOf(),chunks=mtChunks(list);
   onNet=m=>{$('pt').textContent=m};
   $('prog').hidden=false;
-  for(const u of list){
+  for(let ci=0;ci<chunks.length;ci++){
+    const ch=chunks[ci];
     if(stop)break;
-    const eta=rpm>0?Math.ceil((list.length-done)*60/rpm):0;
-    $('pt').textContent='Translating '+(done+1)+' / '+list.length+' ('+engName()+')'+(eta>5?' \u00b7 about '+(eta>=90?Math.round(eta/60)+' min':eta+' s')+' left':'');
-    try{const r=await machine(u.rs,u);setVal(u,r.text);if(r.warn)warn++;done++}
-    catch(e){err=e.message;break}
+    const eta=rpm>0?Math.ceil((chunks.length-ci)*60/rpm):0;
+    const say=()=>{$('pt').textContent='Translating '+(done+1)+' / '+list.length+' ('+engName()+(ch.length>1?', '+ch.length+' per request':'')+')'+(eta>5?' \u00b7 about '+(eta>=90?Math.round(eta/60)+' min':eta+' s')+' left':'')};
+    say();
+    let res=null;
+    if(ch.length>1){
+      reqs++;
+      try{res=await machineBatch(ch)}
+      catch(e){if(retryable(e.status)){err=e.message;break}res=null}   /* any other failure: translate the units one by one */
+    }
+    let broke=false;
+    for(let i=0;i<ch.length;i++){
+      let r=res&&res[i];
+      if(!r){
+        if(stop){broke=true;break}
+        say();reqs++;
+        try{r=await machine(ch[i].rs,ch[i])}catch(e){err=e.message;broke=true;break}
+      }
+      setVal(ch[i],r.text);if(r.warn)warn++;done++;
+    }
+    if(broke)break;
   }
   $('prog').hidden=true;onNet=null;
-  alert('Translated '+done+' / '+list.length+(warn?', '+warn+' to review (placeholders differ)':'')+(err?'. Stopped: '+err:stop?'. Stopped by you':''));
+  alert('Translated '+done+' / '+list.length+' ('+reqs+' request'+(reqs===1?'':'s')+')'+(warn?', '+warn+' to review (placeholders differ)':'')+(err?'. Stopped: '+err:stop?'. Stopped by you':''));
   render();
 }
 /* ---- multi-segment units: hide / unhide confirmation ---- */
@@ -1701,11 +1746,29 @@ $('next').onclick=()=>{if(page<pages-1){page++;render();scrollTo(0,0)}};
 $('sm-prev').innerHTML=ic('prev');$('sm-next').innerHTML=ic('next');
 const ctxLines=u=>u.ctx.filter(x=>!x.startsWith('x-crowdin-label: ')).map(x=>x.replace(/^source: /,'')).filter(x=>x.trim()&&!/^[\w:-]+: $/.test(x));
 const hesc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const pcls=m=>m[0]==='%'||m[0]==='{'?'ph':(m[0]==='<'||m[0]==='&')?'tg':'es';
-function hlight(t){
-  let out='',last=0;
-  t.replace(TOK,(m,off)=>{out+=hesc(t.slice(last,off))+'<mark class="'+pcls(m)+'">'+hesc(m)+'</mark>';last=off+m.length;return m});
-  return out+hesc(t.slice(last));
+function pcls(m){
+  const c=m[0];
+  if(c==='%'||c==='{')return 'ph';
+  if(XG_RX.test(m))return 'xg';
+  if(m==='<![CDATA['||m===']]>'||m.startsWith('<!--'))return 'cd';
+  if(c==='<')return 'tg';
+  return 'es';
+}
+/* allow (Edit on preview only): the tags / entities that are real markup in the text shown; any other tag-like text is plain text and is only underlined */
+function hlight(t,allow){
+  let out='',last=0,xd=0,cdata=false;   /* inside CDATA the tags are markup of the text itself (HTML) and stay highlighted */
+  const txt=x=>{if(x)out+=xd>0?'<mark class="xp">'+hesc(x)+'</mark>':hesc(x)};   /* text inside <xliff:g> is protected: it is not translated */
+  t.replace(TOK,(m,off)=>{
+    txt(t.slice(last,off));last=off+m.length;
+    let c=pcls(m);
+    if(m==='<![CDATA[')cdata=true;else if(m===']]>')cdata=false;
+    if(allow&&!cdata&&(c==='tg'||c==='xg'||m[0]==='&')&&!pvOk(m,allow))c='lit';
+    const iv=INV.test(m)?' iv" data-u="'+uPlus(m):'';
+    if(c==='xg'&&m[1]!=='/'&&!/\/>$/.test(m)){out+='<mark class="xg">'+hesc(m)+'</mark>';xd++;return m}
+    if(c==='xg'&&m[1]==='/'&&xd>0)xd--;
+    out+='<mark class="'+c+iv+'">'+hesc(m)+'</mark>';return m;
+  });
+  txt(t.slice(last));return out;
 }
 const clen=t=>[...t].length;
 /* ---- per-unit translation menu: machine translation + similar translations from the open file ---- */
@@ -1878,14 +1941,15 @@ function card(u){
   const cb=q('.sel');cb.setAttribute('aria-label','Select unit');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
   q('.id').textContent=u.id;q('.rn').textContent=rnShow(u);q('.rn').hidden=!u.rn;
   q('.lb').textContent=u.labels.length?'Label: '+u.labels.join(', '):'';q('.lb').hidden=!u.labels.length;
+  const allow=CFG.pv?pvAllow(u.rs,u.rt,cur(u)):null;
   const sv=CFG.pv?pvDec(u.rs):u.rs;
-  q('.src').innerHTML=hlight(sv);
+  q('.src').innerHTML=hlight(sv,allow);
   q('.sc').textContent=clen(sv)+' chars';
   cxt.textContent=mode==='strings'?(ctxLines(u).join('\n')||'No comment'):(crowdin||v2)?(ctxLines(u).join('\n')||(v2?'No notes or module data':'No context')):'For Crowdin Only'
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
-  const allow=CFG.pv?pvAllow(u.rs,u.rt,cur(u)):null,P=!!CFG.pv&&pvSafe(cur(u),allow);
+  const P=!!CFG.pv&&pvSafe(cur(u),allow);
   const toTa=r=>P?pvDec(r):r,fromTa=v=>P?pvEnc(v,allow):v;
-  const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=(u.slr&&!P?(x=>txtlen(x,u.nfG)):clen)(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars'+(CFG.pv&&!P?' \u00b7 raw':'');tc.classList.toggle('over',!!u.max&&n>u.max)};
+  const paint=()=>{hl.innerHTML=hlight(ta.value,P?allow:null)+' ';const n=(u.slr&&!P?(x=>txtlen(x,u.nfG)):clen)(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars'+(CFG.pv&&!P?' \u00b7 raw':'');tc.classList.toggle('over',!!u.max&&n>u.max)};
   const setText=v=>{ta.value=toTa(v);paint();fit()};
   ta.value=toTa(cur(u));ta.setAttribute('aria-label','Translation');paint();
   const refresh=()=>{
@@ -2499,7 +2563,21 @@ function langs(){
 }
 /* target language of the open file: its own (XLIFF), else the selector (strings.xml, or an XLIFF that names none) */
 const tlNow=()=>mode==='strings'?lc($('tl').value):doc?(langs().tl||lc($('tl').value)):'';
-const TOK=/%(?:\d+\$)?[-#+0,(]*\d*(?:\.\d+)?[a-zA-Z%]|\\u[0-9a-fA-F]{4}|\\[nrt'"@?\\]|&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);|<[^>]+>|\{[^}]*\}/g;
+const TOK=/%(?:\d+\$)?[-#+0,(]*\d*(?:\.\d+)?(?:[tT][a-zA-Z]|[a-zA-Z%])|\\u[0-9a-fA-F]{4}|\\[nrt'"@?\\]|&amp;(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|<!\[CDATA\[|\]\]>|<!--[\s\S]*?-->|<[^>]+>|\{[^}]*\}|[\u00A0\u00AD\u200B-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]/g;
+/* what each token is: %... format spec, \n \uXXXX escape, &amp;quot; (double-escaped) / &lt; entity, <![CDATA[ ]]> markers, <xliff:g> wrapper, other tag, invisible / bidi character */
+const INV=/^[\u00A0\u00AD\u200B-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]$/;
+const uPlus=c=>'U+'+c.codePointAt(0).toString(16).toUpperCase().padStart(4,'0');
+const XG_RX=/^<\/?xliff:g(?=[\s>\/])/;
+const xgId=t=>{const i=/\bid\s*=\s*(?:"([^"]*)"|'([^']*)')/.exec(t);return i?(i[1]!==undefined?i[1]:i[2]):''};
+/* comparison key of a token: <xliff:g> is identified by its id (its example attribute is only a hint and may be translated), a backslash-u escape and the character itself are the same */
+function tokKey(m){
+  if(/^<xliff:g(?=[\s>\/])/.test(m)){const i=xgId(m);return '<xliff:g'+(i?' id="'+i+'"':'')+'>'}
+  if(m[0]==='<')return m.replace(/\s+>$/,'>');
+  if(INV.test(m))return uPlus(m);
+  const e=/^\\u([0-9a-fA-F]{4})$/.exec(m);
+  if(e){const c=String.fromCharCode(parseInt(e[1],16));return INV.test(c)?uPlus(c):'\\u'+e[1].toUpperCase()}
+  return m;
+}
 async function gtx(q,sl,tl){
   const url='https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl='+sl+'&tl='+tl+'&q='+encodeURIComponent(q);
   const r=await net(async()=>{const r=await fetch(url);if(retryable(r.status))throw httpErr(r);return r});
@@ -2517,17 +2595,21 @@ async function mym(q,sl,tl){
 const lname=c=>{const k=String(c).toLowerCase(),all=allLangs(),l=all.find(x=>x[0].toLowerCase()===k);
   if(l)return l[1]?l[1]+' ('+l[0]+')':l[0];
   const b=all.find(x=>x[0].toLowerCase()===k.split('-')[0]);return b&&b[1]?b[1]+' ('+c+')':c};   /* fr-CA -> French (fr-CA) */
-function mtPrompt(src,u,sl,tl){
-  const sys=['You are a professional software localizer for an Android app. Translate the given UI string.',
+function mtSys(multi){
+  return ['You are a professional software localizer for an Android app. Translate the given UI '+(multi?'strings':'string')+'.',
     'Rules:',
-    '- Output ONLY the translation: no quotes, no notes, no code fences.',
+    multi?'- Output ONLY a JSON array with one object {"id":<the id of the input>,"text":"<translation>"} per input string, every id exactly once, and nothing else (no notes, no code fences). The input is JSON: a backslash of the source appears doubled there, and must be doubled in your output too.':'- Output ONLY the translation: no quotes, no notes, no code fences.',
     '- The text is raw XML content. Keep placeholders (%s, %1$d, {name}), escape sequences (\\n, \\\', \\\"), XML entities (&amp; &lt; &gt;) and tags (<b>, <xliff:g ...>) exactly as in the source. Never translate tag names, attributes or placeholders.',
+    '- Text inside <xliff:g> ... </xliff:g> is protected: keep the whole element, its content included, exactly as in the source.',
+    '- Keep CDATA wrappers (<![CDATA[ ... ]]>) and double-escaped entities such as &amp;quot; exactly as in the source.',
     '- Keep the same line breaks, leading/trailing spaces and punctuation style.',
     '- The key name and context are only hints about meaning and are not to be translated.',
     '- For a plural form, write the correct plural form for the target language.',
     mode==='strings'?'- Apostrophes and double quotes in the output must be escaped as \\\' and \\\" (Android strings.xml).':'',
     GL.length?'- If a glossary is given with the string, translate the listed terms exactly as specified (adapt only grammar if the target language requires).':'',
     CFG.gnotes.trim()?'Extra notes from the app author:\n'+CFG.gnotes.trim():''].filter(Boolean).join('\n');
+}
+function mtInfo(src,u){
   const info=['Key: '+(mode==='strings'?u.id:(u.rn||u.id))];
   if(u.kind==='p')info.push('Plural quantity: '+u.sub);
   if(u.kind==='a')info.push('Array item index: '+u.sub);
@@ -2539,6 +2621,10 @@ function mtPrompt(src,u,sl,tl){
   if(u.vr&&u.vr.length)info.push('The translation must satisfy these rules: '+u.vr.map(r=>[r.pr&&'contain "'+r.pr+'"',r.np&&'not contain "'+r.np+'"',r.sw&&'start with "'+r.sw+'"',r.ew&&'end with "'+r.ew+'"'].filter(Boolean).join(', ')).join('; '));
   const gh=glossHits(src).slice(0,40);
   if(gh.length)info.push('Glossary (use exactly these translations for these terms):\n'+gh.map(h=>'- '+h.s+' => '+h.t).join('\n'));
+  return info;
+}
+function mtPrompt(src,u,sl,tl){
+  const sys=mtSys(),info=mtInfo(src,u);
   const prompt=info.join('\n')+'\n\nSource text'+(sl&&sl!=='auto'?' ('+lname(sl)+')':'')+':\n<<<\n'+src+'\n>>>\n\nTranslate into '+lname(tl)+'. Output only the translation.';
   return {sys,prompt};
 }
@@ -2547,20 +2633,23 @@ function mtClean(t,src){
   t=t.trim().replace(/^```[a-z]*\n?/i,'').replace(/\n?```$/,'').replace(/^<<<\n?/,'').replace(/\n?>>>$/,'').trim();
   return /^\s*/.exec(src)[0]+t+/\s*$/.exec(src)[0];
 }
-async function gemini(src,u,sl,tl){
-  const {sys,prompt}=mtPrompt(src,u,sl,tl);
+async function geminiText(sys,prompt,json){
   const url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent((CFG.gmodel||DEFMODEL).trim())+':generateContent';
   const headers={'Content-Type':'application/json','x-goog-api-key':CFG.gkey.trim()};
   const base={system_instruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:prompt}]}]};
   const send=b=>net(async()=>{const r=await fetch(url,{method:'POST',headers,body:JSON.stringify(b)});if(retryable(r.status))throw httpErr(r);return r});
-  let r=await send({...base,generationConfig:{thinkingConfig:{thinkingLevel:'low'}}});
+  let r=await send({...base,generationConfig:Object.assign({thinkingConfig:{thinkingLevel:'low'}},json?{responseMimeType:'application/json'}:{})});
   if(r.status===400)r=await send(base);
   const j=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
   const c=j.candidates&&j.candidates[0];
   let t=c&&c.content&&c.content.parts?c.content.parts.filter(p=>!p.thought).map(p=>p.text||'').join(''):'';
   if(!t.trim())throw new Error(j.promptFeedback&&j.promptFeedback.blockReason?'Blocked: '+j.promptFeedback.blockReason:'Empty response'+(c&&c.finishReason?' ('+c.finishReason+')':''));
-  return mtClean(t,src);
+  return t;
+}
+async function gemini(src,u,sl,tl){
+  const {sys,prompt}=mtPrompt(src,u,sl,tl);
+  return mtClean(await geminiText(sys,prompt,false),src);
 }
 async function groqChat(messages){
   const model=(CFG.qmodel||GQDEF).trim();
@@ -2596,6 +2685,25 @@ async function geminiTest(){
   if(!t)throw new Error(j.promptFeedback&&j.promptFeedback.blockReason?'Blocked: '+j.promptFeedback.blockReason:'Empty response');
   return t;
 }
+/* the <xliff:g> elements of a text (nested ones too): {id, from, to (content range), text (content), d (nesting depth)} */
+function xgSpans(t){
+  const out=[],st=[],rx=/<xliff:g(?=[\s>\/])[^>]*?(\/?)>|<\/xliff:g\s*>/g;let m;
+  while((m=rx.exec(t))){
+    if(m[0][1]==='/'){const o=st.pop();if(o)out.push({id:o.id,from:o.start,to:m.index+m[0].length,text:t.slice(o.end,m.index),d:st.length})}
+    else if(!m[1])st.push({id:xgId(m[0]),start:m.index,end:m.index+m[0].length});
+  }
+  return out;
+}
+/* ids of the protected <xliff:g> texts that were changed in c */
+function xgChanged(s,c){
+  const T=xgSpans(c),bad=[];
+  xgSpans(s).forEach(a=>{
+    if(!a.text.replace(TOK,'').trim())return;
+    const ts=T.filter(b=>b.id===a.id);
+    if(ts.length&&!ts.some(b=>b.text===a.text))bad.push(a.id||'?');
+  });
+  return bad;
+}
 /* wrapper for checking a fragment: declares every namespace prefix of the open file (default: xliff) */
 let _nsRaw=null,_nsDecl='';
 function xmlWrap(x){
@@ -2611,30 +2719,86 @@ function xmlWrap(x){
 }
 /* quote marks (\' \" &apos; &quot;) are punctuation, not placeholders: their number legitimately differs between languages */
 const QUOTE_TOK=new Set(["\\'",'\\"','&apos;','&quot;']);
-const tokCount=t=>{const m=new Map();(t.match(TOK)||[]).forEach(x=>{if(!QUOTE_TOK.has(x))m.set(x,(m.get(x)||0)+1)});return m};
-async function machine(src,u){
+const tokCount=t=>{const m=new Map();(t.match(TOK)||[]).forEach(x=>{if(QUOTE_TOK.has(x))return;const k=tokKey(x);m.set(k,(m.get(k)||0)+1)});return m};
+function mtCx(){
   const lg=mode==='strings'?null:langs(),sl=lg?lg.sl:'auto',slr=lg&&lg.slr||'auto',tlr=(lg&&lg.tl?lg.tlr:$('tl').value).trim().replace(/_/g,'-'),tl=lc(tlr);
   if(!tl)throw new Error('Target language not found in file');
-  if(src.length>1500)throw new Error('Source too long');
   const quotes=t=>mode==='strings'?t.replace(/(<!\[CDATA\[[\s\S]*?\]\]>|<!--[\s\S]*?-->|<\/?[A-Za-z_][^>]*>)|(?<!\\)(['"])/g,(m,tag,q)=>tag?tag:'\\'+q):t;   /* tags keep their attribute quotes */
-  if(aiOn(CFG.eng)){
-    const out=quotes(await (CFG.eng==='groq'?groq:gemini)(src,u,slr,tlr));
-    const a=tokCount(src),b=tokCount(out);let miss=false;a.forEach((n,k)=>{if((b.get(k)||0)!==n)miss=true});
-    const bad=new DOMParser().parseFromString(xmlWrap(out),'application/xml').querySelector('parsererror');
-    return {text:out,warn:miss||!!bad,msg:bad?'The translation may not be valid XML (check &, < and tags). Please review it.':'Some placeholders differ from the source. Please review the translation.'};
-  }
-  const toks=[];
+  return {sl,slr,tl,tlr,quotes};
+}
+/* AI answer -> result: escapes quotes for strings.xml and flags placeholders / XML that differ from the source */
+function aiFin(src,txt,quotes){
+  const out=quotes(mtClean(txt,src));
+  const a=tokCount(src),b=tokCount(out);let miss=false;a.forEach((n,k)=>{if((b.get(k)||0)!==n)miss=true});
+  const bad=new DOMParser().parseFromString(xmlWrap(out),'application/xml').querySelector('parsererror');
+  return {text:out,warn:miss||!!bad,msg:bad?'The translation may not be valid XML (check &, < and tags). Please review it.':'Some placeholders differ from the source. Please review the translation.'};
+}
+/* free engine: glossary terms and placeholders become [[n]] tokens (shared array, so several units can be merged); returns the text to send */
+function freePrep(src,toks,quotes){
   let p0=src;
+  /* an <xliff:g> element (tags and content) is not translated: it goes through the engine as one token */
+  {const sp=xgSpans(src).filter(x=>x.d===0).sort((a,b)=>a.from-b.from);
+   if(sp.length){let o='',l=0;sp.forEach(x=>{o+=src.slice(l,x.from);toks.push(src.slice(x.from,x.to));o+='[['+(toks.length-1)+']]';l=x.to});p0=o+src.slice(l)}}
   glossHits(src).forEach(h=>{p0=p0.replace(new RegExp(h.re.source,'giu'),()=>{toks.push(quotes(h.t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')));return '[['+(toks.length-1)+']]'})});
-  const p=p0.replace(TOK,t=>{toks.push(t);return '[['+(toks.length-1)+']]'});
-  let out;
-  try{out=await gtx(p,sl,tl)}catch(e1){
-    try{out=await mym(p,sl,tl)}catch(e2){throw new Error(e1.message+' / '+e2.message)}}
+  return p0.replace(TOK,t=>{toks.push(t);return '[['+(toks.length-1)+']]'});
+}
+/* free engine answer -> result; only the tokens a..b-1 belong to this unit */
+function freeFin(out,toks,a,b,quotes){
   out=out.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   out=quotes(out);
   const used=new Set();
-  out=out.replace(/\[\s*\[\s*(\d+)\s*\]\s*\]/g,(m,i)=>{if(toks[i]===undefined)return m;used.add(i);return toks[i]});
-  return {text:out,warn:used.size<toks.length,msg:'Some placeholders may be missing from the translation. Please review it.'};
+  out=out.replace(/\[\s*\[\s*(\d+)\s*\]\s*\]/g,(m,i)=>{i=+i;if(i<a||i>=b||toks[i]===undefined)return m;used.add(i);return toks[i]});
+  return {text:out,warn:used.size<b-a,msg:'Some placeholders may be missing from the translation. Please review it.'};
+}
+async function machine(src,u){
+  const cx=mtCx(),{sl,slr,tl,tlr,quotes}=cx;
+  if(src.length>1500)throw new Error('Source too long');
+  if(aiOn(CFG.eng))return aiFin(src,await (CFG.eng==='groq'?groq:gemini)(src,u,slr,tlr),quotes);
+  const toks=[],p=freePrep(src,toks,quotes);
+  let out;
+  try{out=await gtx(p,sl,tl)}catch(e1){
+    try{out=await mym(p,sl,tl)}catch(e2){throw new Error(e1.message+' / '+e2.message)}}
+  return freeFin(out,toks,0,toks.length,quotes);
+}
+/* ---- merged requests (bulk translation): several units in one request ----
+   Returns one result per unit, or null where the answer for that unit is missing / unusable (the caller translates it alone). */
+function mtChunks(list){
+  const ai=aiOn(CFG.eng),max=CFG.mrg?Math.min(30,Math.max(2,Math.floor(+CFG.mrn)||10)):1,lim=ai?8000:4500,out=[];
+  let c=[],n=0;
+  for(const u of list){
+    if(max<2||u.rs.length>1500){if(c.length)out.push(c);c=[];n=0;out.push([u]);continue}
+    const l=(ai?u.rs.length:encodeURIComponent(u.rs).length)+60;   /* the free engine takes the text in the URL */
+    if(c.length&&(c.length>=max||n+l>lim)){out.push(c);c=[];n=0}
+    c.push(u);n+=l;
+  }
+  if(c.length)out.push(c);return out;
+}
+function mtParse(t){
+  t=String(t).replace(/<think>[\s\S]*?<\/think>/g,'').trim().replace(/^```[a-z]*\n?/i,'').replace(/\n?```$/,'').trim();
+  let j;try{j=JSON.parse(t)}catch(e){const a=t.indexOf('['),b=t.lastIndexOf(']');if(a<0||b<a)return null;try{j=JSON.parse(t.slice(a,b+1))}catch(e2){return null}}
+  if(j&&!Array.isArray(j))j=Object.values(j).find(Array.isArray);
+  if(!Array.isArray(j))return null;
+  const m=new Map();j.forEach(x=>{if(x&&typeof x.text==='string'&&x.id!==undefined)m.set(String(x.id),x.text)});return m;
+}
+async function machineBatch(list){
+  const cx=mtCx(),{sl,slr,tl,tlr,quotes}=cx;
+  if(aiOn(CFG.eng)){
+    const items=list.map((u,i)=>({id:i+1,text:u.rs,notes:mtInfo(u.rs,u).join('\n')}));
+    const sys=mtSys(true),prompt='Translate the "text" of every item'+(slr&&slr!=='auto'?' from '+lname(slr):'')+' into '+lname(tlr)+'. Each "notes" field only gives context for that item and is not to be translated. Output only the JSON array.\n\nInput:\n'+JSON.stringify(items);
+    const raw=CFG.eng==='groq'?await groqChat([{role:'system',content:sys},{role:'user',content:prompt}]):await geminiText(sys,prompt,true);
+    const m=mtParse(raw);if(!m)return list.map(()=>null);
+    return list.map((u,i)=>{const t=m.get(String(i+1));return t&&t.trim()?aiFin(u.rs,t,quotes):null});
+  }
+  const toks=[],pr=list.map(u=>{const a=toks.length,p=freePrep(u.rs,toks,quotes);return {a,b:toks.length,p}});
+  const q=pr.map((x,i)=>'[['+(90000+i)+']]\n'+x.p.trim()).join('\n');
+  const out=await gtx(q,sl,tl),parts=new Map(),rx=/\[\s*\[\s*(9\d{4})\s*\]\s*\]/g,mk=[];let m;
+  while((m=rx.exec(out)))mk.push([+m[1]-90000,m.index,m.index+m[0].length]);
+  mk.forEach((k,i)=>parts.set(k[0],out.slice(k[2],i+1<mk.length?mk[i+1][1]:out.length)));
+  return list.map((u,i)=>{
+    const t=parts.get(i);if(t===undefined||!t.trim())return null;
+    const r=freeFin(t.trim(),toks,pr[i].a,pr[i].b,quotes);
+    r.text=/^\s*/.exec(u.rs)[0]+r.text+/\s*$/.exec(u.rs)[0];return r;
+  });
 }
 
 /* Saves by downloading: a normal browser download in the browser / WebView, or a file written to the
@@ -2795,12 +2959,14 @@ async function exportStrings(){
   const wrap=xmlWrap;
   const parse=x=>new DOMParser().parseFromString(wrap(x),'application/xml');
   const items=[],seen=new Set();
-  let empty=0,hidden=0,dup=0,kept=0,tags=0,quoted=0,v2tags=0;const badName=[],badXml=[];
+  let empty=0,hidden=0,hiddenOut=0,dup=0,kept=0,tags=0,quoted=0,v2tags=0;const badName=[],badXml=[];
   let nIt=0;
   for(const u of units){
     if(++nIt%300===0){busy('Preparing export\u2026 '+nIt+' / '+units.length);await new Promise(r=>setTimeout(r,0))}
-    if((u.tr!==undefined?u.tr:u.oTr)==='no'){hidden++;continue}
-    const c=cur(u);if(!c.trim()){empty++;continue}
+    const hid=trOf(u)==='no';
+    if(hid&&!CFG.xh){hidden++;continue}
+    let c=cur(u);if(hid&&!c.trim())c=u.rs||'';   /* a hidden unit usually has no translation: its source text is the value */
+    if(!c.trim()){empty++;continue}
     if(!/^[A-Za-z_][A-Za-z0-9_.]*$/.test(u.rn||'')){badName.push(u.rn||u.id);continue}
     if(seen.has(u.rn)){dup++;continue}
     if(v2&&/<[^>]+>/.test(c)){v2tags++;continue}
@@ -2812,13 +2978,14 @@ async function exportStrings(){
       if(parse(dec).querySelector('parsererror'))kept++;else text=dec;
     }
     {const t2=pvToAndroid(text);if(t2!==text){quoted++;text=t2}}   /* strings.xml needs \' and \" whatever the XLIFF used (plain quote, &apos; / &quot;) */
-    seen.add(u.rn);items.push([u.rn,text]);
+    seen.add(u.rn);items.push([u.rn,text,hid]);if(hid)hiddenOut++;
   }
   busy('');upd(true);
   if(!items.length){alert('Nothing to export: no translated, visible unit has a valid resname.');return}
   const lines=[items.length+' strings will be exported.'];
   if(empty)lines.push('Skipped (empty translation): '+empty);
   if(hidden)lines.push('Skipped (hidden): '+hidden);
+  if(hiddenOut)lines.push('Hidden, exported with translatable="false": '+hiddenOut);
   if(badName.length)lines.push('Skipped (resname missing or not a valid Android name): '+badName.length);
   if(dup)lines.push('Skipped (duplicate resname): '+dup);
   if(badXml.length)lines.push('Skipped (invalid XML in translation): '+badXml.length);
@@ -2833,7 +3000,7 @@ async function exportStrings(){
    items.forEach(([,t])=>{const r2=/<\/?([A-Za-z_][\w.\-]*):[\w.\-]/g;let q;while((q=r2.exec(t)))used.add(q[1])})}
   const nsAttr=[...used].filter(p=>nsMap[p]).map(p=>' xmlns:'+p+'='+nsMap[p]).join('');
   const L=['<?xml version="1.0" encoding="utf-8"?>','<resources'+nsAttr+'>'];
-  items.forEach(([nm,t])=>L.push('    <string name="'+nm+'">'+t+'</string>'));
+  items.forEach(([nm,t,h])=>L.push('    <string name="'+nm+'"'+(h?' translatable="false"':'')+'>'+t+'</string>'));
   L.push('</resources>','');
   const out=L.join('\n');
   if(new DOMParser().parseFromString(out,'application/xml').querySelector('parsererror')){alert('The generated strings.xml is not valid XML. Not exported.');return}
