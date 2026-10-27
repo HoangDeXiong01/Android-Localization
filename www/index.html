@@ -313,9 +313,15 @@ const PV_TOK=new RegExp(PV_TAG.source+'|&(?:[A-Za-z][\\w.-]*|#\\d+|#x[0-9A-Fa-f]
 const pvXe=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const pvIsDec=m=>/^&(?:amp|lt|gt|quot|apos);$/.test(m);
 /* strings.xml: Android collapses the line breaks and indentation of the file's layout, so the preview shows the text without them (quoted strings and CDATA are left alone) */
+const wsLead=t=>/^\s*/.exec(t)[0];
+const wsTrail=t=>{let e=t.length;while(e>0&&/\s/.test(t[e-1]))e--;return t.slice(e)};
+const wsEdge=t=>{const l=wsLead(t);if(l.includes('\n'))t=t.slice(l.length);const r=wsTrail(t);return r.includes('\n')?t.slice(0,t.length-r.length):t};   /* drops leading / trailing whitespace that holds a line break */
 const pvWs=t=>{
-  if(mode!=='strings'||/(?<!\\)"/.test(t.replace(/<!\[CDATA\[[\s\S]*?\]\]>/g,'').replace(/<[^>]*>/g,'')))return t;
-  return t.replace(/^\s*\n\s*|\s*\n\s*$/g,'').split(/(<!\[CDATA\[[\s\S]*?\]\]>)/).map((p,i)=>i%2?p:p.replace(/[ \t]*\r?\n\s*/g,' ')).join('');
+  if(mode!=='strings'||!t.includes('\n'))return t;
+  if(t.includes('"')&&/(?<!\\)"/.test(t.replace(/<!\[CDATA\[[\s\S]*?\]\]>/g,'').replace(/<[^<>]*>/g,'')))return t;
+  const f=x=>x.replace(/\s+/g,m=>m.includes('\n')?' ':m);
+  t=wsEdge(t);
+  return t.includes('<![CDATA[')?t.split(/(<!\[CDATA\[[\s\S]*?\]\]>)/).map((p,i)=>i%2?p:f(p)).join(''):f(t);
 };
 const pvOk=(m,allow)=>m.startsWith('<!')||allow.has(m)||(!!allow.xg&&XG_RX.test(m));   /* is this tag / entity real markup (not plain text)? */
 const PV_EN={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'"};
@@ -325,7 +331,7 @@ const pvTxt=t=>t.replace(mode==='strings'?/\\[\s\S]|&(amp|lt|gt|quot|apos);/g:/&
 function pvQ(t){let o='',bs=0;for(const c of t){if(c==='\\'){bs++;o+=c;continue}o+=(c==="'"||c==='"')&&!(bs%2)?'\\'+c:c;bs=0}return o}
 const pvSeg=t=>{t=pvXe(t);return mode==='strings'?pvQ(t):t.replace(/"/g,'&quot;').replace(/'/g,'&apos;')};
 /* a text that is one single CDATA section: its content (the preview shows it without the wrapper, a chip tells it is CDATA), else null */
-const pvCdInner=t=>{const m=/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/.exec(t||'');return m&&!/\]\]>/.test(m[1])?m[1]:null};
+const pvCdInner=t=>{t=t||'';if(!t.includes('<![CDATA['))return null;const m=/^\s*<!\[CDATA\[([\s\S]*?)\]\]>$/.exec(wsTrail(t)?t.slice(0,t.length-wsTrail(t).length):t);return m&&!/\]\]>/.test(m[1])?m[1]:null};
 const pvCdWrap=v=>v===''?'':'<![CDATA['+v.replace(/\]\]>/g,']]]]><![CDATA[>')+']]>';
 function pvDec(raw){
   {const w=pvCdInner(raw);if(w!==null)return w}
@@ -494,7 +500,7 @@ function glMap(txt){
   });
 }
 function tcls(t){
-  t=txtOf(t).replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\s]+$/,'').replace(/(?:\\[nrt])+$/,'').replace(/\s+$/,'');if(!t)return '';   /* the text only: tags and CDATA marks dropped, entities decoded ("Loading&#8230;" ends with an ellipsis, not with a ";"), a trailing \n escape is no punctuation */
+  t=txtOf(t);{let e=t.length;while(e>0&&/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\s]/.test(t[e-1]))e--;t=t.slice(0,e)}t=t.replace(/(?:\\[nrt])+$/,'');t=t.slice(0,t.length-wsTrail(t).length);if(!t)return '';   /* the text only: tags and CDATA marks dropped, entities decoded ("Loading&#8230;" ends with an ellipsis, not with a ";"), a trailing \n escape is no punctuation */
   if(/(\.\.\.|\u2026)$/.test(t))return 'ell';
   const c=t.slice(-1);
   if('.\u3002\uff0e'.includes(c))return 'dot';
@@ -603,12 +609,12 @@ function qaOf(u){
       if(miss.length)out.push('Missing: '+miss.slice(0,4).join(' '));
       if(extra.length)out.push('Extra: '+extra.slice(0,4).join(' '));
       if(!ni){const xc=xgChanged(s,c);if(xc.length)out.push('Protected text inside <xliff:g> changed: '+xc.slice(0,3).join(', '));}
-      if(mode==='strings'&&!u.fm&&(s.match(TOK)||[]).some(x=>x[0]==='%'&&x!=='%%')&&c.replace(TOK,'').includes('%'))out.push('Stray % (a literal percent must be written %%)')}
+      if(mode==='strings'&&!u.fm&&/%/.test(c)&&(s.match(TOK)||[]).some(x=>x[0]==='%'&&x!=='%%')&&c.replace(TOK,'').includes('%'))out.push('Stray % (a literal percent must be written %%)')}
     if(ni)inlineViol(u,c).forEach(x=>out.push(x));
     if(Q.ws){
       /* strings.xml: indentation and line breaks around / inside the text are only layout of the file (Android collapses them); a real line break is the \n escape, which the tag check covers */
-      const ed=t=>mode==='strings'?t.replace(/^\s*\n\s*/,'').replace(/\s*\n\s*$/,''):t,s1=ed(s),c1=ed(c);
-      if(/^\s*/.exec(s1)[0]!==/^\s*/.exec(c1)[0]||/\s*$/.exec(s1)[0]!==/\s*$/.exec(c1)[0])out.push('Leading/trailing spaces differ');
+      const s1=mode==='strings'?wsEdge(s):s,c1=mode==='strings'?wsEdge(c):c;
+      if(wsLead(s1)!==wsLead(c1)||wsTrail(s1)!==wsTrail(c1))out.push('Leading/trailing spaces differ');
       if(mode!=='strings'&&(s.match(/\n/g)||[]).length!==(c.match(/\n/g)||[]).length)out.push('Line breaks differ')}
     if(Q.dsp&&/ {2,}/.test(c)&&!/ {2,}/.test(s))out.push('Double spaces');
     if(Q.pu&&tcls(s)!==tcls(c))out.push('End punctuation differs');
@@ -1955,7 +1961,7 @@ function card(u){
   cxt.textContent=mode==='strings'?(ctxLines(u).join('\n')||'No comment'):(crowdin||v2)?(ctxLines(u).join('\n')||(v2?'No notes or module data':'No context')):'For Crowdin Only'
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
   const P=!!CFG.pv&&(cd||pvSafe(cur(u),allow));
-  const toTa=r=>cd?(pvCdInner(r)!==null?pvCdInner(r):pvDec(r)):P?pvDec(r):r,fromTa=v=>cd?pvCdWrap(v):P?pvEnc(v,allow):v;
+  const toTa=r=>cd?(pvCdInner(r)!==null?pvCdInner(r):pvDec(r)):P?pvDec(r):r,fromTa=v=>cd?pvCdWrap(pvCdInner(v)!==null?pvCdInner(v):v):P?pvEnc(v,allow):v;
   const paint=()=>{hl.innerHTML=hlight(ta.value,P?allow:null)+' ';const n=(u.slr&&!P?(x=>txtlen(x,u.nfG)):clen)(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars'+(CFG.pv&&!P?' \u00b7 raw':'');tc.classList.toggle('over',!!u.max&&n>u.max)};
   const setText=v=>{ta.value=toTa(v);paint();fit()};
   ta.value=toTa(cur(u));ta.setAttribute('aria-label','Translation');paint();
@@ -2570,7 +2576,7 @@ function langs(){
 }
 /* target language of the open file: its own (XLIFF), else the selector (strings.xml, or an XLIFF that names none) */
 const tlNow=()=>mode==='strings'?lc($('tl').value):doc?(langs().tl||lc($('tl').value)):'';
-const TOK=/%(?:\d+\$)?[-#+0,(]*\d*(?:\.\d+)?(?:[tT][a-zA-Z]|[a-zA-Z%])|\\u[0-9a-fA-F]{4}|\\[nrt'"@?\\]|&amp;(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|<!\[CDATA\[|\]\]>|<!--[\s\S]*?-->|<[^>]+>|\{[^}]*\}|[\u00A0\u00AD\u200B-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]/g;
+const TOK=/%(?:\d+\$)?[-#+0,(]*\d*(?:\.\d+)?(?:[tT][a-zA-Z]|[a-zA-Z%])|\\u[0-9a-fA-F]{4}|\\[nrt'"@?\\]|&amp;(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|<!\[CDATA\[|\]\]>|<!--[\s\S]*?-->|<[^<>]+>|\{[^{}]*\}|[\u00A0\u00AD\u200B-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]/g;
 /* what each token is: %... format spec, \n \uXXXX escape, &amp;quot; (double-escaped) / &lt; entity, <![CDATA[ ]]> markers, <xliff:g> wrapper, other tag, invisible / bidi character */
 const INV=/^[\u00A0\u00AD\u200B-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]$/;
 const uPlus=c=>'U+'+c.codePointAt(0).toString(16).toUpperCase().padStart(4,'0');
@@ -2638,7 +2644,7 @@ function mtPrompt(src,u,sl,tl){
 /* strips code fences / delimiters the model may add, and restores the source's leading and trailing whitespace */
 function mtClean(t,src){
   t=t.trim().replace(/^```[a-z]*\n?/i,'').replace(/\n?```$/,'').replace(/^<<<\n?/,'').replace(/\n?>>>$/,'').trim();
-  return /^\s*/.exec(src)[0]+t+/\s*$/.exec(src)[0];
+  return wsLead(src)+t+wsTrail(src);
 }
 async function geminiText(sys,prompt,json){
   const url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent((CFG.gmodel||DEFMODEL).trim())+':generateContent';
@@ -2703,11 +2709,12 @@ function xgSpans(t){
 }
 /* ids of the protected <xliff:g> texts that were changed in c */
 function xgChanged(s,c){
-  const T=xgSpans(c),bad=[];
+  const T=new Map(),bad=[];
+  xgSpans(c).forEach(b=>{if(!T.has(b.id))T.set(b.id,[]);T.get(b.id).push(b.text)});
   xgSpans(s).forEach(a=>{
-    if(!a.text.replace(TOK,'').trim())return;
-    const ts=T.filter(b=>b.id===a.id);
-    if(ts.length&&!ts.some(b=>b.text===a.text))bad.push(a.id||'?');
+    const ts=T.get(a.id);
+    if(!ts||ts.includes(a.text)||!a.text.replace(TOK,'').trim())return;
+    bad.push(a.id||'?');
   });
   return bad;
 }
@@ -2804,7 +2811,7 @@ async function machineBatch(list){
   return list.map((u,i)=>{
     const t=parts.get(i);if(t===undefined||!t.trim())return null;
     const r=freeFin(t.trim(),toks,pr[i].a,pr[i].b,quotes);
-    r.text=/^\s*/.exec(u.rs)[0]+r.text+/\s*$/.exec(u.rs)[0];return r;
+    r.text=wsLead(u.rs)+r.text+wsTrail(u.rs);return r;
   });
 }
 
