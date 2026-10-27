@@ -71,6 +71,7 @@ mark.tg{background:rgba(66,165,245,.38)}
 mark.es{background:rgba(102,187,106,.42)}
 mark.xg{background:rgba(171,71,188,.34)}
 mark.xp{background:rgba(171,71,188,.14)}
+span.chip{display:inline-block;font-size:11px;line-height:1;padding:3px 7px;margin:2px 0 0 6px;border-radius:10px;background:rgba(158,158,158,.35);color:var(--fg);vertical-align:middle}
 mark.cd{background:rgba(158,158,158,.42)}
 mark.lit{background:none;box-shadow:inset 0 -2px 0 rgba(158,158,158,.75)}
 .src mark{unicode-bidi:isolate}
@@ -323,7 +324,11 @@ const pvTxt=t=>t.replace(mode==='strings'?/\\[\s\S]|&(amp|lt|gt|quot|apos);/g:/&
 // text -> XML content: & < > always; quotes as &quot; &apos; (XLIFF) or \" \' (strings.xml)
 function pvQ(t){let o='',bs=0;for(const c of t){if(c==='\\'){bs++;o+=c;continue}o+=(c==="'"||c==='"')&&!(bs%2)?'\\'+c:c;bs=0}return o}
 const pvSeg=t=>{t=pvXe(t);return mode==='strings'?pvQ(t):t.replace(/"/g,'&quot;').replace(/'/g,'&apos;')};
+/* a text that is one single CDATA section: its content (the preview shows it without the wrapper, a chip tells it is CDATA), else null */
+const pvCdInner=t=>{const m=/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/.exec(t||'');return m&&!/\]\]>/.test(m[1])?m[1]:null};
+const pvCdWrap=v=>v===''?'':'<![CDATA['+v.replace(/\]\]>/g,']]]]><![CDATA[>')+']]>';
 function pvDec(raw){
+  {const w=pvCdInner(raw);if(w!==null)return w}
   let out='',last=0;
   raw.replace(new RegExp(PV_TAG.source,'g'),(m,off)=>{out+=pvTxt(raw.slice(last,off))+m;last=off+m.length;return m});
   return pvWs(out+pvTxt(raw.slice(last)));
@@ -1941,14 +1946,16 @@ function card(u){
   const cb=q('.sel');cb.setAttribute('aria-label','Select unit');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
   q('.id').textContent=u.id;q('.rn').textContent=rnShow(u);q('.rn').hidden=!u.rn;
   q('.lb').textContent=u.labels.length?'Label: '+u.labels.join(', '):'';q('.lb').hidden=!u.labels.length;
-  const allow=CFG.pv?pvAllow(u.rs,u.rt,cur(u)):null;
+  const cd=!!CFG.pv&&pvCdInner(u.rs)!==null;   /* Edit on preview: a CDATA text is edited without its wrapper */
+  const allow=CFG.pv&&!cd?pvAllow(u.rs,u.rt,cur(u)):null;
   const sv=CFG.pv?pvDec(u.rs):u.rs;
   q('.src').innerHTML=hlight(sv,allow);
+  {const ch=document.createElement('span');ch.className='chip';ch.textContent='CDATA';ch.title='The text is wrapped in <![CDATA[ ... ]]>; the wrapper is kept when you save';ch.hidden=!cd;q('.idw').appendChild(ch)}
   q('.sc').textContent=clen(sv)+' chars';
   cxt.textContent=mode==='strings'?(ctxLines(u).join('\n')||'No comment'):(crowdin||v2)?(ctxLines(u).join('\n')||(v2?'No notes or module data':'No context')):'For Crowdin Only'
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
-  const P=!!CFG.pv&&pvSafe(cur(u),allow);
-  const toTa=r=>P?pvDec(r):r,fromTa=v=>P?pvEnc(v,allow):v;
+  const P=!!CFG.pv&&(cd||pvSafe(cur(u),allow));
+  const toTa=r=>cd?(pvCdInner(r)!==null?pvCdInner(r):pvDec(r)):P?pvDec(r):r,fromTa=v=>cd?pvCdWrap(v):P?pvEnc(v,allow):v;
   const paint=()=>{hl.innerHTML=hlight(ta.value,P?allow:null)+' ';const n=(u.slr&&!P?(x=>txtlen(x,u.nfG)):clen)(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars'+(CFG.pv&&!P?' \u00b7 raw':'');tc.classList.toggle('over',!!u.max&&n>u.max)};
   const setText=v=>{ta.value=toTa(v);paint();fit()};
   ta.value=toTa(cur(u));ta.setAttribute('aria-label','Translation');paint();
