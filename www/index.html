@@ -18,7 +18,7 @@ button.p{background:var(--ac);color:var(--bg)}
 button:disabled{opacity:.35}
 svg{width:22px;height:22px;fill:currentColor}
 input[type=search]{flex:1;min-width:0;height:40px;padding:0 10px;border-radius:10px;border:1px solid var(--card);background:var(--card);color:var(--fg);font-size:16px}
-#selc,#info{flex:1;min-width:0;font-size:13px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#selc,#info,#hidc,#qic{flex:1;min-width:0;font-size:13px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #pg{font-size:14px;min-width:24px;text-align:left;white-space:nowrap}
 #pgi{width:52px;height:40px;padding:0 4px;text-align:center;border-radius:10px;border:1px solid var(--card);background:var(--card);color:var(--fg);font-size:16px;-moz-appearance:textfield;appearance:textfield}
 #pgi::-webkit-outer-spin-button,#pgi::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -43,7 +43,8 @@ button.on{background:var(--ac)!important;color:var(--bg)!important}
 select{font-size:16px}button,select,input,label{touch-action:manipulation}button{cursor:pointer}:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 #tl{width:78px;height:36px;padding:0 4px}
 #mnb{height:36px}
-body.sm .ap,body.sm .hd{display:none}
+body.sm .ap{display:none}
+.u.hv{opacity:.62}
 body.sm #fl [data-f=rn],body.sm #fl [data-f=lbl]{display:none}
 body.nc #fl [data-f=ctx],body.nc #fl [data-f=lbl]{display:none}
 .cxt{font-size:13px;color:var(--mut);white-space:pre-wrap;word-break:break-word;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--bg)}
@@ -135,7 +136,7 @@ body.busy,body.busy *{cursor:progress}
 #sm-sz{width:auto}
 </style></head><body>
 <header>
-<div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div><div id="selc" hidden></div></div><select id="tl" title="Target language" hidden></select><button id="cfgb" title="Settings" aria-label="Settings"></button><button id="mnb" title="Menu" aria-label="Menu"></button></div>
+<div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div><div id="hidc" hidden></div><div id="qic" hidden></div><div id="selc" hidden></div></div><select id="tl" title="Target language" hidden></select><button id="cfgb" title="Settings" aria-label="Settings"></button><button id="mnb" title="Menu" aria-label="Menu"></button></div>
 <div class="row">
 <input id="q" type="search" placeholder="Search"><button id="flt" title="Search in…" aria-label="Search in"></button>
 <input id="f" type="file" accept="*/*" hidden><input id="f2" type="file" accept="*/*" hidden></div>
@@ -250,6 +251,10 @@ const grpOf=u=>{if(u.gk===undefined)return [u];
   return GM.get(u.gk)||[u]};
 const setTrG=(u,n)=>grpOf(u).forEach(x=>setTr(x,n));
 const trOf=u=>u.tr!==undefined?u.tr:u.oTr;
+/* hide / unhide (translate="no" in XLIFF, translatable="false" in strings.xml): strings.xml units are the ones that have a kind */
+const canTr=u=>u.is12||u.v2||u.kind!==undefined;
+/* wording for a group that shares one visibility: segments of an XLIFF 2 unit, or the items of a strings.xml <plurals> / <string-array> */
+const GW=()=>mode==='strings'?{u:'plurals / array',s:'item'}:{u:'multi-segment unit',s:'segment'};
 /* the name line of a segment of a multi-segment unit is "name#segmentId" internally; the id line already shows the segment id, so show only the name */
 const rnShow=u=>u.gk!==undefined&&u.rn&&u.rn.lastIndexOf('#')>0?u.rn.slice(0,u.rn.lastIndexOf('#')):u.rn;
 const changed=u=>u.val!==undefined||u.ap!==undefined||u.tr!==undefined;
@@ -687,18 +692,21 @@ function parseStrings(txt){
     }
     return out;
   };   /* match on a copy with CDATA blanked (same length), so a "</string>" inside CDATA cannot end the string; the texts are cut from the real one */
-  const res=[];let fm=false,prod='';const re=/<(string-array|plurals|string)(?=[\s>\/])((?:"[^"]*"|'[^']*'|[^>"'])*?)(?:\/>|>([\s\S]*?)<\/\1\s*>)/g;let m;
+  const res=[];let fm=false,prod='',hidN=false;const re=/<(string-array|plurals|string)(?=[\s>\/])((?:"[^"]*"|'[^']*'|[^>"'])*?)(?:\/>|>([\s\S]*?)<\/\1\s*>)/g;let m;
   const add=(kind,name,sub,rs,cm)=>res.push({kind,name,sub,rs,fm,prod,id:name,rn:(kind==='p'?sub:kind==='a'?'['+sub+']':'')+(prod?(kind==='s'?'product: ':' \u00b7 ')+prod:''),
-    rt:'',is12:false,oAp:false,oTr:'yes',ctx:cm,labels:[],max:0,ct:cm.join('\n'),idx:res.length});
+    rt:'',is12:false,oAp:false,oTr:hidN?'no':'yes',ctx:cm,labels:[],max:0,ct:cm.join('\n'),idx:res.length});
   const inner=(src,r,g)=>{const c=r[g];if(c===undefined)return '';const e=r.index+r[0].lastIndexOf('</');return src.slice(e-c.length,e)};
   while((m=re.exec(tm))){
     const at=' '+m[2],name=ga(at,'name');
-    if(!name||ga(at,'translatable')==='false')continue;
+    if(!name)continue;
+    hidN=ga(at,'translatable')==='false';   /* kept as a hidden unit: it can be shown and unhidden */
     fm=ga(at,'formatted')==='false';prod=ga(at,'product')||'';
     const body=inner(t,m,3),bodyM=m[3]||'',cp=cmBefore(m.index),bs=m.index+m[0].lastIndexOf('</')-bodyM.length;
     if(m[1]==='string')add('s',name,'',body,cp);
     else{const ir=/<item(?=[\s>\/])((?:"[^"]*"|'[^']*'|[^>"'])*?)(?:\/>|>([\s\S]*?)<\/item\s*>)/g;let im,i=0;   /* <item/> (self-closing) is an empty item and must not swallow the next one */
-      while((im=ir.exec(bodyM)))add(m[1]==='plurals'?'p':'a',name,m[1]==='plurals'?(ga(' '+im[1],'quantity')||'other'):String(i++),inner(body,im,2),cp.concat(cmBefore(bs+im.index)))}
+      const g0=res.length;
+      while((im=ir.exec(bodyM)))add(m[1]==='plurals'?'p':'a',name,m[1]==='plurals'?(ga(' '+im[1],'quantity')||'other'):String(i++),inner(body,im,2),cp.concat(cmBefore(bs+im.index)));
+      if(res.length-g0>1)for(let z=g0;z<res.length;z++){res[z].gk=g0;res[z].gn=res.length-g0}}   /* translatable is an attribute of the <plurals> / <string-array>: its items share it */
   }
   return res;
 }
@@ -707,7 +715,7 @@ function buildStrings(){
   const rm=/<resources\b(?:"[^"]*"|'[^']*'|[^>"'])*>/.exec(maskRaw(raw||'')),root=rm&&rm[0].slice(-2)!=='/>'?raw.slice(rm.index,rm.index+rm[0].length):'<resources>';
   const L=['<?xml version="1.0" encoding="utf-8"?>',root];
   const has=v=>v.trim()!=='';
-  const pa=x=>(x.fm?' formatted="false"':'')+(x.prod?' product="'+x.prod+'"':'');   /* product variants (tablet / default ...) are separate resources and keep their attribute */
+  const pa=x=>(trOf(x)==='no'?' translatable="false"':'')+(x.fm?' formatted="false"':'')+(x.prod?' product="'+x.prod+'"':'');   /* product variants (tablet / default ...) are separate resources and keep their attribute */
   for(let i=0;i<units.length;){
     const u=units[i];let j=i+1;
     if(u.kind!=='s')while(j<units.length&&units[j].kind===u.kind&&units[j].name===u.name&&units[j].prod===u.prod)j++;   /* the items of one <plurals> / <string-array>; every <string> stands alone */
@@ -728,7 +736,15 @@ function patchStrings(){
   if(!raw)return null;
   const tm=maskRaw(raw),ed=[];let k=0;
   const has=v=>v.trim()!=='';
-  const want=u=>{const c=cur(u);return has(c)&&c!==u.rs?c:null};
+  const want=u=>{const c=cur(u);return has(c)&&c!==u.rs?c:null};   /* a hidden string keeps its translation too */
+  /* hide / unhide: only the translatable attribute of the start tag changes (ed0 = position in ed where this element's edits begin) */
+  const attrEdit=(u,m,ed0)=>{
+    if(u.tr===undefined)return;
+    const a0=m.index+1+m[1].length,at=raw.slice(a0,a0+m[2].length).replace(/\s+$/,'');
+    const rx=/\s+translatable\s*=\s*(?:"[^"]*"|'[^']*')/;
+    const t=u.tr==='no'?(rx.test(at)?at.replace(rx,' translatable="false"'):at+' translatable="false"'):at.replace(rx,'');
+    if(t!==at)ed.splice(ed0,0,[a0,a0+at.length,t]);
+  };
   const re=/<(string-array|plurals|string)(?=[\s>\/])((?:"[^"]*"|'[^']*'|[^>"'])*?)(?:\/>|>([\s\S]*?)<\/\1\s*>)/g;let m;
   const fill=(u,tag,start,len,body,selfEnd)=>{   /* body: [from,to] of the text, or null for a self-closing tag */
     const t=want(u);if(t===null)return;
@@ -737,10 +753,11 @@ function patchStrings(){
   };
   while((m=re.exec(tm))){
     const name=ga(' '+m[2],'name');
-    if(!name||ga(' '+m[2],'translatable')==='false')continue;
+    if(!name)continue;
     const bodyM=m[3];
     if(m[1]==='string'){
       const u=units[k++];if(!u||u.kind!=='s'||u.name!==name)return null;
+      attrEdit(u,m,ed.length);
       if(bodyM===undefined)fill(u,'string',m.index,m[0].length,null);
       else{const e=m.index+m[0].lastIndexOf('</');fill(u,'string',0,0,[e-bodyM.length,e])}
       continue;
@@ -749,8 +766,10 @@ function patchStrings(){
     const base=m.index+m[0].lastIndexOf('</')-bodyM.length;
     const ir=/<item(?=[\s>\/])((?:"[^"]*"|'[^']*'|[^>"'])*?)(?:\/>|>([\s\S]*?)<\/item\s*>)/g;let im;
     const kind=m[1]==='plurals'?'p':'a';
+    const ed0=ed.length;let first=null;
     while((im=ir.exec(bodyM))){
       const u=units[k++];if(!u||u.kind!==kind||u.name!==name)return null;
+      if(!first){first=u;attrEdit(u,m,ed0)}
       if(im[2]===undefined)fill(u,'item',base+im.index,im[0].length,null);
       else{const e=base+im.index+im[0].lastIndexOf('</');fill(u,'item',0,0,[e-im[2].length,e])}
     }
@@ -927,7 +946,7 @@ $('qac').innerHTML=QALAB.map(([k,t])=>'<label class="ck"><input type="checkbox" 
    strings.xml: no ic / val / len / hid.  XLIFF 1.2: no ic / val / apo.  XLIFF 2: no apo.  No file open: only the Edit on preview rules apply. */
 function pvUi(){
   const pv=$('c-pv').checked,sm=!!doc&&mode==='strings',x2=!!doc&&mode==='xliff'&&v2,has=!!doc;
-  const off={xml:pv,apo:pv||(has&&!sm),ic:has&&!x2,val:has&&!x2,len:sm,hid:sm};
+  const off={xml:pv,apo:pv||(has&&!sm),ic:has&&!x2,val:has&&!x2,len:sm};
   document.querySelectorAll('#qac input').forEach(x=>{const d=!!off[x.dataset.q];x.disabled=d;x.parentElement.style.opacity=d?.5:''});
 }
 $('c-pv').onchange=pvUi;
@@ -970,7 +989,7 @@ $('c-test').onclick=async()=>{
   catch(e){alert('Failed: '+e.message)}
   undo();b.disabled=false;
 };
-const BM=[['mt','Machine translate selected','mt',0],['check','Approve selected','ap',1],['close','Unapprove selected','un',1],['eyeoff','Hide selected','hd',1],['eye','Unhide selected','sh',1],['copy','Copy source to selected','cs',0],['undo','Undo changes in selected','ud',0],['clip','Save to clipboard','cb',0],['trash','Clear clipboard of selected','cc',0],['close','Clear selection','cl',0]];
+const BM=[['mt','Machine translate selected','mt',0],['check','Approve selected','ap',1],['close','Unapprove selected','un',1],['eyeoff','Hide selected','hd',0],['eye','Unhide selected','sh',0],['copy','Copy source to selected','cs',0],['undo','Undo changes in selected','ud',0],['clip','Save to clipboard','cb',0],['trash','Clear clipboard of selected','cc',0],['close','Clear selection','cl',0]];
 $('bl').innerHTML=BM.map(([i,t,a,x])=>'<button class="mi'+(x?' x':'')+'" data-a="'+a+'" type="button">'+ic(i)+'<span>'+t+'</span></button>').join('');
 $('bl').querySelectorAll('.mi').forEach(b=>b.onclick=()=>{$('bm').hidden=true;bulk(b.dataset.a)});
 $('bulk').onclick=()=>{$('bm').hidden=false};
@@ -1010,12 +1029,12 @@ function msAsk(o){
   });
 }
 const msNames=a=>a.slice(0,8).join('\n')+(a.length>8?'\n\u2026 and '+(a.length-8)+' more':'');
-const msBase=u=>u.id.slice(0,u.id.lastIndexOf('#'));
+const msBase=u=>u.kind!==undefined?u.name:u.id.slice(0,u.id.lastIndexOf('#'));
 /* the multi-segment units among sel whose visibility would change when set to `to` */
 function msGroups(sel,to){
   const seen=new Set(),out=[];
   for(const u of sel){
-    if(u.gk===undefined||!(u.is12||u.v2)||seen.has(u.gk))continue;
+    if(u.gk===undefined||!canTr(u)||seen.has(u.gk))continue;
     seen.add(u.gk);const g=grpOf(u);
     if(g.some(x=>trOf(x)!==to))out.push(g);
   }
@@ -1024,14 +1043,14 @@ function msGroups(sel,to){
 function msBulkAsk(gs,hide){
   const n=gs.length,seg=gs.reduce((t,g)=>t+g.length,0),extra=gs.reduce((t,g)=>t+g.filter(x=>!x.sel).length,0);
   return msAsk({
-    h:(hide?'Hide ':'Unhide ')+n+' multi-segment unit'+(n>1?'s':'')+'?',
-    t:'Your selection includes segments of '+n+' multi-segment unit'+(n>1?'s':'')+'. Visibility is set per unit, so all '+seg+' segments of '+(n>1?'these units':'this unit')+' will be '+(hide?'hidden':'unhidden')+(extra?', including '+extra+' you did not select':'')+'. Tap View to go back and see them marked.',
-    l:msNames(gs.map(g=>msBase(g[0])+' ('+g.length+' segments)')),view:true});
+    h:(hide?'Hide ':'Unhide ')+n+' '+GW().u+(n>1?' groups':'')+'?',
+    t:'Your selection includes '+GW().s+'s of '+n+' '+GW().u+(n>1?' groups':'')+'. Visibility is set per '+(mode==='strings'?'<plurals> / <string-array>':'unit')+', so all '+seg+' '+GW().s+'s of '+(n>1?'these':'this')+' will be '+(hide?'hidden':'unhidden')+(extra?', including '+extra+' you did not select':'')+'. Tap View to go back and see them marked.',
+    l:msNames(gs.map(g=>msBase(g[0])+' ('+g.length+' '+GW().s+'s)')),view:true});
 }
 /* View: back to the edit screen with every affected segment marked */
 function msMark(gs){
   MARK=new Set();gs.forEach(g=>g.forEach(u=>MARK.add(u)));
-  $('mkt').textContent=MARK.size+' segment'+(MARK.size>1?'s':'')+' of '+gs.length+' multi-segment unit'+(gs.length>1?'s':'')+' marked';
+  $('mkt').textContent=MARK.size+' '+GW().s+(MARK.size>1?'s':'')+' of '+gs.length+' '+GW().u+(gs.length>1?' groups':'')+' marked';
   MKJ=true;render();
 }
 function msUnmark(){MARK=null;MKJ=false;document.querySelectorAll('#list .u.mk').forEach(e=>e.classList.remove('mk'));upd(true)}
@@ -1079,7 +1098,7 @@ async function bulk(a){
       if(gs.length){const r=await msBulkAsk(gs,a==='hd');if(r!=='apply'){if(r==='view')msMark(gs);return}}
       MARK=null;MKJ=false;
     }
-    sel.forEach(u=>{if(!(u.is12||u.v2))return;
+    sel.forEach(u=>{if(!(a==='hd'||a==='sh'?canTr(u):(u.is12||u.v2)))return;
       if(a==='ap'){if(u.v2&&!cur(u).trim())noTr++;else setAp(u,true)}else if(a==='un')setAp(u,false);
       else if(a==='hd')setTrG(u,'no');else if(a==='sh')setTrG(u,'yes')});
     if(noTr)alert(noTr+' XLIFF 2 segment(s) have no translation and were not approved (without a translation the state must stay "initial").');
@@ -1604,7 +1623,7 @@ function fchips(){document.querySelectorAll('#fl button[data-f]').forEach(b=>b.c
 const SORTS=[['none','Original order',0],['mod','Edited first',0],['qa','QA issues first',0],['cb','Clipboard first',0],['unap','Unapproved first',1],['hid','Hidden first',1],['untr','Untranslated first',0],['same','Same as source first',0],['lsrc','Longest source first',0],['ssrc','Shortest source first',0],['ltgt','Longest target first',0],['stgt','Shortest target first',0],['over','Over max length first',0,'max']];
 function fillSort(){
   const so=$('so'),v=so.value||'none';
-  so.innerHTML=SORTS.filter(x=>(!x[2]||mode==='xliff')&&(!x[3]||units.some(u=>x[3]==='labels'?u.labels&&u.labels.length:u.max))).map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');
+  so.innerHTML=SORTS.filter(x=>(!x[2]||mode==='xliff'||x[0]==='hid')&&(!x[3]||units.some(u=>x[3]==='labels'?u.labels&&u.labels.length:u.max))).map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');
   so.value=[...so.options].some(o=>o.value===v)?v:'none';
 }
 $('so').onchange=()=>{page=0;fchips();render(1)};
@@ -1615,7 +1634,7 @@ const sortKey=(k,u)=>{
     case 'qa':return -qaOf(u).length;
     case 'cb':return cbHas(u)?0:1;
     case 'unap':return (u.is12||u.v2)&&!ap?0:1;
-    case 'hid':return (u.is12||u.v2)&&tr==='no'?0:1;
+    case 'hid':return canTr(u)&&tr==='no'?0:1;
     case 'untr':return c.trim()===''?0:1;
     case 'same':return c!==''&&c===u.rs?0:1;
     case 'over':return u.max&&(u.slr?txtlen(c,u.nfG):clen(c))>u.max?0:1;
@@ -1872,8 +1891,9 @@ function card(u){
     d.classList.toggle('ch',changed(u));un.disabled=!changed(u);
     ap.classList.toggle('on',a);ap.title=a?'Approved':'Not approved';
     hd.innerHTML=ic(t==='yes'?'eye':'eyeoff');hd.classList.toggle('on',t==='yes');
-    hd.title=(t==='yes'?'translate=yes (tap to hide)':'translate=no (tap to unhide)')+(u.gk!==undefined?' \u00b7 multi-segment unit: applies to all its segments':'');
-    ap.disabled=!(u.is12||u.v2)||(u.v2&&!a&&!cur(u).trim());hd.disabled=!(u.is12||u.v2);
+    hd.title=(mode==='strings'?(t==='yes'?'Visible (tap to hide: translatable="false")':'Hidden, translatable="false" (tap to unhide)'):(t==='yes'?'translate=yes (tap to hide)':'translate=no (tap to unhide)'))+(u.gk!==undefined?' \u00b7 '+GW().u+': applies to all its '+GW().s+'s':'');
+    d.classList.toggle('hv',t==='no');
+    ap.disabled=!(u.is12||u.v2)||(u.v2&&!a&&!cur(u).trim());hd.disabled=!canTr(u);
     if(u.v2)ap.title=a?'state="final" (tap to unapprove)':cur(u).trim()?'Approve (sets state="final")':'Translate first: without a translation the state stays "initial"';
     const qe=q('.qa'),iss=qaOf(u);qaSet(u,iss.length>0);qe.hidden=!iss.length;qe.textContent=iss.map(x=>'\u26a0 '+x).join('\n');
     cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;
@@ -1890,9 +1910,10 @@ function card(u){
     const to=trOf(u)==='yes'?'no':'yes';
     if(u.gk!==undefined){
       const hide=to==='no',oth=grpOf(u).filter(x=>x!==u),n=oth.length;
-      const r=await msAsk({h:(hide?'Hide':'Unhide')+' multi-segment unit?',
-        t:'Segment '+u.id+' belongs to a multi-segment unit ('+u.gn+' segments). Visibility is set for the whole unit, so '+(n?'the other '+n+' segment'+(n>1?'s':'')+' will also be ':'the whole unit will be ')+(hide?'hidden':'unhidden')+'.',
-        l:n?msNames(oth.map(x=>x.id)):'',view:false});
+      const sm=mode==='strings';
+      const r=await msAsk({h:(hide?'Hide':'Unhide')+' '+GW().u+'?',
+        t:(sm?'"'+u.name+'" is a '+GW().u+' with '+u.gn+' items':'Segment '+u.id+' belongs to a multi-segment unit ('+u.gn+' segments)')+'. Visibility is set for the whole '+(sm?'element':'unit')+', so '+(n?'the other '+n+' '+GW().s+(n>1?'s':'')+' will also be ':'the whole '+(sm?'element':'unit')+' will be ')+(hide?'hidden':'unhidden')+'.',
+        l:n?msNames(oth.map(x=>sm?'['+x.rn+']':x.id)):'',view:false});
       if(r!=='apply')return;
     }
     setTrG(u,to);sync();msRefresh(u);
@@ -2114,7 +2135,7 @@ function W_parse2(txt,emit){
 function W_trans(txt){
   const mp=new Map();
   if(W_root(txt)==='resources'){
-    parseStrings(txt).forEach(x=>{if(x.rs.trim())mp.set(ckey(x),x.rs)});
+    parseStrings(txt).forEach(x=>{if(x.oTr!=='no'&&x.rs.trim())mp.set(ckey(x),x.rs)});
   }else{
     const mr=maskRaw(txt),fre=/<(?:[\w.\-]+:)?file(?=[\s>\/])/g,fst=[];let fm;while((fm=fre.exec(mr)))fst.push(fm.index);
     let fp=0;   /* file index of the unit (ids are unique per <file>, not per document) */
@@ -2175,7 +2196,7 @@ function W_query(U,LC,p){
         case 'mod':return d&&(d.v!==undefined||d.a!==undefined||d.r!==undefined)?0:1;
         case 'cb':return d&&d.c?0:1;
         case 'unap':return (u.is12||u.v2)&&!ap?0:1;
-        case 'hid':return (u.is12||u.v2)&&tr==='no'?0:1;
+        case 'hid':return (u.is12||u.v2||u.kind!==undefined)&&tr==='no'?0:1;
         case 'untr':return c.trim()===''?0:1;
         case 'same':return c!==''&&c===u.rs?0:1;
         case 'over':return u.max&&(u.slr?txtlen(c,u.nfG):clen(c))>u.max?0:1;
@@ -2439,15 +2460,18 @@ function upd(quiet){
   $('fn').textContent=doc?name:'No file';
   $('imp').hidden=!doc;$('save').disabled=!doc;$('close').disabled=!doc;
   {const x=!!doc&&mode==='xliff';$('sv2').hidden=!x;$('save').querySelector('span').textContent=x?'Save as XLIFF (.xlf)':'Save'}   /* an XLIFF can be saved as XLIFF or exported as strings.xml: both are offered in the menu */
-  let ne=0,nsel=0,ncb=0,nd=0;
+  let ne=0,nsel=0,ncb=0,nd=0,nh=0;
   if(doc){const sm=mode==='strings';
     for(let i=0;i<units.length;i++){const x=units[i];
       if(x.val!==undefined||x.ap!==undefined||x.tr!==undefined)ne++;
       if(x.sel)nsel++;if(x.cb&&x.cb.length)ncb++;
-      if(sm&&cur(x).trim())nd++}}
+      if(canTr(x)&&trOf(x)==='no')nh++;
+      }}
   const nqa=doc?qaN:0;
-  $('info').textContent=!doc?'':(mode==='strings'?`${nd} / ${units.length} done`:(v2?'XLIFF 2 \u00b7 ':'')+`${ne} edited / ${units.length}`)+(nqa?` \u00b7 ${nqa}${qaBusy?'+':''} QA issues`:'')+(vsCap?` \u00b7 first ${vsCap.toLocaleString()} shown`:'');
+  $('info').textContent=!doc?'':(mode==='xliff'&&v2?'XLIFF 2 \u00b7 ':'')+`${ne} edited / ${units.length}`+(vsCap?` \u00b7 first ${vsCap.toLocaleString()} shown`:'');
   $('mkb').hidden=!(doc&&MARK);
+  $('qic').textContent=nqa+(qaBusy?'+':'')+' QA issues';$('qic').hidden=!doc||!nqa;
+  $('hidc').textContent=nh+' hidden';$('hidc').hidden=!doc||!nh;
   $('selc').textContent=nsel+' selected';$('selc').hidden=!doc||!nsel;
   $('bulk').disabled=!nsel;
   const sc=shown.filter(x=>x.sel).length;
