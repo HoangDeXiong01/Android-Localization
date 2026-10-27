@@ -820,25 +820,27 @@ $('f2').onchange=async e=>{
   let adj=v=>v,noInl=false;
   if(mode==='strings'&&!mp.strings){adj=pvToAndroid;noInl=true}
   else if(mode!=='strings'&&mp.strings&&!units.some(u=>/\\['"]/.test(u.rs)))adj=unescQ;
-  const hits=[],matched=new Set();let nInl=0;
+  const hits=[],matched=new Set();let nInl=0,nHid=0;
   units.forEach(u=>{const k=kOf(u);if(mp.has(k)){const v0=mp.get(k);matched.add(k);
+    if(trOf(u)==='no'){nHid++;return}   /* hidden units are not imported */
     if(noInl&&inl.test(v0)){nInl++;return}
     hits.push([u,adj(v0)])}});
   const skipped=mp.size-matched.size+nInl;
   const plan=hits.map(([u,v])=>({u,v,k:cur(u)===v?'same':cur(u).trim()?'over':'fill'}));
   const nf=plan.filter(p=>p.k==='fill').length,no=plan.filter(p=>p.k==='over').length,same=plan.length-nf-no;
   const nm=skipped?', '+skipped+(mode==='strings'?' not in source':' with no match'):'';
-  if(!nf&&!no){alert('Nothing to import: '+same+' already identical'+nm);return}
-  const choice=await previewImport(plan,nf,no,same,skipped);
+  const nmH=nm+(nHid?', '+nHid+' hidden skipped':'');
+  if(!nf&&!no){alert('Nothing to import: '+same+' already identical'+nmH);return}
+  const choice=await previewImport(plan,nf,no,same,skipped,nHid);
   if(!choice)return;
   const todo=plan.filter(p=>p.k==='fill'||(choice==='all'&&p.k==='over'));
   todo.forEach(p=>setVal(p.u,p.v));
   units.forEach(u=>delete u.sel);todo.forEach(p=>p.u.sel=true);
   $('q').value='';$('so').value='mod';page=0;fchips();RES=null;render(1);
 };
-function previewImport(plan,nf,no,same,skipped){
+function previewImport(plan,nf,no,same,skipped,nHid){
   return new Promise(res=>{
-    $('ips').textContent='New: '+nf+' · Overwrite: '+no+' · Same: '+same+' · No match: '+skipped;
+    $('ips').textContent='New: '+nf+' · Overwrite: '+no+' · Same: '+same+' · No match: '+skipped+(nHid?' · Hidden skipped: '+nHid:'');
     const L=$('ipl');L.innerHTML='';
     const clip=t=>{t=t.replace(/\s+/g,' ').trim();return t.length>90?t.slice(0,90)+'…':t};
     const items=plan.filter(p=>p.k!=='same');
