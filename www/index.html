@@ -3187,5 +3187,24 @@ document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const [d,
 addEventListener('beforeunload',e=>{if(doc&&edited()){e.preventDefault();e.returnValue=''}});
 sessCheck();
 let lastW=innerWidth,rz;addEventListener('resize',()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(rz);rz=setTimeout(()=>{if(VS.on)vsResize();else fitAll([...document.querySelectorAll('#list .u')])},150)});
+/* Keep the focused field visible when the soft keyboard opens (Capacitor 8 / edge-to-edge). */
+(()=>{
+  const SEL='textarea,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=button]):not([type=submit])';
+  let t=0,vh=innerHeight;
+  const field=()=>{const e=document.activeElement;return e&&e.matches&&e.matches(SEL)&&!e.closest('.dlg')?e:null};
+  const reveal=()=>{
+    const el=field();if(!el)return;
+    const h=document.querySelector('header'),top=(h?h.getBoundingClientRect().bottom:0)+8;
+    const bot=(window.visualViewport?visualViewport.height:innerHeight)-8;
+    const r=el.getBoundingClientRect();
+    if(r.height>bot-top){if(r.top<top||r.top>bot-80)scrollBy(0,r.top-top);return}
+    if(r.bottom>bot)scrollBy(0,r.bottom-bot);
+    else if(r.top<top)scrollBy(0,r.top-top);
+  };
+  const later=ms=>{clearTimeout(t);t=setTimeout(reveal,ms)};
+  addEventListener('focusin',e=>{if(e.target.matches&&e.target.matches(SEL))later(350)});
+  addEventListener('resize',()=>{if(innerHeight!==vh){vh=innerHeight;if(field())later(120)}});
+  if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(field())later(120)});
+})();
 render();
 </script></body></html>
