@@ -23,30 +23,20 @@ jobs:
       KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
       KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
     steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 26
-
-      - uses: actions/setup-java@v6
+          node-version: 20
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 24
-
+          java-version: 17
       - run: npm install
-
       - run: npx cap add android
-
       - run: node scripts/make-icons.js
-
-      - name: Fix keyboard resize behaviour
-        run: python3 scripts/fix-keyboard.py
-
       - name: Set version
         run: |
           sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/; s/versionName \"1.0\"/versionName \"$VERSION\"/" android/app/build.gradle
-
       - name: Prepare signing
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -59,9 +49,7 @@ jobs:
           else
             echo "::warning::Signing secrets not set - building a debug APK (cannot update an installed release build)"
           fi
-
       - run: npx cap sync android
-
       - name: Build APK
         run: |
           cd android && chmod +x gradlew
@@ -72,12 +60,10 @@ jobs:
             ./gradlew assembleDebug
             cp app/build/outputs/apk/debug/app-debug.apk "../Android-Localization-$VERSION.apk"
           fi
-
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v4
         with:
           name: android-localization-apk
           path: Android-Localization-${{ inputs.version }}.apk
-
       - name: Create release
         if: ${{ inputs.release }}
         env:
