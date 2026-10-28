@@ -40,6 +40,9 @@ jobs:
 
       - run: node scripts/make-icons.js
 
+      - name: Fix keyboard resize behaviour
+        run: python3 scripts/fix-keyboard.py
+
       - name: Set version
         run: |
           sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/; s/versionName \"1.0\"/versionName \"$VERSION\"/" android/app/build.gradle
