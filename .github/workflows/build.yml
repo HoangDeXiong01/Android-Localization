@@ -86,11 +86,11 @@ jobs:
             gh release create "v$VERSION-debug" "$APK_NAME" \
               --title "Android Localization $VERSION (debug)" \
               --prerelease \
-              --generate-notes \
+              --notes "" \
               --target "${{ github.sha }}"
           else
             gh release create "v$VERSION" "$APK_NAME" \
               --title "Android Localization $VERSION" \
-              --generate-notes \
+              --notes "" \
               --target "${{ github.sha }}"
           fi
