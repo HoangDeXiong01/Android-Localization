@@ -3214,4 +3214,32 @@ addEventListener('beforeunload',e=>{if(doc&&edited()){e.preventDefault();e.retur
 sessCheck();
 let lastW=innerWidth,rz;addEventListener('resize',()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(rz);rz=setTimeout(()=>{if(VS.on)vsResize();else fitAll([...document.querySelectorAll('#list .u')])},150)});
 render();
+/* Chặn WebView tự cuộn ô vừa focus lên sát mép trên (Capacitor 8) */
+(()=>{
+  const ed=e=>e&&(e.tagName==='TEXTAREA'||(e.tagName==='INPUT'&&!['checkbox','radio','button'].includes(e.type)));
+  let y=null,until=0;
+  const guard=()=>{
+    if(y===null||performance.now()>until)return;
+    if(Math.abs(scrollY-y)>1)scrollTo(0,y);
+    const a=document.activeElement;if(!ed(a))return;
+    const hd=document.querySelector('header'),r=a.getBoundingClientRect(),top=hd?hd.getBoundingClientRect().bottom:0,
+          bot=window.visualViewport?visualViewport.height:innerHeight;
+    if(r.height<bot-top&&(r.top<top||r.bottom>bot)){
+      scrollBy(0,r.bottom>bot?r.bottom-bot+16:r.top-top-16);
+      y=scrollY;
+    }
+  };
+  addEventListener('focusin',e=>{
+    if(!ed(e.target))return;
+    y=scrollY;until=performance.now()+1500;
+    [0,50,120,250,500,900].forEach(t=>setTimeout(guard,t));
+  });
+  addEventListener('scroll',guard,{passive:true});
+  addEventListener('resize',guard);
+  if(window.visualViewport)visualViewport.addEventListener('resize',guard);
+  const stop=()=>{until=0};
+  addEventListener('touchmove',stop,{passive:true});
+  addEventListener('wheel',stop,{passive:true});
+  addEventListener('beforeinput',stop,true);
+})();
 </script></body></html>
