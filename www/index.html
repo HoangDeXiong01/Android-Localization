@@ -596,6 +596,18 @@ function inlineViol(u,c){
   if(bad.length)out.push('copyOf not allowed (base code has original data): id '+lst(bad));
   return out;
 }
+/* true when c is certainly well-formed XML content: no tag, no odd character, and every & starts a standard or valid numeric reference.
+   Anything else (false) is left to the browser's parser, so the result is the same as asking it, only without creating a Document for the common "&amp;" case. */
+const XP_BAD=/[<\x00-\x08\x0B\x0C\x0E-\x1F\uD800-\uDFFF\uFFFE\uFFFF]|\]\]>/;
+function xmlPlain(c){
+  if(XP_BAD.test(c))return false;
+  let ok=true;
+  c.replace(/&(?:(?:amp|lt|gt|quot|apos);|#(\d{1,8});|#x([0-9A-Fa-f]{1,6});)|&/g,(m,d,h)=>{
+    if(m==='&')ok=false;
+    else if(d!==undefined||h!==undefined){if(!validCP(d!==undefined?+d:parseInt(h,16)))ok=false}
+    return m});
+  return ok;
+}
 function qaOf(u){
   const c=cur(u),tr=u.tr!==undefined?u.tr:u.oTr;
   if(u._qa&&u._qv===QV&&u._qm===mode&&u._qt===tr&&u._qc===c)return u._qa;
@@ -620,7 +632,7 @@ function qaOf(u){
     if(Q.pu&&tcls(s)!==tcls(c))out.push('End punctuation differs');
     if(Q.num){const n1=(s.replace(TOK,' ').match(/\d+/g)||[]).sort().join(),n2=(c.replace(TOK,' ').match(/\d+/g)||[]).sort().join();
       if(n1!==n2)out.push('Numbers differ')}
-    if(Q.xml&&/[<&\x00-\x08\x0B\x0C\x0E-\x1F]/.test(c)&&new DOMParser().parseFromString(xmlWrap(c),'application/xml').querySelector('parsererror'))out.push('Invalid XML');
+    if(Q.xml&&/[<&\x00-\x08\x0B\x0C\x0E-\x1F]/.test(c)&&!xmlPlain(c)&&new DOMParser().parseFromString(xmlWrap(c),'application/xml').querySelector('parsererror'))out.push('Invalid XML');
     if(Q.gl&&GL.length){const lcc=c.toLowerCase();glossHits(s).forEach(h=>{if(!lcc.includes(h.t.toLowerCase()))out.push('Glossary: '+h.s+' \u2192 '+h.t)})}
     if(Q.gl&&u.gl){const lcc=c.toLowerCase(),ls=s.toLowerCase();u.gl.forEach(g=>{if(g.t.length&&ls.includes(g.s.toLowerCase())&&!g.t.some(x=>lcc.includes(x.toLowerCase())))out.push('Glossary: '+g.s+' \u2192 '+g.t.join(' / '))})}
     if(Q.val&&u.vr)vrCheck(u,c).forEach(x=>out.push(x));
@@ -1266,8 +1278,8 @@ function parseLocal(txt){const out=[];const info=W_parse(txt,c=>{for(const u of 
 /* XLIFF 1.2 conformance (Core spec: required attributes, id unique per <file>, content model of <trans-unit>). Never blocks opening.
    Core 3.1: the namespace is optional ("if necessary, you can also specify a namespace"), so a document without xmlns is valid and its elements are XLIFF elements;
    only a different namespace is reported. */
-function xliff12Issues(txt){
-  const out=[];let d;try{d=new DOMParser().parseFromString(txt,'application/xml')}catch(e){return out}
+function xliff12Issues(txt,pd){
+  const out=[];let d;try{d=pd||new DOMParser().parseFromString(txt,'application/xml')}catch(e){return out}
   const X='urn:oasis:names:tc:xliff:document:1.2',r=d.documentElement;
   if(!r||d.querySelector('parsererror')||r.localName!=='xliff')return out;
   const own=r.namespaceURI||'';
@@ -1322,8 +1334,8 @@ function xliff12Issues(txt){
   return out;
 }
 /* XLIFF 2.x conformance (Core 3.2.2 structure, 3.3.1 attribute rules). Never blocks opening. */
-function xliff2Issues(txt){
-  const out=[];let d;try{d=new DOMParser().parseFromString(txt,'application/xml')}catch(e){return out}
+function xliff2Issues(txt,pd){
+  const out=[];let d;try{d=pd||new DOMParser().parseFromString(txt,'application/xml')}catch(e){return out}
   const r=d.documentElement,XN=/^urn:oasis:names:tc:xliff:document:2\.\d+$/,XL='http://www.w3.org/XML/1998/namespace';
   if(!r||d.querySelector('parsererror')||r.localName!=='xliff')return out;
   if(!XN.test(r.namespaceURI||''))out.push('<xliff> is not in an XLIFF 2 namespace (urn:oasis:names:tc:xliff:document:2.0)');
@@ -1373,7 +1385,7 @@ function xliff2Issues(txt){
     }
   }
   if(hasTrg&&!trg)add('<xliff> without trgLang although it contains <target> elements (Core 3.2.2.1)');
-  try{xliff2Deep(d,r,isX,add,ex,src,trg);xliff2Modules(d,r,isX,add,src,trg)}catch(e){/* a checker bug must never block opening */}
+  try{xliff2Deep(d,r,isX,add,ex,src,trg);if(MOD_RX.test(txt))xliff2Modules(d,r,isX,add,src,trg)}catch(e){/* a checker bug must never block opening */}
   for(const k in cnt)out.push(cnt[k]+' \u00d7 '+k+(/repeated/.test(k)&&ex[k.split(' ')[0]]?' (e.g. '+ex[k.split(' ')[0]]+')':''));
   return out;
 }
@@ -1403,10 +1415,12 @@ function xliff2Deep(d,r,isX,add,ex,src,trg){
     mrk:'id translate type ref value',sm:'id translate type ref value',em:'startRef'};
   AT.ph+=' dir';
   const EXTA=['xliff','file','group','unit','note','mrk','sm'];
-  for(const e of r.getElementsByTagNameNS(r.namespaceURI,'*').length?[r,...r.getElementsByTagNameNS(r.namespaceURI,'*')]:[r]){
-    if(!isX(e))continue;const n=ln(e),ok=(AT[n]||'').split(' ');
-    for(const a of attrs(e)){
-      if(!a.namespaceURI){if(AT[n]!==undefined&&!ok.includes(a.name))add('<'+n+'> with an attribute that Core does not define for it (e.g. '+a.name+')')}
+  const ATS={};for(const k in AT)ATS[k]=new Set(AT[k].split(' '));
+  for(const e of [r,...r.getElementsByTagNameNS(r.namespaceURI,'*')]){
+    if(!isX(e))continue;const n=ln(e),ok=ATS[n];
+    for(const a of e.attributes){
+      if(a.namespaceURI===XMLNS||a.name==='xmlns'||a.name.startsWith('xmlns:'))continue;   /* namespace declarations are not attributes of the element */
+      if(!a.namespaceURI){if(ok!==undefined&&!ok.has(a.name))add('<'+n+'> with an attribute that Core does not define for it (e.g. '+a.name+')')}
       else if(a.namespaceURI===XL){if(!(a.localName==='lang'&&['xliff','file','group','unit','source','target'].includes(n))&&!(a.localName==='space'&&['xliff','file','group','unit','source','target','data'].includes(n))&&a.localName!=='id')add('<'+n+'> with an xml: attribute that is not allowed there (e.g. '+a.name+')')}
       else if(isExt(a)||!isMod(a.namespaceURI)){if(!/^urn:oasis:names:tc:xliff:/.test(a.namespaceURI)&&!EXTA.includes(n)&&a.namespaceURI!=='http://www.w3.org/2005/11/its'&&a.namespaceURI!=='http://www.w3.org/2001/XMLSchema-instance')add('<'+n+'> with an extension attribute (only xliff, file, group, unit, note, mrk and sm accept them)')}
     }
@@ -1538,10 +1552,13 @@ function xliff2Deep(d,r,isX,add,ex,src,trg){
   for(const e of r.getElementsByTagNameNS('*','*'))if(isX(e)||isMod(e.namespaceURI))for(const a of ['ref']){const v=e.getAttribute(a);if(v&&v.startsWith('#')&&['mrk','sm','note'].includes(ln(e))&&fragBad(v))add('ref value(s) that are not valid XLIFF fragment identifiers')}
 }
 /* XLIFF 2.x module conformance (mda, mtc, gls, res, slr, val, fs, ctr): constraints exercised by the OASIS XLIFF TC test suite. */
+/* a module element can only exist when its namespace is declared: a file without any skips the module checks entirely (they made about 25 passes over every element) */
+const MOD_RX=/urn:oasis:names:tc:xliff:(?:metadata|matches|glossary|resourcedata|sizerestriction|validation|fs|changetracking):[12]\.0/;
 function xliff2Modules(d,r,isX,add,src,trg){
   const XL='http://www.w3.org/XML/1998/namespace',NM=/^[A-Za-z0-9_:.\-\u00B7\u00C0-\uFFFF]+$/;
   const NS={mda:'metadata',mtc:'matches',gls:'glossary',res:'resourcedata',slr:'sizerestriction',val:'validation',fs:'fs',ctr:'changetracking'};
-  const isNs=(e,k)=>new RegExp('^urn:oasis:names:tc:xliff:'+NS[k]+':[12]\\.0$').test(e.namespaceURI||'');
+  const NSRX={};for(const k in NS)NSRX[k]=new RegExp('^urn:oasis:names:tc:xliff:'+NS[k]+':[12]\\.0$');
+  const isNs=(e,k)=>NSRX[k].test(e.namespaceURI||'');
   const kids=e=>[...e.children],ln=e=>e.localName;
   const inNs=(e,k)=>isNs(e,k),sub=(e,k,n)=>kids(e).filter(c=>isNs(c,k)&&ln(c)===n);
   const everything=[...r.getElementsByTagNameNS('*','*')];
@@ -1644,7 +1661,8 @@ async function loadText(txt,fname,pre){
   }
   await new Promise(r=>setTimeout(r,20));
   /* the browser's own strict parser stays the authority on "is this valid XML" (it runs while the worker parses) */
-  const bad=!!new DOMParser().parseFromString(txt,'application/xml').querySelector('parsererror');
+  let pd=new DOMParser().parseFromString(txt,'application/xml');   /* kept: the conformance check below reuses it instead of parsing the whole file a second time */
+  const bad=!!pd.querySelector('parsererror');
   if(my!==LSEQ){wCancel(job);return false}
   if(bad){wCancel(job);busy('');upd(true);await errorFlow(fname,txt);return false}
   let info=null;
@@ -1662,7 +1680,15 @@ async function loadText(txt,fname,pre){
   if(pre){pre();fchips()}
   busy('');
   render(1);sessNew();
-  if(info.mode==='xliff'){const iss=info.v2?xliff2Issues(txt):xliff12Issues(txt);if(iss.length)setTimeout(()=>alert('This file does not follow XLIFF '+(info.v2?'2.x':'1.2')+':\n\n- '+iss.slice(0,8).join('\n- ')+'\n\nIt is still opened; saving keeps these parts as they are.'),0)}
+  if(info.mode==='xliff'){
+    /* the conformance check is only advice: run it once the list has been painted (it walks the whole DOM and used to freeze the first screen) */
+    const x2=!!info.v2,dd=pd;pd=null;
+    setTimeout(()=>{
+      if(my!==LSEQ)return;   /* another file was opened, or this one closed, in the meantime */
+      let iss=[];try{iss=x2?xliff2Issues(txt,dd):xliff12Issues(txt,dd)}catch(e){}
+      if(iss.length)alert('This file does not follow XLIFF '+(x2?'2.x':'1.2')+':\n\n- '+iss.slice(0,8).join('\n- ')+'\n\nIt is still opened; saving keeps these parts as they are.');
+    },50);
+  }
   return true;
 }
 $('close').onclick=()=>{
