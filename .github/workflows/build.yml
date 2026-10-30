@@ -59,6 +59,8 @@ jobs:
           else
             echo "::warning::Signing secrets not set - building a debug APK (cannot update an installed release build)"
           fi
+      - name: Use a separate package name for debug builds
+        run: python3 scripts/debug-app-id.py
       - run: npx cap sync android
       - name: Build APK
         run: |
