@@ -1,0 +1,8 @@
+{
+  "appId": "com.hoangdexiong01.localization",
+  "appName": "Android Localization",
+  "webDir": "www",
+  "plugins": {
+    "CapacitorHttp": { "enabled": true }
+  }
+}
