@@ -14,7 +14,7 @@ Everything runs on your device. There is no account, no server, and no upload st
   <tr>
     <td align="center"><img src="screenshots/xliff-editor.png" width="260" alt="Editing an XLIFF file"><br><sub>XLIFF editing</sub></td>
     <td align="center"><img src="screenshots/strings-xml-editor.png" width="260" alt="Editing a strings.xml file"><br><sub>strings.xml editing</sub></td>
-    <td align="center"><img src="screenshots/settings.png" width="260" alt="Settings"><br><sub>Settings and QA checks</sub></td>
+    <td align="center"><img src="screenshots/settings.png" width="260" alt="Settings"><br><sub>Settings</sub></td>
   </tr>
 </table>
 
