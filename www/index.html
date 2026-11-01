@@ -188,6 +188,7 @@ body.busy,body.busy *{cursor:progress}
 <label class="ck"><input type="checkbox" id="c-mrg"> Merge requests (faster bulk translation)</label>
 <label>Units per merged request<input id="c-mrn" type="number" min="2" max="30" inputmode="numeric"></label>
 <div class="hint">Bulk translation sends several units in one request instead of one request per unit, so it needs far fewer requests and finishes sooner. Quality is the same: the AI engines receive each unit's key, context and limits, and any unit whose answer comes back incomplete is translated again on its own. The rate limit then counts merged requests. Single-unit translation is not affected.</div>
+<div class="kr" style="margin-top:12px"><button id="c-test" type="button">Test connection</button></div>
 <label>Glossary</label>
 <div class="kr"><button id="g-imp" type="button">Import CSV / TSV / TBX</button><button id="g-clr" type="button">Clear</button></div>
 <div class="hint" id="g-info"></div>
@@ -202,7 +203,7 @@ body.busy,body.busy *{cursor:progress}
 <div class="hint">Applies to Save (strings.xml) and to Save as strings.xml (XLIFF 1.2 and 2). On: hidden units are written with translatable="false". Off: hidden units are left out of the exported file.</div>
 <label>QA checks</label>
 <div id="qac"></div>
-<div class="dr"><button id="c-test" type="button">Test</button><button id="c-cancel" type="button">Close</button><button id="c-save" type="button" class="p">Save</button></div>
+<div class="dr"><button id="c-cancel" type="button">Close</button><button id="c-save" type="button" class="p">Save</button></div>
 </div></div>
 <div id="ms" hidden><div class="dlg"><h3 id="ms-h"></h3><div id="ms-t"></div><div id="ms-l"></div><div class="dr"><button id="ms-c" type="button">Cancel</button><button id="ms-v" type="button">View</button><button id="ms-a" type="button" class="p">Apply</button></div></div></div>
 <div id="mn" hidden><div class="dlg"><div id="ml"><button class="mi" id="open" type="button"></button><button class="mi" id="imp" type="button" hidden></button><button class="mi" id="save" type="button"></button><button class="mi" id="sv2" type="button" hidden></button><button class="mi" id="close" type="button"></button></div><div class="dr"><button id="mn-x" type="button">Close</button></div></div></div>
@@ -390,9 +391,9 @@ const TCOL={light:'#ffffff',dark:'#131415'};
 const ACCS=['sage','blue','teal','rose','slate','moss','clay','sky'];
 let accDraft='sage';
 function accUi(){document.querySelectorAll('#c-acc .sw').forEach(b=>b.setAttribute('aria-checked',b.dataset.a===accDraft?'true':'false'))}
-function applyTheme(){
-  {const a=ACCS.includes(CFG.accent)?CFG.accent:'sage';if(a==='sage')document.documentElement.removeAttribute('data-accent');else document.documentElement.setAttribute('data-accent',a)}
-  const t=CFG.theme==='light'||CFG.theme==='dark'?CFG.theme:'system',r=document.documentElement;
+function applyTheme(th=CFG.theme,ac=CFG.accent){
+  {const a=ACCS.includes(ac)?ac:'sage';if(a==='sage')document.documentElement.removeAttribute('data-accent');else document.documentElement.setAttribute('data-accent',a)}
+  const t=th==='light'||th==='dark'?th:'system',r=document.documentElement;
   if(t==='system')r.removeAttribute('data-theme');else r.setAttribute('data-theme',t);
   document.querySelectorAll('meta[name=theme-color]').forEach(m=>{
     if(!m.dataset.m)m.dataset.m=m.getAttribute('media')||'all';
@@ -1012,7 +1013,10 @@ function applyCfg(persist=true){
   for(const k in mdl)CFG[k]=mdl[k];
   if(persist){QV++;saveCfg()}
 }
-document.querySelectorAll('#c-acc .sw').forEach(b=>b.addEventListener('click',()=>{accDraft=b.dataset.a;accUi()}));
+/* Theme and accent preview: shown at once, but only kept by Save; Close puts the saved ones back */
+const themePrev=()=>applyTheme($('c-theme').value,accDraft);
+$('c-theme').onchange=themePrev;
+document.querySelectorAll('#c-acc .sw').forEach(b=>b.addEventListener('click',()=>{accDraft=b.dataset.a;accUi();themePrev()}));
 $('qac').innerHTML=QALAB.map(([k,t])=>'<label class="ck"><input type="checkbox" data-q="'+k+'"> '+t+'</label>').join('');
 /* A QA option is greyed out when it cannot apply: because of Edit on preview, or because of the open file's format.
    strings.xml: no ic / val / len / hid.  XLIFF 1.2: no ic / val / apo.  XLIFF 2: no apo.  No file open: only the Edit on preview rules apply. */
@@ -1044,7 +1048,7 @@ $('c-model').onchange=()=>showModelHint();
 $('c-eye').onclick=()=>{const k=$('c-key');k.type=k.type==='password'?'text':'password'};
 $('c-eng').onchange=()=>{aiStash();aiShow($('c-eng').value)};
 $('cfgb').onclick=openCfg;
-$('c-cancel').onclick=()=>{$('cfg').hidden=true};
+$('c-cancel').onclick=()=>{applyTheme();$('cfg').hidden=true};
 $('c-save').onclick=()=>{
   applyCfg();clCommit();
   if(GLd){setGlossary(GLd);saveGl();GLd=null}
