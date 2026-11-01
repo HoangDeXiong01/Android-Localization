@@ -1,13 +1,20 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="color-scheme" content="light dark"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme:light)"><meta name="theme-color" content="#141318" media="(prefers-color-scheme:dark)">
+<meta name="color-scheme" content="light dark"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme:light)"><meta name="theme-color" content="#131415" media="(prefers-color-scheme:dark)">
 <title>Android Localization</title>
-<script>try{var t=JSON.parse(localStorage.getItem("cfg")||"{}").theme;if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<script>try{var c=JSON.parse(localStorage.getItem("cfg")||"{}"),t=c.theme;if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);if(/^[a-z]+$/.test(c.accent||""))document.documentElement.setAttribute("data-accent",c.accent)}catch(e){}</script>
 <style>
-:root{--bg:#fff;--fg:#1c1b1f;--card:#f3f1f6;--ac:#5b4bd5;--mut:#6b6874;color-scheme:light dark}
-@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#141318;--fg:#e6e1e9;--card:#211f26;--ac:#a99cff;--mut:#9a95a3}}
-:root[data-theme=dark]{--bg:#141318;--fg:#e6e1e9;--card:#211f26;--ac:#a99cff;--mut:#9a95a3;color-scheme:dark}
+:root{--acl:#3f7d6b;--acd:#8cc7b2;--bg:#fff;--fg:#1c1c1e;--card:#f2f3f3;--ac:var(--acl);--mut:#6b6f73;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#131415;--fg:#e4e4e6;--card:#1f2022;--ac:var(--acd);--mut:#9a9da1}}
+:root[data-theme=dark]{--bg:#131415;--fg:#e4e4e6;--card:#1f2022;--ac:var(--acd);--mut:#9a9da1;color-scheme:dark}
+:root[data-accent=blue]{--acl:#3b6ea5;--acd:#8fb8e6}
+:root[data-accent=teal]{--acl:#2f7f86;--acd:#86c5ca}
+:root[data-accent=rose]{--acl:#a15d6b;--acd:#e0a5b1}
+:root[data-accent=slate]{--acl:#5c6b7a;--acd:#a9b8c6}
+:root[data-accent=moss]{--acl:#5f7330;--acd:#b5c97e}
+:root[data-accent=clay]{--acl:#b0603f;--acd:#e8a98d}
+:root[data-accent=sky]{--acl:#2c7da0;--acd:#8ccbe8}
 :root[data-theme=light]{color-scheme:light}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,sans-serif;padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);-webkit-text-size-adjust:100%}
 header{position:sticky;top:0;background:var(--bg);padding:calc(8px + env(safe-area-inset-top,0px)) 10px 8px;border-bottom:1px solid var(--card);z-index:2}
@@ -27,13 +34,13 @@ input[type=search]{flex:1;min-width:0;height:40px;padding:0 10px;border-radius:1
 #sb{position:fixed;right:env(safe-area-inset-right,0px);width:20px;z-index:3;touch-action:none;user-select:none;-webkit-user-select:none}
 #sb i{position:absolute;right:3px;width:8px;border-radius:4px;background:var(--mut);opacity:.5;transition:opacity .15s,width .15s,right .15s}
 #sb.act i,#sb:hover i{opacity:.9;width:12px;right:1px;background:var(--ac)}
-.u{background:var(--card);margin:10px;padding:10px 12px;border-radius:12px;border:2px solid transparent}
+.u{background:var(--bg);margin:10px;padding:10px 12px;border-radius:12px;border:2px solid var(--card)}
 .u.ch{border-color:var(--ac)}
 .u.mk{border-color:#f57c00;border-style:dashed}
 #mkb{justify-content:space-between;font-size:13px;color:#f57c00}#mkt{flex:1;min-width:0}#mkb button{height:30px;font-size:13px}
 #ms-t{font-size:14px;line-height:1.45;margin:10px 0 0}#ms-l{max-height:30vh;overflow:auto;font-size:12px;color:var(--mut);word-break:break-all;white-space:pre-wrap;margin-top:8px}
 .id{font-size:12px;color:var(--mut);word-break:break-all}
-.u button{height:34px;min-width:34px;padding:0;background:var(--bg)}
+.u button{height:34px;min-width:34px;padding:0;background:var(--card)}
 .u svg{width:18px;height:18px}
 button.on{background:var(--ac)!important;color:var(--bg)!important}
 .idw{flex:1 1 90px;min-width:0}
@@ -47,7 +54,7 @@ body.sm .ap{display:none}
 .u.hv{opacity:.62}
 body.sm #fl [data-f=rn],body.sm #fl [data-f=lbl]{display:none}
 body.nc #fl [data-f=ctx],body.nc #fl [data-f=lbl]{display:none}
-.cxt{font-size:13px;color:var(--mut);white-space:pre-wrap;word-break:break-word;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--bg)}
+.cxt{font-size:13px;color:var(--mut);white-space:pre-wrap;word-break:break-word;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--card)}
 #fl{display:none;flex-wrap:wrap}
 #fl.show{display:flex}
 #fl button{height:32px;font-size:13px}
@@ -62,8 +69,8 @@ textarea{width:100%;min-height:70px;padding:8px;border-radius:8px;border:1px sol
 .bt{margin:6px 0 4px}
 .src{margin:6px 0 0}
 .cnt{font-size:11px;color:var(--mut);text-align:right;margin:2px 2px 4px}
-.tw{position:relative;background:var(--bg);border-radius:8px}
-.tw textarea{position:relative;display:block;background:transparent;resize:none;overflow:hidden;line-height:1.4;white-space:pre-wrap;overflow-wrap:break-word}
+.tw{position:relative;background:var(--card);border-radius:8px}
+.tw textarea{border-color:var(--card);position:relative;display:block;background:transparent;resize:none;overflow:hidden;line-height:1.4;white-space:pre-wrap;overflow-wrap:break-word}
 .hl{position:absolute;inset:0;padding:8px;border:1px solid transparent;border-radius:8px;font:inherit;line-height:1.4;white-space:pre-wrap;overflow-wrap:break-word;color:transparent;pointer-events:none;overflow:hidden}
 mark{background:none;color:inherit;border-radius:3px}
 mark.ph{background:rgba(255,167,38,.38)}
@@ -81,6 +88,11 @@ mark.lit{background:none;box-shadow:inset 0 -2px 0 rgba(158,158,158,.75)}
 .dlg{background:var(--bg);color:var(--fg);border-radius:16px;padding:16px;width:100%;max-width:420px;max-height:90vh;overflow:auto}
 .dlg h3{margin:0 0 4px;font-size:17px}
 .dlg label{display:block;font-size:13px;color:var(--mut);margin:12px 0 4px}
+.dlg .swr{display:flex;gap:12px;margin:12px 2px 4px;flex-wrap:wrap}
+.dlg .swr button.sw{width:28px;height:28px;min-width:0;padding:0;border-radius:50%;border:0;background:var(--sl);box-shadow:inset 0 0 0 1px rgba(128,128,128,.25);cursor:pointer;flex:none}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]) .dlg .swr button.sw{background:var(--sd)}}
+:root[data-theme=dark] .dlg .swr button.sw{background:var(--sd)}
+.dlg .swr button.sw[aria-checked=true]{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--fg)}
 .dlg input,.dlg select,.dlg textarea{width:100%;font:inherit;font-size:16px;color:var(--fg);background:var(--card);border:1px solid var(--card);border-radius:10px;padding:0 10px;height:40px}
 .dlg textarea{height:90px;padding:8px 10px;resize:vertical}
 .kr{display:flex;gap:6px}
@@ -161,6 +173,7 @@ body.busy,body.busy *{cursor:progress}
 <div id="cfg" hidden><div class="dlg">
 <h3>Settings</h3>
 <label>Theme<select id="c-theme"><option value="system">Follow system</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+<div class="swr" id="c-acc" role="radiogroup" aria-label="Accent color"><button type="button" class="sw" role="radio" data-a="sage" style="--sl:#3f7d6b;--sd:#8cc7b2" aria-label="Green"></button><button type="button" class="sw" role="radio" data-a="blue" style="--sl:#3b6ea5;--sd:#8fb8e6" aria-label="Blue"></button><button type="button" class="sw" role="radio" data-a="teal" style="--sl:#2f7f86;--sd:#86c5ca" aria-label="Teal"></button><button type="button" class="sw" role="radio" data-a="rose" style="--sl:#a15d6b;--sd:#e0a5b1" aria-label="Rose"></button><button type="button" class="sw" role="radio" data-a="slate" style="--sl:#5c6b7a;--sd:#a9b8c6" aria-label="Slate"></button><button type="button" class="sw" role="radio" data-a="moss" style="--sl:#5f7330;--sd:#b5c97e" aria-label="Moss"></button><button type="button" class="sw" role="radio" data-a="clay" style="--sl:#b0603f;--sd:#e8a98d" aria-label="Terracotta"></button><button type="button" class="sw" role="radio" data-a="sky" style="--sl:#2c7da0;--sd:#8ccbe8" aria-label="Sky"></button></div>
 <label>Auto-translate engine<select id="c-eng"><option value="free">Free (Google / MyMemory)</option><option value="gemini">Gemini (AI, uses context)</option><option value="groq">Groq (AI, uses context)</option></select></label>
 <div id="gf">
 <label><span id="c-klab">Gemini API key</span><div class="kr"><input id="c-key" type="password" autocomplete="off" spellcheck="false" placeholder="AIza..."><button id="c-eye" type="button" title="Show / hide key" aria-label="Show or hide key"></button></div></label>
@@ -368,12 +381,16 @@ let QV=0;
 const GQDEF='openai/gpt-oss-120b';
 /* models Groq has shut down: a stored choice or cached list that still has them is replaced / cleaned */
 const GQDEAD={'llama-3.3-70b-versatile':GQDEF,'llama-3.1-8b-instant':'openai/gpt-oss-20b'};
-const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,pv:0,xh:1,mrg:1,mrn:10,qa:{},theme:'system'};
+const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,pv:0,xh:1,mrg:1,mrn:10,qa:{},theme:'system',accent:'sage'};
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
 CFG.qa=Object.assign({},QADEF,CFG.qa||{});
 /* Theme: 'system' follows the device, 'light' / 'dark' force it. The browser bar colour (theme-color) follows too. */
-const TCOL={light:'#ffffff',dark:'#141318'};
+const TCOL={light:'#ffffff',dark:'#131415'};
+const ACCS=['sage','blue','teal','rose','slate','moss','clay','sky'];
+let accDraft='sage';
+function accUi(){document.querySelectorAll('#c-acc .sw').forEach(b=>b.setAttribute('aria-checked',b.dataset.a===accDraft?'true':'false'))}
 function applyTheme(){
+  {const a=ACCS.includes(CFG.accent)?CFG.accent:'sage';if(a==='sage')document.documentElement.removeAttribute('data-accent');else document.documentElement.setAttribute('data-accent',a)}
   const t=CFG.theme==='light'||CFG.theme==='dark'?CFG.theme:'system',r=document.documentElement;
   if(t==='system')r.removeAttribute('data-theme');else r.setAttribute('data-theme',t);
   document.querySelectorAll('meta[name=theme-color]').forEach(m=>{
@@ -981,12 +998,12 @@ function aiShow(e){
 }
 function openCfg(){
   draft={};mdl={};GLd=null;CLd=CL.map(l=>[l[0],l[1],l[0]]);uiEng='';
-  $('c-theme').value=CFG.theme||'system';$('c-eng').value=CFG.eng;$('c-notes').value=CFG.gnotes;$('c-rpmf').value=CFG.rpmF;
+  $('c-theme').value=CFG.theme||'system';accDraft=ACCS.includes(CFG.accent)?CFG.accent:'sage';accUi();$('c-eng').value=CFG.eng;$('c-notes').value=CFG.gnotes;$('c-rpmf').value=CFG.rpmF;
   document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);$('c-pv').checked=!!CFG.pv;$('c-xh').checked=!!CFG.xh;$('c-mrg').checked=!!CFG.mrg;$('c-mrn').value=CFG.mrn;pvUi();glInfo();clRender();clReset();
   $('cfg').hidden=false;aiShow(CFG.eng);
 }
 function applyCfg(persist=true){
-  CFG.theme=$('c-theme').value;if(persist)applyTheme();CFG.eng=$('c-eng').value;aiStash();CFG.gnotes=$('c-notes').value;
+  CFG.theme=$('c-theme').value;CFG.accent=accDraft;if(persist)applyTheme();CFG.eng=$('c-eng').value;aiStash();CFG.gnotes=$('c-notes').value;
   const rp=(v,d)=>{v=String(v==null?'':v).trim();return v===''?d:Math.max(0,Math.floor(+v)||0)};
   for(const e in AIF){const f=AIF[e],d=draft[e];if(!d)continue;CFG[f.key]=d.key;CFG[f.model]=d.model||f.def;CFG[f.rpm]=rp(d.rpm,f.rpmDef)}
   CFG.rpmF=rp($('c-rpmf').value,30);
@@ -994,6 +1011,7 @@ function applyCfg(persist=true){
   for(const k in mdl)CFG[k]=mdl[k];
   if(persist){QV++;saveCfg()}
 }
+document.querySelectorAll('#c-acc .sw').forEach(b=>b.addEventListener('click',()=>{accDraft=b.dataset.a;accUi()}));
 $('qac').innerHTML=QALAB.map(([k,t])=>'<label class="ck"><input type="checkbox" data-q="'+k+'"> '+t+'</label>').join('');
 /* A QA option is greyed out when it cannot apply: because of Edit on preview, or because of the open file's format.
    strings.xml: no ic / val / len / hid.  XLIFF 1.2: no ic / val / apo.  XLIFF 2: no apo.  No file open: only the Edit on preview rules apply. */
