@@ -18,7 +18,7 @@ button.p{background:var(--ac);color:var(--bg)}
 button:disabled{opacity:.35}
 svg{width:22px;height:22px;fill:currentColor}
 input[type=search]{flex:1;min-width:0;height:40px;padding:0 10px;border-radius:10px;border:1px solid var(--card);background:var(--card);color:var(--fg);font-size:16px}
-#selc,#info,#hidc,#qic{flex:1;min-width:0;font-size:13px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#selc,#resc,#info,#hidc,#qic{flex:1;min-width:0;font-size:13px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #pg{font-size:14px;min-width:24px;text-align:left;white-space:nowrap}
 #pgi{width:52px;height:40px;padding:0 4px;text-align:center;border-radius:10px;border:1px solid var(--card);background:var(--card);color:var(--fg);font-size:16px;-moz-appearance:textfield;appearance:textfield}
 #pgi::-webkit-outer-spin-button,#pgi::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -143,7 +143,7 @@ body.busy,body.busy *{cursor:progress}
 #sm-sz{width:auto}
 </style></head><body>
 <header>
-<div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div><div id="hidc" hidden></div><div id="qic" hidden></div><div id="selc" hidden></div></div><select id="tl" title="Target language" hidden></select><button id="cfgb" title="Settings" aria-label="Settings"></button><button id="mnb" title="Menu" aria-label="Menu"></button></div>
+<div class="row" id="top"><div id="fnw"><div id="fn">No file</div><div id="info"></div><div id="hidc" hidden></div><div id="qic" hidden></div><div id="selc" hidden></div><div id="resc" hidden></div></div><select id="tl" title="Target language" hidden></select><button id="cfgb" title="Settings" aria-label="Settings"></button><button id="mnb" title="Menu" aria-label="Menu"></button></div>
 <div class="row">
 <input id="q" type="search" placeholder="Search"><button id="flt" title="Search in…" aria-label="Search in"></button>
 <input id="f" type="file" accept="*/*" hidden><input id="f2" type="file" accept="*/*" hidden></div>
@@ -247,7 +247,7 @@ $('mnb').onclick=()=>{$('mn').hidden=false};
 $('mn-x').onclick=()=>{$('mn').hidden=true};
 $('mn').onclick=e=>{if(e.target===$('mn')||e.target.closest('#ml .mi'))$('mn').hidden=true};
 
-let shown=[],doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,crowdin=false,v2=false,mode='xliff',svT=0;
+let nRes=0,shown=[],doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,crowdin=false,v2=false,mode='xliff',svT=0;
 let RX=false,MARK=null,MKJ=false;   /* MARK: segments of multi-segment units that a pending hide/unhide would change (shown with a dashed border) */
 const F={id:1,rn:1,src:1,ctx:1,lbl:1,tgt:1};
 const ga=(t,n)=>{const r=new RegExp('\\s'+n+'\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')').exec(t);return r?(r[1]!==undefined?r[1]:r[2]):null};
@@ -2532,6 +2532,7 @@ function render(top){
 }
 function paintList(f,bad,top){
   const L=$('list');
+  nRes=bad?0:f.length;
   pages=size>0?Math.max(1,Math.ceil(f.length/size)):1;
   if(page>=pages)page=pages-1;
   let mki=-1;
@@ -2578,6 +2579,7 @@ function upd(quiet){
   $('qic').textContent=nqa+(qaBusy?'+':'')+' QA issues';$('qic').hidden=!doc||!nqa;
   $('hidc').textContent=nh+' hidden';$('hidc').hidden=!doc||!nh;
   $('selc').textContent=nsel+' selected';$('selc').hidden=!doc||!nsel;
+  $('resc').textContent=nRes.toLocaleString()+(nRes===1?' result':' results');$('resc').hidden=!doc||!$('q').value;   /* shown only while a search is active */
   $('bulk').disabled=!nsel;
   const sc=shown.filter(x=>x.sel).length;
   $('sa').checked=shown.length>0&&sc===shown.length;$('sa').indeterminate=sc>0&&sc<shown.length;$('sa').disabled=!shown.length;
