@@ -79,9 +79,7 @@ mark.tg{background:rgba(66,165,245,.38)}
 mark.es{background:rgba(102,187,106,.42)}
 mark.xg{background:rgba(171,71,188,.34)}
 mark.xp{background:rgba(171,71,188,.14)}
-span.chip{display:inline-block;font-size:11px;line-height:1;padding:3px 7px;margin:2px 0 0 6px;border-radius:10px;background:rgba(158,158,158,.35);color:var(--fg);vertical-align:middle}
 mark.cd{background:rgba(158,158,158,.42)}
-mark.lit{background:none;box-shadow:inset 0 -2px 0 rgba(158,158,158,.75)}
 .src mark{unicode-bidi:isolate}
 .src mark.iv::before{content:attr(data-u);font-size:.65em;vertical-align:super;color:var(--mut)}
 .hl mark{color:transparent}
@@ -197,8 +195,6 @@ body.busy,body.busy *{cursor:progress}
 <div id="cl-list"></div>
 <div class="kr"><input id="cl-code" placeholder="Code, e.g. pt-BR" autocomplete="off" spellcheck="false"><input id="cl-name" placeholder="Name (optional)" autocomplete="off"></div>
 <div class="dr" style="margin-top:8px"><button id="cl-cancel" type="button" hidden>Cancel</button><button id="cl-save" type="button">Add</button></div>
-<label class="ck"><input type="checkbox" id="c-pv"> Edit on preview</label>
-<div class="hint">Shows text as it is displayed (&amp;amp; appears as &amp;) and escapes it again automatically when saved: quotes become &amp;quot; and &amp;apos; in XLIFF, \" and \' in strings.xml.</div>
 <label class="ck"><input type="checkbox" id="c-xh"> Export hidden units as translatable="false"</label>
 <div class="hint">Applies to Save (strings.xml) and to Save as strings.xml (XLIFF 1.2 and 2). On: hidden units are written with translatable="false". Off: hidden units are left out of the exported file.</div>
 <label>QA checks</label>
@@ -301,13 +297,13 @@ const cbHas=u=>!!(u.cb&&u.cb.length);
 const cbCan=u=>{const c=cur(u);return c.trim()!==''&&c!==u.rt&&!(u.cb||[]).includes(c)};
 const cbAdd=u=>{if(!cbCan(u)||(u.cb||[]).length>=CB_MAX)return false;(u.cb=u.cb||[]).unshift(cur(u));return true};
 function openClip(u,apply,done){
-  const dlg=$('cm'),list=$('cm-l'),info=$('cm-i'),sv=$('cm-s'),show=t=>CFG.pv?pvDec(t):t;
+  const dlg=$('cm'),list=$('cm-l'),info=$('cm-i'),sv=$('cm-s');
   $('cm-h').textContent='Clipboard \u00b7 '+(u.rn||u.id);
   const draw=()=>{
     const cb=u.cb||[];list.textContent='';
     cb.forEach((t,i)=>{
       const r=document.createElement('div');r.className='cbi';
-      const x=document.createElement('div');x.className='t';const v=show(t);x.textContent=v.length>240?v.slice(0,240)+'\u2026':v;
+      const x=document.createElement('div');x.className='t';const v=t;x.textContent=v.length>240?v.slice(0,240)+'\u2026':v;
       const use=document.createElement('button');use.type='button';use.textContent='Use';
       use.onclick=()=>{if(cbCan(u)&&!confirm('Replace the current translation? It is not saved in the clipboard.'))return;dlg.hidden=true;apply(t)};
       const del=document.createElement('button');del.type='button';del.textContent='Delete';
@@ -322,59 +318,21 @@ function openClip(u,apply,done){
   draw();dlg.hidden=false;
 }
 
-// Edit on preview: raw XML content <-> text shown to the translator
-const PV_TAG=/<!\[CDATA\[[\s\S]*?\]\]>|<!--[\s\S]*?-->|<\/?[A-Za-z_][^<>]*>/;
-const PV_TOK=new RegExp(PV_TAG.source+'|&(?:[A-Za-z][\\w.-]*|#\\d+|#x[0-9A-Fa-f]+);','g');
-const pvXe=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const pvIsDec=m=>/^&(?:amp|lt|gt|quot|apos);$/.test(m);
-/* strings.xml: Android collapses the line breaks and indentation of the file's layout, so the preview shows the text without them (quoted strings and CDATA are left alone) */
+// strings.xml quoting (used when an XLIFF is exported as strings.xml)
+const XTAG=/<!\[CDATA\[[\s\S]*?\]\]>|<!--[\s\S]*?-->|<\/?[A-Za-z_][^<>]*>/;
+/* strings.xml: Android collapses the line breaks and indentation of the file's layout, so the QA check ignores them (quoted strings and CDATA are left alone) */
 const wsLead=t=>/^\s*/.exec(t)[0];
 const wsTrail=t=>{let e=t.length;while(e>0&&/\s/.test(t[e-1]))e--;return t.slice(e)};
 const wsEdge=t=>{const l=wsLead(t);if(l.includes('\n'))t=t.slice(l.length);const r=wsTrail(t);return r.includes('\n')?t.slice(0,t.length-r.length):t};   /* drops leading / trailing whitespace that holds a line break */
-const pvWs=t=>{
-  if(mode!=='strings'||!t.includes('\n'))return t;
-  if(t.includes('"')&&/(?<!\\)"/.test(t.replace(/<!\[CDATA\[[\s\S]*?\]\]>/g,'').replace(/<[^<>]*>/g,'')))return t;
-  const f=x=>x.replace(/\s+/g,m=>m.includes('\n')?' ':m);
-  t=wsEdge(t);
-  return t.includes('<![CDATA[')?t.split(/(<!\[CDATA\[[\s\S]*?\]\]>)/).map((p,i)=>i%2?p:f(p)).join(''):f(t);
-};
-const pvOk=(m,allow)=>m.startsWith('<!')||allow.has(m)||(!!allow.xg&&XG_RX.test(m));   /* is this tag / entity real markup (not plain text)? */
-const PV_EN={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'"};
-// strings.xml: \' and \" are shown as ' and ", other backslash escapes stay visible
-const pvTxt=t=>t.replace(mode==='strings'?/\\[\s\S]|&(amp|lt|gt|quot|apos);/g:/&(amp|lt|gt|quot|apos);/g,(m,n)=>m[0]==='\\'?(m[1]==="'"||m[1]==='"'?m[1]:m):PV_EN[n]);
-// text -> XML content: & < > always; quotes as &quot; &apos; (XLIFF) or \" \' (strings.xml)
-function pvQ(t){let o='',bs=0;for(const c of t){if(c==='\\'){bs++;o+=c;continue}o+=(c==="'"||c==='"')&&!(bs%2)?'\\'+c:c;bs=0}return o}
-const pvSeg=t=>{t=pvXe(t);return mode==='strings'?pvQ(t):t.replace(/"/g,'&quot;').replace(/'/g,'&apos;')};
-/* a text that is one single CDATA section: its content (the preview shows it without the wrapper, a chip tells it is CDATA), else null */
-const pvCdInner=t=>{t=t||'';if(!t.includes('<![CDATA['))return null;const m=/^\s*<!\[CDATA\[([\s\S]*?)\]\]>$/.exec(wsTrail(t)?t.slice(0,t.length-wsTrail(t).length):t);return m&&!/\]\]>/.test(m[1])?m[1]:null};
-const pvCdWrap=v=>v===''?'':'<![CDATA['+v.replace(/\]\]>/g,']]]]><![CDATA[>')+']]>';
-function pvDec(raw){
-  {const w=pvCdInner(raw);if(w!==null)return w}
-  let out='',last=0;
-  raw.replace(new RegExp(PV_TAG.source,'g'),(m,off)=>{out+=pvTxt(raw.slice(last,off))+m;last=off+m.length;return m});
-  return pvWs(out+pvTxt(raw.slice(last)));
-}
-// Tags / entities that may stay as markup when typed (those already in the source or the translation)
-function pvAllow(...raws){
-  const a=new Set();
-  raws.forEach(r=>(r||'').replace(new RegExp(PV_TOK.source,'g'),m=>{if(!m.startsWith('<!')&&!pvIsDec(m))a.add(m);if(XG_RX.test(m))a.xg=true;return m}));   /* xg: <xliff:g> may be typed with another id / example */
-  return a;
-}
-function pvEnc(t,allow){
-  let out='',last=0;
-  t.replace(new RegExp(PV_TOK.source,'g'),(m,off)=>{
-    out+=pvSeg(t.slice(last,off))+(pvOk(m,allow)?m:pvSeg(m));last=off+m.length;return m});
-  return out+pvSeg(t.slice(last));
-}
+// strings.xml: \' and \" are the escaped quotes
+function escQ(t){let o='',bs=0;for(const c of t){if(c==='\\'){bs++;o+=c;continue}o+=(c==="'"||c==='"')&&!(bs%2)?'\\'+c:c;bs=0}return o}
 // XLIFF content -> strings.xml content: quotes become \' and \" (used when exporting an XLIFF as strings.xml)
-function pvToAndroid(c){
-  const f=t=>pvQ(t.replace(/&quot;/g,'"').replace(/&apos;/g,"'"));
+function toAndroidQuotes(c){
+  const f=t=>escQ(t.replace(/&quot;/g,'"').replace(/&apos;/g,"'"));
   let o='',last=0;
-  c.replace(new RegExp(PV_TAG.source,'g'),(m,off)=>{o+=f(c.slice(last,off))+m;last=off+m.length;return m});
+  c.replace(new RegExp(XTAG.source,'g'),(m,off)=>{o+=f(c.slice(last,off))+m;last=off+m.length;return m});
   return o+f(c.slice(last));
 }
-const pvNorm=t=>{t=pvWs(t).replace(/&gt;/g,'>');return mode==='strings'?t.replace(/&quot;/g,'\\"').replace(/&apos;/g,"\\'"):t.replace(/&quot;/g,'"').replace(/&apos;/g,"'")};
-const pvSafe=(raw,allow)=>pvNorm(pvEnc(pvDec(raw),allow))===pvNorm(raw);
 
 const DEFMODEL='gemini-3.6-flash';
 const QALAB=[['ph','Placeholders & tags'],['ic','XLIFF 2 inline codes (editing hints)'],['ws','Spaces & line breaks'],['dsp','Double spaces'],['pu','End punctuation'],['num','Numbers'],['xml','Valid XML'],['gl','Glossary terms'],['apo','Unescaped quotes (strings.xml)'],['val','XLIFF 2 validation rules'],['len','Max length / storage'],['hid','Also check hidden units (translate=no)']];
@@ -383,8 +341,9 @@ let QV=0;
 const GQDEF='openai/gpt-oss-120b';
 /* models Groq has shut down: a stored choice or cached list that still has them is replaced / cleaned */
 const GQDEAD={'llama-3.3-70b-versatile':GQDEF,'llama-3.1-8b-instant':'openai/gpt-oss-20b'};
-const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,pv:0,xh:1,mrg:1,mrn:10,qa:{},theme:'system',accent:'sage'};
+const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,xh:1,mrg:1,mrn:10,qa:{},theme:'system',accent:'sage'};
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
+delete CFG.pv;   /* a setting saved by an older version */
 CFG.qa=Object.assign({},QADEF,CFG.qa||{});
 /* Theme: 'system' follows the device, 'light' / 'dark' force it. The browser bar colour (theme-color) follows too. */
 const TCOL={light:'#ffffff',dark:'#131415'};
@@ -655,9 +614,9 @@ function qaOf(u){
     if(Q.gl&&GL.length){const lcc=c.toLowerCase();glossHits(s).forEach(h=>{if(!lcc.includes(h.t.toLowerCase()))out.push('Glossary: '+h.s+' \u2192 '+h.t)})}
     if(Q.gl&&u.gl){const lcc=c.toLowerCase(),ls=s.toLowerCase();u.gl.forEach(g=>{if(g.t.length&&ls.includes(g.s.toLowerCase())&&!g.t.some(x=>lcc.includes(x.toLowerCase())))out.push('Glossary: '+g.s+' \u2192 '+g.t.join(' / '))})}
     if(Q.val&&u.vr)vrCheck(u,c).forEach(x=>out.push(x));
-    if(Q.len&&(u.max||u.mn)){const cl=u.slr?txtlen(c,u.nfG):clen(CFG.pv?pvDec(c):c);if(u.max&&cl>u.max)out.push('Over max length ('+cl+'/'+u.max+')');if(u.mn&&c.trim()&&cl<u.mn)out.push('Under min length ('+cl+'/'+u.mn+')')}
+    if(Q.len&&(u.max||u.mn)){const cl=u.slr?txtlen(c,u.nfG):clen(c);if(u.max&&cl>u.max)out.push('Over max length ('+cl+'/'+u.max+')');if(u.mn&&c.trim()&&cl<u.mn)out.push('Under min length ('+cl+'/'+u.mn+')')}
     if(Q.len&&u.mb){let t=txtOf(c);if(u.nfS==='nfc'||u.nfS==='nfd')t=t.normalize(u.nfS.toUpperCase());const e=u.mb[1],n=e===32?[...t].length*4:e===16?t.length*2:new TextEncoder().encode(t).length;if(n>u.mb[0])out.push('Over storage limit ('+n+'/'+u.mb[0]+' bytes, UTF-'+e+')');if(u.mbMin&&c.trim()&&n<u.mbMin)out.push('Under minimum storage ('+n+'/'+u.mbMin+' bytes, UTF-'+e+')')}
-    if(Q.apo&&!CFG.pv&&mode==='strings'&&!/CDATA/.test(c)&&/(?<!\\)['"]/.test(c.replace(/<[^>]+>/g,'')))out.push('Unescaped quote');
+    if(Q.apo&&mode==='strings'&&!/CDATA/.test(c)&&/(?<!\\)['"]/.test(c.replace(/<[^>]+>/g,'')))out.push('Unescaped quote');
   }
   u._qv=QV;u._qm=mode;u._qt=tr;u._qc=c;u._qa=out;return out;
 }
@@ -888,7 +847,7 @@ $('f2').onchange=async e=>{
      (unless that XLIFF keeps \' in its own source texts); XLIFF inline codes (<ph/>, <pc>...) cannot go into strings.xml */
   const inl=/<(?:[\w.\-]+:)?(?:ph|pc|sc|ec|sm|em|cp|mrk)(?=[\s\/>])/;
   let adj=v=>v,noInl=false;
-  if(mode==='strings'&&!mp.strings){adj=pvToAndroid;noInl=true}
+  if(mode==='strings'&&!mp.strings){adj=toAndroidQuotes;noInl=true}
   else if(mode!=='strings'&&mp.strings&&!units.some(u=>/\\['"]/.test(u.rs)))adj=unescQ;
   const hits=[],matched=new Set();let nInl=0,nHid=0;
   units.forEach(u=>{const k=kOf(u);if(mp.has(k)){const v0=mp.get(k);matched.add(k);
@@ -1001,7 +960,7 @@ function aiShow(e){
 function openCfg(){
   draft={};mdl={};GLd=null;CLd=CL.map(l=>[l[0],l[1],l[0]]);uiEng='';
   $('c-theme').value=CFG.theme||'system';accDraft=ACCS.includes(CFG.accent)?CFG.accent:'sage';accUi();$('c-eng').value=CFG.eng;$('c-notes').value=CFG.gnotes;$('c-rpmf').value=CFG.rpmF;
-  document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);$('c-pv').checked=!!CFG.pv;$('c-xh').checked=!!CFG.xh;$('c-mrg').checked=!!CFG.mrg;$('c-mrn').value=CFG.mrn;pvUi();glInfo();clRender();clReset();
+  document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);$('c-xh').checked=!!CFG.xh;$('c-mrg').checked=!!CFG.mrg;$('c-mrn').value=CFG.mrn;qaUi();glInfo();clRender();clReset();
   $('cfg').hidden=false;aiShow(CFG.eng);
 }
 function applyCfg(persist=true){
@@ -1009,7 +968,7 @@ function applyCfg(persist=true){
   const rp=(v,d)=>{v=String(v==null?'':v).trim();return v===''?d:Math.max(0,Math.floor(+v)||0)};
   for(const e in AIF){const f=AIF[e],d=draft[e];if(!d)continue;CFG[f.key]=d.key;CFG[f.model]=d.model||f.def;CFG[f.rpm]=rp(d.rpm,f.rpmDef)}
   CFG.rpmF=rp($('c-rpmf').value,30);
-  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);CFG.pv=$('c-pv').checked?1:0;CFG.xh=$('c-xh').checked?1:0;CFG.mrg=$('c-mrg').checked?1:0;CFG.mrn=Math.min(30,Math.max(2,Math.floor(+$('c-mrn').value)||10));
+  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);CFG.xh=$('c-xh').checked?1:0;CFG.mrg=$('c-mrg').checked?1:0;CFG.mrn=Math.min(30,Math.max(2,Math.floor(+$('c-mrn').value)||10));
   for(const k in mdl)CFG[k]=mdl[k];
   if(persist){QV++;saveCfg()}
 }
@@ -1018,14 +977,13 @@ const themePrev=()=>applyTheme($('c-theme').value,accDraft);
 $('c-theme').onchange=themePrev;
 document.querySelectorAll('#c-acc .sw').forEach(b=>b.addEventListener('click',()=>{accDraft=b.dataset.a;accUi();themePrev()}));
 $('qac').innerHTML=QALAB.map(([k,t])=>'<label class="ck"><input type="checkbox" data-q="'+k+'"> '+t+'</label>').join('');
-/* A QA option is greyed out when it cannot apply: because of Edit on preview, or because of the open file's format.
-   strings.xml: no ic / val / len / hid.  XLIFF 1.2: no ic / val / apo.  XLIFF 2: no apo.  No file open: only the Edit on preview rules apply. */
-function pvUi(){
-  const pv=$('c-pv').checked,sm=!!doc&&mode==='strings',x2=!!doc&&mode==='xliff'&&v2,has=!!doc;
-  const off={xml:pv,apo:pv||(has&&!sm),ic:has&&!x2,val:has&&!x2,len:sm};
+/* A QA option is greyed out when it cannot apply to the format of the open file.
+   strings.xml: no ic / val / len / hid.  XLIFF 1.2: no ic / val / apo.  XLIFF 2: no apo.  No file open: every option is available. */
+function qaUi(){
+  const sm=!!doc&&mode==='strings',x2=!!doc&&mode==='xliff'&&v2,has=!!doc;
+  const off={apo:has&&!sm,ic:has&&!x2,val:has&&!x2,len:sm};
   document.querySelectorAll('#qac input').forEach(x=>{const d=!!off[x.dataset.q];x.disabled=d;x.parentElement.style.opacity=d?.5:''});
 }
-$('c-pv').onchange=pvUi;
 let GLd=null;   /* draft glossary [[source,target]...] while Settings is open; null = unchanged. Applied only by Save */
 const glCur=()=>GLd||GL.map(e=>[e.s,e.t]);
 function glInfo(){const g=glCur();$('g-info').textContent=g.length?g.length+' terms \u00b7 e.g. '+g.slice(0,2).map(e=>e[0]+' \u2192 '+e[1]).join(', '):'No glossary loaded'}
@@ -1817,15 +1775,13 @@ function pcls(m){
   if(c==='<')return 'tg';
   return 'es';
 }
-/* allow (Edit on preview only): the tags / entities that are real markup in the text shown; any other tag-like text is plain text and is only underlined */
-function hlight(t,allow){
+function hlight(t){
   let out='',last=0,xd=0,cdata=false;   /* inside CDATA the tags are markup of the text itself (HTML) and stay highlighted */
   const txt=x=>{if(x)out+=xd>0?'<mark class="xp">'+hesc(x)+'</mark>':hesc(x)};   /* text inside <xliff:g> is protected: it is not translated */
   t.replace(TOK,(m,off)=>{
     txt(t.slice(last,off));last=off+m.length;
     let c=pcls(m);
     if(m==='<![CDATA[')cdata=true;else if(m===']]>')cdata=false;
-    if(allow&&!cdata&&(c==='tg'||c==='xg'||m[0]==='&')&&!pvOk(m,allow))c='lit';
     const iv=INV.test(m)?' iv" data-u="'+uPlus(m):'';
     if(c==='xg'&&m[1]!=='/'&&!/\/>$/.test(m)){out+='<mark class="xg">'+hesc(m)+'</mark>';xd++;return m}
     if(c==='xg'&&m[1]==='/'&&xd>0)xd--;
@@ -1919,7 +1875,7 @@ async function simRun(u,by,alg,mn,qt,onProg){
   return out.sort((a,b)=>b.s-a.s);   /* stable: equal scores keep file order */
 }
 function openMtm(u,apply){
-  const dlg=$('mtm'),show=t=>CFG.pv?pvDec(t):t,ld=$('mtm-load'),ap=$('mtm-apply'),out=$('mtm-out'),wn=$('mtm-w');
+  const dlg=$('mtm'),ld=$('mtm-load'),ap=$('mtm-apply'),out=$('mtm-out'),wn=$('mtm-w');
   const info=$('sm-i'),list=$('sm-l'),pgr=$('sm-pgr'),pi=$('sm-pi'),pg=$('sm-pg'),prev=$('sm-prev'),next=$('sm-next'),szs=$('sm-sz');
   let mt=null,res=null,sp=0,capped=false;
   ++MTM;SIMSEQ++;
@@ -1927,7 +1883,7 @@ function openMtm(u,apply){
   /* machine translation */
   $('mtm-h').textContent='Translate \u00b7 '+(u.rn||u.id);
   $('mtm-eng').textContent='Engine: '+engName();
-  $('mtm-src').textContent=show(u.rs);
+  $('mtm-src').textContent=u.rs;
   out.hidden=true;out.textContent='';wn.hidden=true;ap.disabled=true;
   const lab=()=>{ld.disabled=false;ld.innerHTML=mt?ic('refresh')+'<span>Reload</span>':'<span>Load machine translation</span>'};
   const warn=t=>{wn.textContent=t?'\u26a0 '+t:'';wn.hidden=!t};
@@ -1939,7 +1895,7 @@ function openMtm(u,apply){
     ld.disabled=true;ap.disabled=true;ld.textContent='Loading\u2026';warn('');
     try{
       const r=await machine(u.rs,u);if(my!==MTM)return;
-      mt=r.text;out.textContent=show(mt);out.hidden=false;warn(r.warn?r.msg:'');
+      mt=r.text;out.textContent=mt;out.hidden=false;warn(r.warn?r.msg:'');
     }catch(e){if(my!==MTM)return;warn('Translation failed: '+e.message)}
     lab();ap.disabled=!mt;
   };
@@ -1965,7 +1921,7 @@ function openMtm(u,apply){
       const use=document.createElement('button');use.type='button';use.textContent='Use';
       use.onclick=()=>{if(cbCan(u)&&!confirm('Replace the current translation? It is not saved in the clipboard.'))return;close();apply(tr)};
       h.append(b,id,use);
-      const cut=t=>{t=show(t);return t.length>300?t.slice(0,300)+'\u2026':t};
+      const cut=t=>{return t.length>300?t.slice(0,300)+'\u2026':t};
       const a=document.createElement('div');a.className='smt'+(SIM.by==='src'?' m':'');a.dataset.l='Source';a.textContent=cut(x.rs);
       const c=document.createElement('div');c.className='smt'+(SIM.by==='tgt'?' m':'');c.dataset.l='Translation';c.textContent=cut(tr);
       r.append(h,a,c);list.appendChild(r);
@@ -2004,19 +1960,13 @@ function card(u){
   const cb=q('.sel');cb.setAttribute('aria-label','Select unit');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
   q('.id').textContent=u.id;q('.rn').textContent=rnShow(u);q('.rn').hidden=!u.rn;
   q('.lb').textContent=u.labels.length?'Label: '+u.labels.join(', '):'';q('.lb').hidden=!u.labels.length;
-  const cd=!!CFG.pv&&pvCdInner(u.rs)!==null;   /* Edit on preview: a CDATA text is edited without its wrapper */
-  const allow=CFG.pv&&!cd?pvAllow(u.rs,u.rt,cur(u)):null;
-  const sv=CFG.pv?pvDec(u.rs):u.rs;
-  q('.src').innerHTML=hlight(sv,allow);
-  {const ch=document.createElement('span');ch.className='chip';ch.textContent='CDATA';ch.title='The text is wrapped in <![CDATA[ ... ]]>; the wrapper is kept when you save';ch.hidden=!cd;q('.idw').appendChild(ch)}
-  q('.sc').textContent=clen(sv)+' chars';
+  q('.src').innerHTML=hlight(u.rs);
+  q('.sc').textContent=clen(u.rs)+' chars';
   cxt.textContent=mode==='strings'?(ctxLines(u).join('\n')||'No comment'):(crowdin||v2)?(ctxLines(u).join('\n')||(v2?'No notes or module data':'No context')):'For Crowdin Only'
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
-  const P=!!CFG.pv&&(cd||pvSafe(cur(u),allow));
-  const toTa=r=>cd?(pvCdInner(r)!==null?pvCdInner(r):pvDec(r)):P?pvDec(r):r,fromTa=v=>cd?pvCdWrap(pvCdInner(v)!==null?pvCdInner(v):v):P?pvEnc(v,allow):v;
-  const paint=()=>{hl.innerHTML=hlight(ta.value,P?allow:null)+' ';const n=(u.slr&&!P?(x=>txtlen(x,u.nfG)):clen)(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars'+(CFG.pv&&!P?' \u00b7 raw':'');tc.classList.toggle('over',!!u.max&&n>u.max)};
-  const setText=v=>{ta.value=toTa(v);paint();fit()};
-  ta.value=toTa(cur(u));ta.setAttribute('aria-label','Translation');paint();
+  const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=(u.slr?(x=>txtlen(x,u.nfG)):clen)(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars';tc.classList.toggle('over',!!u.max&&n>u.max)};
+  const setText=v=>{ta.value=v;paint();fit()};
+  ta.value=cur(u);ta.setAttribute('aria-label','Translation');paint();
   const refresh=()=>{
     const a=u.ap!==undefined?u.ap:u.oAp,t=u.tr!==undefined?u.tr:u.oTr;
     d.classList.toggle('ch',changed(u));un.disabled=!changed(u);
@@ -2032,7 +1982,7 @@ function card(u){
     clb.classList.toggle('on',nb>0);clb.title=ct;clb.setAttribute('aria-label',ct);
   };
   const sync=()=>{refresh();upd();vsNudge()};
-  ta.oninput=()=>{setVal(u,fromTa(ta.value));paint();fit();sync()};
+  ta.oninput=()=>{setVal(u,ta.value);paint();fit();sync()};
   cp.onclick=()=>{setText(u.rs);setVal(u,u.rs);sync()};
   clb.onclick=()=>openClip(u,v=>{setText(v);setVal(u,v);sync()},sync);
   un.onclick=()=>{setText(u.rt);delete u.val;delete u.ap;delete u.apAuto;delete u.tr;sync()};
@@ -2512,7 +2462,7 @@ const sortByQa=f=>f.map((u,i)=>[u,i,-qaOf(u).length]).sort((a,b)=>a[2]-b[2]||a[1
 /* The result list is a snapshot: it is rebuilt only when the search changes (text, scope, regex, sort) or the file does, not when a page is turned
    or units are edited / approved / bulk-processed. RK = key of the latest render, RES = the finished result list. */
 let RES=null,RK=null;
-const resKey=()=>{const q=$('q').value,sk=$('so').value;return JSON.stringify([GEN,mode,q,q?RX:0,q?F:0,sk,CFG.pv?1:0,sk==='qa'?QV:0])};
+const resKey=()=>{const q=$('q').value,sk=$('so').value;return JSON.stringify([GEN,mode,q,q?RX:0,q?F:0,sk,sk==='qa'?QV:0])};
 function render(top){
   const seq=++RSEQ,L=$('list');
   const nc=!!doc&&mode==='xliff'&&!crowdin&&!v2;document.body.classList.toggle('nc',nc);
@@ -2533,21 +2483,20 @@ function render(top){
   if(!top&&RES&&RES.key===key){done(RES.f);return}   /* search / filter / sort / page-size changes (top) always rebuild, even if the key is unchanged */
   const fin=f=>{if(seq!==RSEQ)return;RES={key,f};done(f)};
   const big=units.length>=BIGN;
-  /* main-thread search + sort (small files, "Edit on preview" on, or no Worker) */
+  /* main-thread search + sort (small files or no Worker) */
   const local=()=>{
     const go=()=>{
       if(seq!==RSEQ)return;
-      const sv=t=>CFG.pv?pvDec(t):t;
       let hit;
       if(re)hit=v=>re.test(v||'');
       else{const ql=qs.toLowerCase();hit=v=>(v||'').toLowerCase().includes(ql)}
-      let f=units.filter(u=>!qs||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(sv(u.rs)))||(!nc&&F.ctx&&hit(u.ct))||(!nc&&F.lbl&&hit((u.labels||[]).join(' ')))||(F.tgt&&hit(sv(cur(u)))));
+      let f=units.filter(u=>!qs||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(!nc&&F.ctx&&hit(u.ct))||(!nc&&F.lbl&&hit((u.labels||[]).join(' ')))||(F.tgt&&hit(cur(u))));
       if(sk!=='none')f=f.map((u,i)=>[u,i,sortKey(sk,u)]).sort((a,b)=>a[2]-b[2]||a[1]-b[1]).map(x=>x[0]);
       fin(f);
     };
     if(sk==='qa'&&big){L.classList.add('wait');qaScan(go)}else go();
   };
-  if(big&&WSYNC&&!CFG.pv&&wInit()){
+  if(big&&WSYNC&&wInit()){
     L.classList.add('wait');
     wCall({t:'query',q:qs,rx:!!(RX&&qs),F:Object.assign({},F),nc,sk:sk==='qa'?'none':sk,dyn:wDyn()}).then(m=>{
       if(seq!==RSEQ)return;
@@ -3045,7 +2994,7 @@ async function exportStrings(){
       const dec=d.documentElement.textContent;
       if(parse(dec).querySelector('parsererror'))kept++;else text=dec;
     }
-    {const t2=pvToAndroid(text);if(t2!==text){quoted++;text=t2}}   /* strings.xml needs \' and \" whatever the XLIFF used (plain quote, &apos; / &quot;) */
+    {const t2=toAndroidQuotes(text);if(t2!==text){quoted++;text=t2}}   /* strings.xml needs \' and \" whatever the XLIFF used (plain quote, &apos; / &quot;) */
     seen.add(u.rn);items.push([u.rn,text,hid]);if(hid)hiddenOut++;
   }
   busy('');upd(true);
