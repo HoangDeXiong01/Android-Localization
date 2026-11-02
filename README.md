@@ -33,7 +33,6 @@ Everything runs on your device. There is no account, no server, and no upload st
 ### Built for small screens
 - One card per string, with live character counts and an optional per-string max length (from `maxwidth`).
 - **Placeholders, escapes, entities, tags and XLIFF 2 inline codes are highlighted** (`%s`, `%1$d`, `{name}`, `\n`, `&amp;`, `<b>`) so you do not break them by accident.
-- **Edit on preview** (optional): see and type text as it is displayed (`&amp;amp;` shows as `&amp;`); it is escaped again automatically when saved (`&quot;` / `&apos;` in XLIFF, `\"` / `\'` in `strings.xml`).
 - Paging (10 / 20 / 50 / 100 / all), previous/next, and **jump to a page** by typing its number. Large files stay smooth.
 - Optional context panel per card, approve and hide toggles, and a one-tap **undo** for each string.
 - Light and dark themes: follow the system or choose one.
