@@ -197,6 +197,8 @@ body.busy,body.busy *{cursor:progress}
 <div class="dr" style="margin-top:8px"><button id="cl-cancel" type="button" hidden>Cancel</button><button id="cl-save" type="button">Add</button></div>
 <label class="ck"><input type="checkbox" id="c-xh"> Export hidden units as translatable="false"</label>
 <div class="hint">Applies to Save (strings.xml) and to Save as strings.xml (XLIFF 1.2 and 2). On: hidden units are written with translatable="false". Off: hidden units are left out of the exported file.</div>
+<label class="ck"><input type="checkbox" id="c-ih"> Inherit comments (strings.xml)</label>
+<div class="hint">A comment placed before a string also applies to the strings that follow it, until a blank line or the next comment. Section titles such as &lt;!-- Home - Status --&gt; are inherited; notes ending with a full stop, or starting with "To translators", only apply to the string right after them. Inherited comments are shown with a ↳ and are also sent to the AI as context.</div>
 <label>QA checks</label>
 <div id="qac"></div>
 <div class="dr"><button id="c-cancel" type="button">Close</button><button id="c-save" type="button" class="p">Save</button></div>
@@ -341,7 +343,7 @@ let QV=0;
 const GQDEF='openai/gpt-oss-120b';
 /* models Groq has shut down: a stored choice or cached list that still has them is replaced / cleaned */
 const GQDEAD={'llama-3.3-70b-versatile':GQDEF,'llama-3.1-8b-instant':'openai/gpt-oss-20b'};
-const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,xh:1,mrg:1,mrn:10,qa:{},theme:'system',accent:'sage'};
+const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,xh:1,ih:1,mrg:1,mrn:10,qa:{},theme:'system',accent:'sage'};
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
 delete CFG.pv;   /* a setting saved by an older version */
 CFG.qa=Object.assign({},QADEF,CFG.qa||{});
@@ -699,7 +701,7 @@ function setMode(m){
   document.querySelector('#fl [data-f=ctx]').textContent=m==='strings'?'Comment':'Context';
   fillSort();fchips();
 }
-function parseStrings(txt){
+function parseStrings(txt,inh){   /* inh: a comment also applies to the following strings (see grpCm) */
   const cms=[];let gone=0;   /* cms: [position in t, text] of every comment, which is cut out of t */
   const t=txt.replace(/<!\[CDATA\[[\s\S]*?\]\]>|<!--[\s\S]*?-->/g,(x,off)=>{if(!x.startsWith('<!--'))return x;cms.push([off-gone,x.slice(4,-3)]);gone+=x.length;return ''}),tm=maskRaw(t);
   /* the comments that sit directly before position s (only whitespace between them) */
@@ -714,16 +716,29 @@ function parseStrings(txt){
     }
     return out;
   };   /* match on a copy with CDATA blanked (same length), so a "</string>" inside CDATA cannot end the string; the texts are cut from the real one */
+  /* is there a comment between positions a and b of t? */
+  const cmIn=(a,b)=>{let lo=0,hi=cms.length;while(lo<hi){const md=(lo+hi)>>1;if(cms[md][0]<a)lo=md+1;else hi=md}return lo<cms.length&&cms[lo][0]<=b};
+  /* a comment that can be inherited: a heading such as "Home - Status"; a note for one string (ends with . ! ? or starts with "To translators") is not */
+  const grpCm=c=>{const x=c.join(' ').trim();return !(/^(to\s+translators?|translators?\b|note\s*:|todo\b|fixme\b)/i.test(x)||/[.!?\u3002]$/.test(x))};
+  let inhC=null,lastEnd=0,ihNow=0;   /* inhC: the comment now inherited; lastEnd: end of the previous resource */
   const res=[];let fm=false,prod='',hidN=false;const re=/<(string-array|plurals|string)(?=[\s>\/])((?:"[^"]*"|'[^']*'|[^>"'])*?)(?:\/>|>([\s\S]*?)<\/\1\s*>)/g;let m;
   const add=(kind,name,sub,rs,cm)=>res.push({kind,name,sub,rs,fm,prod,id:name,rn:(kind==='p'?sub:kind==='a'?'['+sub+']':'')+(prod?(kind==='s'?'product: ':' \u00b7 ')+prod:''),
-    rt:'',is12:false,oAp:false,oTr:hidN?'no':'yes',ctx:cm,labels:[],max:0,ct:cm.join('\n'),idx:res.length});
+    rt:'',is12:false,oAp:false,oTr:hidN?'no':'yes',ctx:cm,labels:[],max:0,ct:cm.join('\n'),ih:ihNow,idx:res.length});
   const inner=(src,r,g)=>{const c=r[g];if(c===undefined)return '';const e=r.index+r[0].lastIndexOf('</');return src.slice(e-c.length,e)};
   while((m=re.exec(tm))){
-    const at=' '+m[2],name=ga(at,'name');
+    const at=' '+m[2],name=ga(at,'name'),gs=lastEnd;lastEnd=m.index+m[0].length;
     if(!name)continue;
     hidN=ga(at,'translatable')==='false';   /* kept as a hidden unit: it can be shown and unhidden */
     fm=ga(at,'formatted')==='false';prod=ga(at,'product')||'';
-    const body=inner(t,m,3),bodyM=m[3]||'',cp=cmBefore(m.index),bs=m.index+m[0].lastIndexOf('</')-bodyM.length;
+    const own=cmBefore(m.index);let cp=own;ihNow=0;
+    if(inh){
+      if(own.length)inhC=grpCm(own)?own:null;
+      else{
+        if(inhC&&(cmIn(gs,m.index)||/\n[ \t]*\r?\n/.test(t.slice(gs,m.index))))inhC=null;   /* another comment or a blank line ends it */
+        if(inhC){cp=inhC;ihNow=1}
+      }
+    }
+    const body=inner(t,m,3),bodyM=m[3]||'',bs=m.index+m[0].lastIndexOf('</')-bodyM.length;
     if(m[1]==='string')add('s',name,'',body,cp);
     else{const ir=/<item(?=[\s>\/])((?:"[^"]*"|'[^']*'|[^>"'])*?)(?:\/>|>([\s\S]*?)<\/item\s*>)/g;let im,i=0;   /* <item/> (self-closing) is an empty item and must not swallow the next one */
       const g0=res.length;
@@ -960,7 +975,7 @@ function aiShow(e){
 function openCfg(){
   draft={};mdl={};GLd=null;CLd=CL.map(l=>[l[0],l[1],l[0]]);uiEng='';
   $('c-theme').value=CFG.theme||'system';accDraft=ACCS.includes(CFG.accent)?CFG.accent:'sage';accUi();$('c-eng').value=CFG.eng;$('c-notes').value=CFG.gnotes;$('c-rpmf').value=CFG.rpmF;
-  document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);$('c-xh').checked=!!CFG.xh;$('c-mrg').checked=!!CFG.mrg;$('c-mrn').value=CFG.mrn;qaUi();glInfo();clRender();clReset();
+  document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);$('c-xh').checked=!!CFG.xh;$('c-ih').checked=!!CFG.ih;$('c-mrg').checked=!!CFG.mrg;$('c-mrn').value=CFG.mrn;qaUi();glInfo();clRender();clReset();
   $('cfg').hidden=false;aiShow(CFG.eng);
 }
 function applyCfg(persist=true){
@@ -968,7 +983,7 @@ function applyCfg(persist=true){
   const rp=(v,d)=>{v=String(v==null?'':v).trim();return v===''?d:Math.max(0,Math.floor(+v)||0)};
   for(const e in AIF){const f=AIF[e],d=draft[e];if(!d)continue;CFG[f.key]=d.key;CFG[f.model]=d.model||f.def;CFG[f.rpm]=rp(d.rpm,f.rpmDef)}
   CFG.rpmF=rp($('c-rpmf').value,30);
-  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);CFG.xh=$('c-xh').checked?1:0;CFG.mrg=$('c-mrg').checked?1:0;CFG.mrn=Math.min(30,Math.max(2,Math.floor(+$('c-mrn').value)||10));
+  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);CFG.xh=$('c-xh').checked?1:0;CFG.ih=$('c-ih').checked?1:0;CFG.mrg=$('c-mrg').checked?1:0;CFG.mrn=Math.min(30,Math.max(2,Math.floor(+$('c-mrn').value)||10));
   for(const k in mdl)CFG[k]=mdl[k];
   if(persist){QV++;saveCfg()}
 }
@@ -1007,9 +1022,20 @@ $('c-eye').onclick=()=>{const k=$('c-key');k.type=k.type==='password'?'text':'pa
 $('c-eng').onchange=()=>{aiStash();aiShow($('c-eng').value)};
 $('cfgb').onclick=openCfg;
 $('c-cancel').onclick=()=>{applyTheme();$('cfg').hidden=true};
+/* Settings: inherited comments switched on / off while a strings.xml is open - only the comment data is refreshed, edits are kept */
+function reCtx(){
+  if(!doc||mode!=='strings')return;
+  let n;try{n=parseLocal(raw).units}catch(e){return}
+  if(n.length!==units.length)return;
+  n.forEach((x,i)=>{const u=units[i];u.ctx=x.ctx;u.ct=x.ct;u.ih=x.ih});
+  if(wInit())wCall({t:'parse',txt:raw,inh:CFG.ih?1:0}).catch(()=>{WSYNC=false});   /* the worker's copy is searched by the Comment filter */
+  RES=null;
+}
 $('c-save').onclick=()=>{
+  const ih0=!!CFG.ih;
   applyCfg();clCommit();
   if(GLd){setGlossary(GLd);saveGl();GLd=null}
+  if(ih0!==!!CFG.ih)reCtx();
   $('cfg').hidden=true;render();
 };
 $('c-test').onclick=async()=>{
@@ -1255,7 +1281,7 @@ $('f').onchange=async e=>{
 };
 let LSEQ=0,WSYNC=false;
 const busy=msg=>{document.body.classList.toggle('busy',!!msg);if(msg)$('info').textContent=msg};
-function parseLocal(txt){const out=[];const info=W_parse(txt,c=>{for(const u of c)out.push(u)});info.units=out;return info}
+function parseLocal(txt){const out=[];const info=W_parse(txt,c=>{for(const u of c)out.push(u)},CFG.ih?1:0);info.units=out;return info}
 /* XLIFF 1.2 conformance (Core spec: required attributes, id unique per <file>, content model of <trans-unit>). Never blocks opening.
    Core 3.1: the namespace is optional ("if necessary, you can also specify a namespace"), so a document without xmlns is valid and its elements are XLIFF elements;
    only a different namespace is reported. */
@@ -1637,7 +1663,7 @@ async function loadText(txt,fname,pre){
   busy('Opening\u2026');
   const acc=[];let job=null;
   if(wInit()){
-    job=wCall({t:'parse',txt},c=>{if(my!==LSEQ)return;for(const u of c)acc.push(u);busy('Opening\u2026 '+acc.length)});
+    job=wCall({t:'parse',txt,inh:CFG.ih?1:0},c=>{if(my!==LSEQ)return;for(const u of c)acc.push(u);busy('Opening\u2026 '+acc.length)});
     job.catch(()=>{});
   }
   await new Promise(r=>setTimeout(r,20));
@@ -1962,7 +1988,7 @@ function card(u){
   q('.lb').textContent=u.labels.length?'Label: '+u.labels.join(', '):'';q('.lb').hidden=!u.labels.length;
   q('.src').innerHTML=hlight(u.rs);
   q('.sc').textContent=clen(u.rs)+' chars';
-  cxt.textContent=mode==='strings'?(ctxLines(u).join('\n')||'No comment'):(crowdin||v2)?(ctxLines(u).join('\n')||(v2?'No notes or module data':'No context')):'For Crowdin Only'
+  cxt.textContent=mode==='strings'?(ctxLines(u).length?(u.ih?'\u21b3 ':'')+ctxLines(u).join('\n'):'No comment'):(crowdin||v2)?(ctxLines(u).join('\n')||(v2?'No notes or module data':'No context')):'For Crowdin Only'
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
   const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=(u.slr?(x=>txtlen(x,u.nfG)):clen)(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars';tc.classList.toggle('over',!!u.max&&n>u.max)};
   const setText=v=>{ta.value=v;paint();fit()};
@@ -2031,10 +2057,10 @@ function W_root(t){
   return m?m[1]:'';
 }
 /* file text -> unit data (plain objects, no DOM). emit(chunk) is called every 3000 units */
-function W_parse(txt,emit){
+function W_parse(txt,emit,ihc){
   const root=W_root(txt);
   if(root==='resources'){
-    const all=parseStrings(txt);
+    const all=parseStrings(txt,ihc);
     for(let i=0;i<all.length;i+=3000)emit(all.slice(i,i+3000));
     return {root,mode:'strings',crowdin:false,total:all.length};
   }
@@ -2302,7 +2328,7 @@ function W_main(){
     try{
       if(m.t==='parse'){
         const all=[];
-        const info=W_parse(m.txt,function(c){for(let i=0;i<c.length;i++)all.push(c[i]);postMessage({t:'chunk',id:m.id,units:c})});
+        const info=W_parse(m.txt,function(c){for(let i=0;i<c.length;i++)all.push(c[i]);postMessage({t:'chunk',id:m.id,units:c})},m.inh);
         U=all;LC={};
         postMessage({t:'done',id:m.id,root:info.root,mode:info.mode,crowdin:info.crowdin,v2:info.v2,total:info.total});
       }else if(m.t==='query'){
