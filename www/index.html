@@ -53,8 +53,7 @@ select{font-size:16px}button,select,input,label{touch-action:manipulation}button
 #mnb{height:36px}
 body.sm .ap{display:none}
 .u.hv{opacity:.62}
-body.sm #fl [data-f=rn],body.sm #fl [data-f=lbl]{display:none}
-body.nc #fl [data-f=ctx],body.nc #fl [data-f=lbl]{display:none}
+body.sm #fl [data-f=rn]{display:none}
 .cxt{font-size:13px;color:var(--mut);white-space:pre-wrap;word-break:break-word;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--card)}
 #fl{display:none;flex-wrap:wrap}
 #fl.show{display:flex}
@@ -123,7 +122,6 @@ body.sm .mi.x{display:none}
 .dlg input[type=checkbox]{width:20px;height:20px;padding:0;flex:none;accent-color:var(--ac)}
 .ck{display:flex!important;align-items:center;gap:10px;margin:6px 0!important;color:var(--fg)!important;font-size:14px!important}
 .qa{font-size:12px;color:#f57c00;margin:2px 2px 6px;white-space:pre-wrap;word-break:break-word}
-.lb{font-size:12px;color:var(--mut);word-break:break-all}
 .cnt.over{color:#e53935;font-weight:700}
 .clr{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:14px}
 .clr span{flex:1;min-width:0;word-break:break-word}
@@ -158,7 +156,7 @@ body.busy,body.busy *{cursor:progress}
 <div class="row">
 <input id="q" type="search" placeholder="Search"><button id="flt" title="Search in…" aria-label="Search in"></button>
 <input id="f" type="file" accept="*/*" hidden><input id="f2" type="file" accept="*/*" hidden></div>
-<div class="row" id="fl"><button data-f="id">ID</button><button data-f="rn">Name</button><button data-f="src">Source</button><button data-f="ctx">Context</button><button data-f="lbl">Label</button><button data-f="tgt">Target</button><button id="rx" type="button" title="Regex search" aria-label="Regex search">.*</button><select id="so" title="Show first"></select></div>
+<div class="row" id="fl"><button data-f="id">ID</button><button data-f="rn">Name</button><button data-f="src">Source</button><button data-f="ctx">Context</button><button data-f="tgt">Target</button><button id="rx" type="button" title="Regex search" aria-label="Regex search">.*</button><select id="so" title="Show first"></select></div>
 <div class="row" id="mkb" hidden><span id="mkt"></span><button id="mkc" type="button">Clear marks</button></div>
 <div class="row">
 <label id="sw" title="Select all shown"><input id="sa" type="checkbox"></label><button id="bulk" title="Actions for selected units" aria-label="Actions for selected units" disabled></button>
@@ -260,9 +258,9 @@ $('mnb').onclick=()=>{$('mn').hidden=false};
 $('mn-x').onclick=()=>{$('mn').hidden=true};
 $('mn').onclick=e=>{if(e.target===$('mn')||e.target.closest('#ml .mi'))$('mn').hidden=true};
 
-let nRes=0,shown=[],doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,crowdin=false,v2=false,mode='xliff',svT=0;
+let nRes=0,shown=[],doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,v2=false,mode='xliff',svT=0;
 let RX=false,MARK=null,MKJ=false;   /* MARK: segments of multi-segment units that a pending hide/unhide would change (shown with a dashed border) */
-const F={id:1,rn:1,src:1,ctx:1,lbl:1,tgt:1};
+const F={id:1,rn:1,src:1,ctx:1,tgt:1};
 const ga=(t,n)=>{const r=new RegExp('\\s'+n+'\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')').exec(t);return r?(r[1]!==undefined?r[1]:r[2]):null};
 const setAttr=(t,n,v)=>{const re=new RegExp('(\\s'+n+'\\s*=\\s*)(?:"[^"]*"|\'[^\']*\')');
   return re.test(t)?t.replace(re,'$1"'+v+'"'):t.replace(/\s*(\/?>)$/,' '+n+'="'+v+'"$1')};
@@ -723,7 +721,7 @@ function parseStrings(txt,inh){   /* inh: a comment also applies to the followin
   let inhC=null,lastEnd=0,ihNow=0;   /* inhC: the comment now inherited; lastEnd: end of the previous resource */
   const res=[];let fm=false,prod='',hidN=false;const re=/<(string-array|plurals|string)(?=[\s>\/])((?:"[^"]*"|'[^']*'|[^>"'])*?)(?:\/>|>([\s\S]*?)<\/\1\s*>)/g;let m;
   const add=(kind,name,sub,rs,cm)=>res.push({kind,name,sub,rs,fm,prod,id:name,rn:(kind==='p'?sub:kind==='a'?'['+sub+']':'')+(prod?(kind==='s'?'product: ':' \u00b7 ')+prod:''),
-    rt:'',is12:false,oAp:false,oTr:hidN?'no':'yes',ctx:cm,labels:[],max:0,ct:cm.join('\n'),ih:ihNow,idx:res.length});
+    rt:'',is12:false,oAp:false,oTr:hidN?'no':'yes',ctx:cm,max:0,ct:cm.join('\n'),ih:ihNow,idx:res.length});
   const inner=(src,r,g)=>{const c=r[g];if(c===undefined)return '';const e=r.index+r[0].lastIndexOf('</');return src.slice(e-c.length,e)};
   while((m=re.exec(tm))){
     const at=' '+m[2],name=ga(at,'name'),gs=lastEnd;lastEnd=m.index+m[0].length;
@@ -1680,7 +1678,7 @@ async function loadText(txt,fname,pre){
   if(info.mode==='other'){busy('');upd(true);alert('This XML file is neither an XLIFF nor an Android strings.xml file (root element: <'+(info.root||'?')+'>).');return false}
   if(!list.length){busy('');upd(true);alert(info.mode==='strings'?'No translatable strings were found in this file.':'No translation units were found in this XLIFF file.');return false}
   GEN++;qaJob++;qaN=0;
-  name=fname;raw=txt;doc={mode:info.mode};units=list;crowdin=!!info.crowdin;v2=!!info.v2;WSYNC=sync;
+  name=fname;raw=txt;doc={mode:info.mode};units=list;v2=!!info.v2;WSYNC=sync;
   units.forEach(u=>{u._gen=GEN});MARK=null;MKJ=false;
   page=0;$('q').value='';
   setMode(info.mode);
@@ -1702,7 +1700,7 @@ $('close').onclick=()=>{
   if(!doc)return;
   if(edited()&&!confirm('Close this file? Unsaved changes will not be saved.'))return;
   LSEQ++;GEN++;qaJob++;qaN=0;qaBusy=false;WSYNC=false;wDrop();
-  doc=null;raw='';units=[];MARK=null;MKJ=false;crowdin=false;v2=false;page=0;$('q').value='';setMode('xliff');sessClear();render();
+  doc=null;raw='';units=[];MARK=null;MKJ=false;v2=false;page=0;$('q').value='';setMode('xliff');sessClear();render();
 };
 let qt;$('q').oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{RES=null;page=0;render(1)},150)};   /* every edit of the search box refreshes the results, even back to the earlier text */
 $('rx').onclick=()=>{RX=!RX;fchips();page=0;render(1)};
@@ -1714,7 +1712,7 @@ function fchips(){document.querySelectorAll('#fl button[data-f]').forEach(b=>b.c
 const SORTS=[['none','Original order',0],['mod','Edited first',0],['qa','QA issues first',0],['cb','Clipboard first',0],['unap','Unapproved first',1],['hid','Hidden first',1],['untr','Untranslated first',0],['same','Same as source first',0],['lsrc','Longest source first',0],['ssrc','Shortest source first',0],['ltgt','Longest target first',0],['stgt','Shortest target first',0],['over','Over max length first',0,'max']];
 function fillSort(){
   const so=$('so'),v=so.value||'none';
-  so.innerHTML=SORTS.filter(x=>(!x[2]||mode==='xliff'||x[0]==='hid')&&(!x[3]||units.some(u=>x[3]==='labels'?u.labels&&u.labels.length:u.max))).map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');
+  so.innerHTML=SORTS.filter(x=>(!x[2]||mode==='xliff'||x[0]==='hid')&&(!x[3]||units.some(u=>u.max))).map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');
   so.value=[...so.options].some(o=>o.value===v)?v:'none';
 }
 $('so').onchange=()=>{page=0;fchips();render(1)};
@@ -1791,7 +1789,13 @@ $('prev').onclick=()=>{if(page>0){page--;render();scrollTo(0,0)}};
 $('next').onclick=()=>{if(page<pages-1){page++;render();scrollTo(0,0)}};
 
 $('sm-prev').innerHTML=ic('prev');$('sm-next').innerHTML=ic('next');
-const ctxLines=u=>u.ctx.filter(x=>!x.startsWith('x-crowdin-label: ')).map(x=>x.replace(/^source: /,'')).filter(x=>x.trim()&&!/^[\w:-]+: $/.test(x));
+const ctxLines=u=>{   /* every context type is listed as "type: text", none is special; a text equal to the resname counts as empty */
+  const rn=(u.fi!==undefined&&u.rn?u.rn:'').trim(),rb=u.v2?rn.replace(/#[^#]*$/,''):rn;   /* fi: XLIFF unit (strings.xml comments are plain text); XLIFF 2 multi-segment resname is name#segment */
+  return u.ctx.filter(x=>{
+    if(!x.trim()||/^[\w:-]+: $/.test(x))return false;
+    const m=/^[\w:-]+: ([\s\S]*)$/.exec(x);
+    if(m&&rn){const t=m[1].trim();if(t===rn||t===rb)return false}
+    return true})};
 const hesc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 function pcls(m){
   const c=m[0];
@@ -1978,17 +1982,16 @@ function openMtm(u,apply){
 }
 function card(u){
   const d=document.createElement('div');d.className='u';
-  d.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div><div class="lb" hidden></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button></div><div class="cxt" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="cnt tc"></div><div class="qa" hidden></div>';
+  d.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button></div><div class="cxt" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="cnt tc"></div><div class="qa" hidden></div>';
   const q=s=>d.querySelector(s);
   const clb=q('.cb'),mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
   mtb.innerHTML=ic('mt');ap.innerHTML=ic('check');cx.innerHTML=ic('help');cp.innerHTML=ic('copy');un.innerHTML=ic('undo');clb.innerHTML=ic('clip');
   [[ap,'Approve'],[hd,'Visible'],[cx,mode==='strings'?'Comment':'Context'],[mtb,'Machine translate \u00b7 '+engName()+' / similar translations'],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
   const cb=q('.sel');cb.setAttribute('aria-label','Select unit');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
   q('.id').textContent=u.id;q('.rn').textContent=rnShow(u);q('.rn').hidden=!u.rn;
-  q('.lb').textContent=u.labels.length?'Label: '+u.labels.join(', '):'';q('.lb').hidden=!u.labels.length;
   q('.src').innerHTML=hlight(u.rs);
   q('.sc').textContent=clen(u.rs)+' chars';
-  cxt.textContent=mode==='strings'?(ctxLines(u).length?(u.ih?'\u21b3 ':'')+ctxLines(u).join('\n'):'No comment'):(crowdin||v2)?(ctxLines(u).join('\n')||(v2?'No notes or module data':'No context')):'For Crowdin Only'
+  cxt.textContent=mode==='strings'?(ctxLines(u).length?(u.ih?'\u21b3 ':'')+ctxLines(u).join('\n'):'No comment'):(ctxLines(u).join('\n')||(v2?'No notes or module data':'No context'))
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
   const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=(u.slr?(x=>txtlen(x,u.nfG)):clen)(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars';tc.classList.toggle('over',!!u.max&&n>u.max)};
   const setText=v=>{ta.value=v;paint();fit()};
@@ -2062,12 +2065,11 @@ function W_parse(txt,emit,ihc){
   if(root==='resources'){
     const all=parseStrings(txt,ihc);
     for(let i=0;i<all.length;i+=3000)emit(all.slice(i,i+3000));
-    return {root,mode:'strings',crowdin:false,total:all.length};
+    return {root,mode:'strings',total:all.length};
   }
-  if(root!=='xliff')return {root,mode:'other',crowdin:false,total:0};
+  if(root!=='xliff')return {root,mode:'other',total:0};
   const xr=/<(?:[\w.\-]+:)?xliff\b(?:"[^"]*"|'[^']*'|[^>"'])*>/.exec(txt);
   if(xr&&(/^2/.test(ga(xr[0],'version')||'')||/xliff:document:2\./.test(xr[0])))return W_parse2(txt,emit);
-  const crowdin=/tool-id="crowdin"|tool-name="crowdin"/i.test(txt);
   const mr=maskRaw(txt),re=/<((?:[\w.\-]+:)?)(trans-unit|unit)(?=[\s>\/])/g;
   const rSrcTag=/<(?:[\w.\-]+:)?source(?=[\s>\/])/,rSeg=/<(?:[\w.\-]+:)?segment(?=[\s>])[\s\S]*?<(?:[\w.\-]+:)?source(?=[\s>\/])/;
   const rSrc=/<(?:[\w.\-]+:)?source(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?source\s*>)/,rTgt=/<(?:[\w.\-]+:)?target(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?target\s*>)/;
@@ -2091,7 +2093,7 @@ function W_parse(txt,emit,ihc){
     const u={idx,id:W_dec(ga(stg,'id')||''),rs:grabTagM(b,bm,'source'),rt:grabTagM(b,bm,'target'),is12:tag==='trans-unit',
       rn:ga(stg,'resname')||(tag==='unit'?ga(stg,'name'):'')||'',oAp:ga(stg,'approved')==='yes',
       oTr:(ga(stg,'translate')!==null?ga(stg,'translate'):inh('translate',1))==='no'?'no':'yes',
-      ctx:[],labels:[],max:0,ct:'',fi:Math.max(fIdx,0)};
+      ctx:[],max:0,ct:'',fi:Math.max(fIdx,0)};
     {const su=ga(stg,'size-unit')||inh('size-unit',1)||'pixel',mw=ga(stg,'maxwidth')!==null?ga(stg,'maxwidth'):inh('maxwidth',1),
       mbv=ga(stg,'maxbytes')!==null?ga(stg,'maxbytes'):inh('maxbytes',1);
     if(su==='char'&&/^\d+$/.test(mw||'')){u.max=+mw;u.slr=1}   /* size-unit char = Unicode characters of the text: entities decoded, inline tags not counted */
@@ -2100,15 +2102,14 @@ function W_parse(txt,emit,ihc){
       rCx.lastIndex=0;let cm;
       while((cm=rCx.exec(bm))){
         const ce=cm.index+cm[0].lastIndexOf('</'),ty=ga(cm[1],'context-type')||'context',tx=b.slice(ce-cm[2].length,ce);u.ctx.push(ty+': '+tx);
-        if(ty==='x-crowdin-label'&&tx.trim())u.labels.push(tx.trim());
       }
     }
-    u.ct=crowdin?ctxLines(u).join('\n'):'';
+    u.ct=ctxLines(u).join('\n');
     buf.push(u);total++;
     if(buf.length>=3000){emit(buf);buf=[]}
   }
   if(buf.length)emit(buf);
-  return {root,mode:'xliff',crowdin,total};
+  return {root,mode:'xliff',total};
 }
 /* XLIFF 2.x: core + the official OASIS modules (mtc matches, gls glossary, mda metadata, res resource data, ctr change tracking,
    val validation, slr size/storage restriction, fs format style). Module prefixes are read from their namespace declarations.
@@ -2197,12 +2198,12 @@ function W_parse2(txt,emit){
       else if(x.c)fr.pop();else if(!x.sc)fr.push({t:x.t,rl:[],pf:null})}
     let inh=null;for(let j=fr.length-1;j>=0&&!inh;j--)inh=ga(fr[j].t,'translate');
     const b=txt.slice(a,e2),bm=mr.slice(a,e2),sm=START.exec(b),stg=sm?sm[0]:'';
-    const notes=[],lbls=[];let nm;rNote.lastIndex=0;
+    const notes=[];let nm;rNote.lastIndex=0;
     while((nm=rNote.exec(bm))){
       if(nm[2]==='/>')continue;   /* self-closing <note/> has no text */
       const full=b.slice(nm.index,nm.index+nm[0].length),tx=full.slice(nm[0].length-nm[2].length+1,full.lastIndexOf('</')),cat=ga(nm[1],'category')||'note';
       if(tx.trim())notes.push(cat+': '+tx);
-      if(cat==='x-crowdin-label'&&tx.trim())lbls.push(W_dec(tx.trim()))}   /* Crowdin labels: <note category="x-crowdin-label"> (the XLIFF 1.2 counterpart is <context context-type="x-crowdin-label">); shared by all segments of the unit */
+    }
     const sgs=[];let sg;reSg.lastIndex=0;
     while((sg=reSg.exec(bm))){const sa=sg.index,se=endTag(bm,sg[1]+'segment',sa);if(se<0)break;sgs.push([sa,se,sg[0]]);reSg.lastIndex=se}
     const uid=W_dec(ga(stg,'id')||''),nme=ga(stg,'name')||'',many=sgs.length>1,ids=sgs.map((s,i)=>ga(s[2],'id')||String(i+1));
@@ -2214,7 +2215,7 @@ function W_parse2(txt,emit){
       const sid=ids[i],st=ga(tag,'state')||'initial';
       const u={idx,id:many?uid+'#'+sid:uid,rs:grabTagM(body,bodyM,'source'),rt:grabTagM(body,bodyM,'target'),is12:false,v2:true,gk:many?g0:undefined,gn:many?sgs.length:undefined,fi:Math.max(fp-1,0),
         rn:many&&nme?nme+'#'+sid:nme,oAp:st==='final',oTr:(ga(stg,'translate')||inh)==='no'?'no':'yes',
-        ctx:notes.slice(),labels:lbls.slice(),max:0,ct:''};
+        ctx:notes.slice(),max:0,ct:''};
       if(R){
         /* a match with ref="#id" belongs to that segment only; without a usable ref it belongs to all segments of the unit */
         u.ctx=u.ctx.concat(R.ml,R.mt.filter(x=>!x.rf||!ids.includes(x.rf)||x.rf===sid).slice(0,5).map(x=>x.l));
@@ -2234,7 +2235,7 @@ function W_parse2(txt,emit){
     reU.lastIndex=e2;
   }
   if(buf.length)emit(buf);
-  return {root:'xliff',mode:'xliff',crowdin:false,v2:true,total};
+  return {root:'xliff',mode:'xliff',v2:true,total};
 }
 /* translations of a file chosen with "Import": [[key,text],...]
    Structure is searched in a copy with comments and CDATA blanked out (same length), so tags inside a <!-- comment --> or CDATA
@@ -2278,18 +2279,18 @@ function W_query(U,LC,p){
   let idx=[];
   if(!q){for(let i=0;i<n;i++)idx.push(i)}
   else{
-    const fctx=!p.nc&&F.ctx,flbl=!p.nc&&F.lbl;
+    const fctx=F.ctx;
     if(p.rx){
       let re;try{re=new RegExp(q,'i')}catch(e){return {bad:true,idx:new Int32Array(0)}}
       for(let i=0;i<n;i++){const u=U[i];
-        if((F.id&&re.test(u.id||''))||(F.rn&&re.test(u.rn||''))||(F.src&&re.test(u.rs||''))||(fctx&&re.test(u.ct||''))||(flbl&&re.test(u.labels.join(' ')))||(F.tgt&&re.test(curOf(i)||'')))idx.push(i)}
+        if((F.id&&re.test(u.id||''))||(F.rn&&re.test(u.rn||''))||(F.src&&re.test(u.rs||''))||(fctx&&re.test(u.ct||''))||(F.tgt&&re.test(curOf(i)||'')))idx.push(i)}
     }else{
       const ql=q.toLowerCase();
       const low=(k,f)=>LC[k]||(LC[k]=U.map(u=>(f(u)||'').toLowerCase()));
       const Lid=F.id?low('id',u=>u.id):null,Lrn=F.rn?low('rn',u=>u.rn):null,Lrs=F.src?low('rs',u=>u.rs):null,
-        Lct=fctx?low('ct',u=>u.ct):null,Llb=flbl?low('lb',u=>u.labels.join(' ')):null,Lrt=F.tgt?low('rt',u=>u.rt):null;
+        Lct=fctx?low('ct',u=>u.ct):null,Lrt=F.tgt?low('rt',u=>u.rt):null;
       for(let i=0;i<n;i++){
-        let ok=(Lid&&Lid[i].includes(ql))||(Lrn&&Lrn[i].includes(ql))||(Lrs&&Lrs[i].includes(ql))||(Lct&&Lct[i].includes(ql))||(Llb&&Llb[i].includes(ql));
+        let ok=(Lid&&Lid[i].includes(ql))||(Lrn&&Lrn[i].includes(ql))||(Lrs&&Lrs[i].includes(ql))||(Lct&&Lct[i].includes(ql));
         if(!ok&&F.tgt){const d=D.get(i);ok=d&&d.v!==undefined?(d.v||'').toLowerCase().includes(ql):Lrt[i].includes(ql)}
         if(ok)idx.push(i);
       }
@@ -2330,7 +2331,7 @@ function W_main(){
         const all=[];
         const info=W_parse(m.txt,function(c){for(let i=0;i<c.length;i++)all.push(c[i]);postMessage({t:'chunk',id:m.id,units:c})},m.inh);
         U=all;LC={};
-        postMessage({t:'done',id:m.id,root:info.root,mode:info.mode,crowdin:info.crowdin,v2:info.v2,total:info.total});
+        postMessage({t:'done',id:m.id,root:info.root,mode:info.mode,v2:info.v2,total:info.total});
       }else if(m.t==='query'){
         const r=W_query(U,LC,m);
         postMessage({t:'qres',id:m.id,bad:r.bad,idx:r.idx},[r.idx.buffer]);
@@ -2491,7 +2492,6 @@ let RES=null,RK=null;
 const resKey=()=>{const q=$('q').value,sk=$('so').value;return JSON.stringify([GEN,mode,q,q?RX:0,q?F:0,sk,sk==='qa'?QV:0])};
 function render(top){
   const seq=++RSEQ,L=$('list');
-  const nc=!!doc&&mode==='xliff'&&!crowdin&&!v2;document.body.classList.toggle('nc',nc);
   if(!doc){
     vsOff();L.classList.remove('wait');shown=[];vsCap=0;RES=RK=null;
     L.innerHTML='<div id="empty"><div class="tip">Tip 1: Tap the menu icon '+ic('menu')+' at the top right, then choose <b>Open file</b> to open an .xlf / .xliff or strings.xml file</div><div class="tip">Tip 2: Visit the project repository on GitHub for the source code, updates and to report issues<br><button id="repo" type="button" class="p">Open repository</button></div></div>';
@@ -2516,7 +2516,7 @@ function render(top){
       let hit;
       if(re)hit=v=>re.test(v||'');
       else{const ql=qs.toLowerCase();hit=v=>(v||'').toLowerCase().includes(ql)}
-      let f=units.filter(u=>!qs||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(!nc&&F.ctx&&hit(u.ct))||(!nc&&F.lbl&&hit((u.labels||[]).join(' ')))||(F.tgt&&hit(cur(u))));
+      let f=units.filter(u=>!qs||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(F.ctx&&hit(u.ct))||(F.tgt&&hit(cur(u))));
       if(sk!=='none')f=f.map((u,i)=>[u,i,sortKey(sk,u)]).sort((a,b)=>a[2]-b[2]||a[1]-b[1]).map(x=>x[0]);
       fin(f);
     };
@@ -2524,7 +2524,7 @@ function render(top){
   };
   if(big&&WSYNC&&wInit()){
     L.classList.add('wait');
-    wCall({t:'query',q:qs,rx:!!(RX&&qs),F:Object.assign({},F),nc,sk:sk==='qa'?'none':sk,dyn:wDyn()}).then(m=>{
+    wCall({t:'query',q:qs,rx:!!(RX&&qs),F:Object.assign({},F),sk:sk==='qa'?'none':sk,dyn:wDyn()}).then(m=>{
       if(seq!==RSEQ)return;
       const f=Array.from(m.idx,i=>units[i]);
       if(sk==='qa')qaScan(()=>fin(sortByQa(f)));else fin(f);
@@ -2655,8 +2655,7 @@ function mtInfo(src,u){
   const info=['Key: '+(mode==='strings'?u.id:(u.rn||u.id))];
   if(u.kind==='p')info.push('Plural quantity: '+u.sub);
   if(u.kind==='a')info.push('Array item index: '+u.sub);
-  if((crowdin||v2||mode==='strings')&&ctxLines(u).length)info.push('Context: '+ctxLines(u).join('; '));
-  if(u.labels&&u.labels.length)info.push('Label: '+u.labels.join(', '));
+  if(ctxLines(u).length)info.push('Context: '+ctxLines(u).join('; '));
   if(u.max||u.mn)info.push((u.max?'Maximum':'Minimum')+' length of the translation: '+(u.max?(u.mn?u.mn+' to ':'')+u.max:u.mn)+' characters (hard limit)');
   if(u.mb)info.push('Storage limit of the translation: '+(u.mbMin?u.mbMin+' to ':'')+(u.mb[0]===Infinity?'no maximum':u.mb[0])+' bytes in UTF-'+u.mb[1]+' (hard limit)');
   if(u.gl&&u.gl.length)info.push('Glossary of this unit (use exactly these translations):\n'+u.gl.map(g=>'- '+g.s+' => '+(g.t.join(' / ')||'(keep)')).join('\n'));
@@ -3002,7 +3001,7 @@ async function exportStrings(){
   const wrap=xmlWrap;
   const parse=x=>new DOMParser().parseFromString(wrap(x),'application/xml');
   const items=[],seen=new Set();
-  let empty=0,hidden=0,hiddenOut=0,dup=0,kept=0,tags=0,quoted=0,v2tags=0;const badName=[],badXml=[];
+  let empty=0,hidden=0,hiddenOut=0,dup=0,quoted=0,v2tags=0;const badName=[],badXml=[];
   let nIt=0;
   for(const u of units){
     if(++nIt%300===0){busy('Preparing export\u2026 '+nIt+' / '+units.length);await new Promise(r=>setTimeout(r,0))}
@@ -3015,11 +3014,6 @@ async function exportStrings(){
     if(v2&&/<[^>]+>/.test(c)){v2tags++;continue}
     const d=parse(c);if(d.querySelector('parsererror')){badXml.push(u.rn);continue}
     let text=c;
-    if(crowdin){
-      if(d.documentElement.children.length)tags++;
-      const dec=d.documentElement.textContent;
-      if(parse(dec).querySelector('parsererror'))kept++;else text=dec;
-    }
     {const t2=toAndroidQuotes(text);if(t2!==text){quoted++;text=t2}}   /* strings.xml needs \' and \" whatever the XLIFF used (plain quote, &apos; / &quot;) */
     seen.add(u.rn);items.push([u.rn,text,hid]);if(hid)hiddenOut++;
   }
@@ -3033,9 +3027,7 @@ async function exportStrings(){
   if(dup)lines.push('Skipped (duplicate resname): '+dup);
   if(badXml.length)lines.push('Skipped (invalid XML in translation): '+badXml.length);
   if(v2tags)lines.push('Skipped (contains XLIFF 2 inline codes): '+v2tags);
-  if(tags)lines.push('Inline XLIFF tags flattened to text: '+tags);
   if(quoted)lines.push('Quotes escaped for Android (\\\' and \\\"): '+quoted);
-  if(kept)lines.push('Kept in their XLIFF form (not valid after decoding): '+kept);
   if(!confirm(lines.join('\n')+'\n\nExport?'))return;
   /* declare the namespace prefixes the texts use (e.g. <xliff:g>), otherwise the generated file is not valid XML */
   const nsMap={},used=new Set();
