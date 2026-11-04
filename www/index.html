@@ -53,7 +53,7 @@ select{font-size:16px}button,select,input,label{touch-action:manipulation}button
 #mnb{height:36px}
 body.sm .ap{display:none}
 .u.hv{opacity:.62}
-body.sm #fl [data-f=rn]{display:none}
+body.sm #fl [data-f=rn],body.sm #fl [data-f=note]{display:none}
 .cxt{font-size:13px;color:var(--mut);white-space:pre-wrap;word-break:break-word;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--card)}
 #fl{display:none;flex-wrap:wrap}
 #fl.show{display:flex}
@@ -156,7 +156,7 @@ body.busy,body.busy *{cursor:progress}
 <div class="row">
 <input id="q" type="search" placeholder="Search"><button id="flt" title="Search in…" aria-label="Search in"></button>
 <input id="f" type="file" accept="*/*" hidden><input id="f2" type="file" accept="*/*" hidden></div>
-<div class="row" id="fl"><button data-f="id">ID</button><button data-f="rn">Name</button><button data-f="src">Source</button><button data-f="ctx">Context</button><button data-f="tgt">Target</button><button id="rx" type="button" title="Regex search" aria-label="Regex search">.*</button><select id="so" title="Show first"></select></div>
+<div class="row" id="fl"><button data-f="id">ID</button><button data-f="rn">Name</button><button data-f="src">Source</button><button data-f="ctx">Context</button><button data-f="note">Note</button><button data-f="tgt">Target</button><button id="rx" type="button" title="Regex search" aria-label="Regex search">.*</button><select id="so" title="Show first"></select></div>
 <div class="row" id="mkb" hidden><span id="mkt"></span><button id="mkc" type="button">Clear marks</button></div>
 <div class="row">
 <label id="sw" title="Select all shown"><input id="sa" type="checkbox"></label><button id="bulk" title="Actions for selected units" aria-label="Actions for selected units" disabled></button>
@@ -238,6 +238,7 @@ copy:'M16 1H4a2 2 0 0 0-2 2v14h2V3h12zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2
 undo:'M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62A7.96 7.96 0 0 1 12.5 10c3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z',
 flt:'M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z',
 check:'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
+note:'M19 3H4.99C3.89 3 3 3.9 3 5l.01 14c0 1.1.89 2 1.99 2h10l6-6V5c0-1.1-.9-2-2-2zM7 8h10v2H7V8zm5 6H7v-2h5v2zm2 5.5V14h5.5L14 19.5z',
 help:'M11 18h2v-2h-2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z',
 eye:'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
 eyeoff:'M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3z',
@@ -260,7 +261,7 @@ $('mn').onclick=e=>{if(e.target===$('mn')||e.target.closest('#ml .mi'))$('mn').h
 
 let nRes=0,shown=[],doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,v2=false,mode='xliff',svT=0;
 let RX=false,MARK=null,MKJ=false;   /* MARK: segments of multi-segment units that a pending hide/unhide would change (shown with a dashed border) */
-const F={id:1,rn:1,src:1,ctx:1,tgt:1};
+const F={id:1,rn:1,src:1,ctx:1,note:1,tgt:1};
 const ga=(t,n)=>{const r=new RegExp('\\s'+n+'\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')').exec(t);return r?(r[1]!==undefined?r[1]:r[2]):null};
 const setAttr=(t,n,v)=>{const re=new RegExp('(\\s'+n+'\\s*=\\s*)(?:"[^"]*"|\'[^\']*\')');
   return re.test(t)?t.replace(re,'$1"'+v+'"'):t.replace(/\s*(\/?>)$/,' '+n+'="'+v+'"$1')};
@@ -1189,7 +1190,7 @@ function sessSnap(){
   const d={};
   units.forEach((u,i)=>{const o={};
     if(u.val!==undefined)o.v=u.val;if(u.ap!==undefined)o.a=u.ap?1:0;if(u.tr!==undefined)o.r=u.tr;if(u.apAuto)o.z=1;
-    if(cbHas(u))o.c=u.cb;if(u.sel)o.s=1;if(u.showCtx)o.x=1;
+    if(cbHas(u))o.c=u.cb;if(u.sel)o.s=1;if(u.showCtx)o.x=1;if(u.showNote)o.n=1;
     if(Object.keys(o).length)d[i]=o});
   return {t:Date.now(),name,n:units.length,d,ui:{q:$('q').value,F:Object.assign({},F),rx:RX,sz:$('sz').value,so:$('so').value,page}};
 }
@@ -1212,7 +1213,7 @@ async function sessCheck(){
       if(!ok||st.n!==units.length)return;
       units.forEach((u,i)=>{const o=st.d[i];if(!o)return;
         if(o.v!==undefined)u.val=o.v;if(o.a!==undefined)u.ap=!!o.a;if(o.r!==undefined)u.tr=o.r;if(o.z)u.apAuto=true;
-        if(o.c)u.cb=o.c;if(o.s)u.sel=true;if(o.x)u.showCtx=true});
+        if(o.c)u.cb=o.c;if(o.s)u.sel=true;if(o.x)u.showCtx=true;if(o.n)u.showNote=true});
       const ui=st.ui||{};
       $('q').value=ui.q||'';Object.assign(F,ui.F||{});RX=!!ui.rx;
       if(ui.sz!==undefined&&[...$('sz').options].some(o=>o.value===ui.sz)){$('sz').value=ui.sz;size=+ui.sz}
@@ -1982,16 +1983,17 @@ function openMtm(u,apply){
 }
 function card(u){
   const d=document.createElement('div');d.className='u';
-  d.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button></div><div class="cxt" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="cnt tc"></div><div class="qa" hidden></div>';
+  d.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="nb"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button></div><div class="cxt" hidden></div><div class="cxt nbx" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="cnt tc"></div><div class="qa" hidden></div>';
   const q=s=>d.querySelector(s);
-  const clb=q('.cb'),mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
-  mtb.innerHTML=ic('mt');ap.innerHTML=ic('check');cx.innerHTML=ic('help');cp.innerHTML=ic('copy');un.innerHTML=ic('undo');clb.innerHTML=ic('clip');
-  [[ap,'Approve'],[hd,'Visible'],[cx,mode==='strings'?'Comment':'Context'],[mtb,'Machine translate \u00b7 '+engName()+' / similar translations'],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
+  const clb=q('.cb'),mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),ntb=q('.nb'),nbx=q('.nbx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
+  mtb.innerHTML=ic('mt');ap.innerHTML=ic('check');cx.innerHTML=ic('help');ntb.innerHTML=ic('note');ntb.hidden=mode==='strings';cp.innerHTML=ic('copy');un.innerHTML=ic('undo');clb.innerHTML=ic('clip');
+  [[ap,'Approve'],[hd,'Visible'],[cx,mode==='strings'?'Comment':'Context'],[ntb,'Notes'],[mtb,'Machine translate \u00b7 '+engName()+' / similar translations'],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
   const cb=q('.sel');cb.setAttribute('aria-label','Select unit');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
   q('.id').textContent=u.id;q('.rn').textContent=rnShow(u);q('.rn').hidden=!u.rn;
   q('.src').innerHTML=hlight(u.rs);
   q('.sc').textContent=clen(u.rs)+' chars';
-  cxt.textContent=mode==='strings'?(ctxLines(u).length?(u.ih?'\u21b3 ':'')+ctxLines(u).join('\n'):'No comment'):(ctxLines(u).join('\n')||(v2?'No notes or module data':'No context'))
+  cxt.textContent=mode==='strings'?(ctxLines(u).length?(u.ih?'\u21b3 ':'')+ctxLines(u).join('\n'):'No comment'):(ctxLines(u).join('\n')||'No context')
+  nbx.textContent=(u.notes&&u.notes.length)?u.notes.join('\n'):'No notes';
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
   const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=(u.slr?(x=>txtlen(x,u.nfG)):clen)(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars';tc.classList.toggle('over',!!u.max&&n>u.max)};
   const setText=v=>{ta.value=v;paint();fit()};
@@ -2006,7 +2008,7 @@ function card(u){
     ap.disabled=!(u.is12||u.v2)||(u.v2&&!a&&!cur(u).trim());hd.disabled=!canTr(u);
     if(u.v2)ap.title=a?'state="final" (tap to unapprove)':cur(u).trim()?'Approve (sets state="final")':'Translate first: without a translation the state stays "initial"';
     const qe=q('.qa'),iss=qaOf(u);qaSet(u,iss.length>0);qe.hidden=!iss.length;qe.textContent=iss.map(x=>'\u26a0 '+x).join('\n');
-    cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;
+    cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;ntb.classList.toggle('on',!!u.showNote);nbx.hidden=!u.showNote||mode==='strings';
     const nb=(u.cb||[]).length,ct='Clipboard'+(nb?' ('+nb+'/'+CB_MAX+')':'');
     clb.classList.toggle('on',nb>0);clb.title=ct;clb.setAttribute('aria-label',ct);
   };
@@ -2030,6 +2032,7 @@ function card(u){
   };
   mtb.onclick=()=>openMtm(u,v=>{setText(v);setVal(u,v);sync()});
   cx.onclick=()=>{u.showCtx=!u.showCtx;refresh();vsNudge()};
+  ntb.onclick=()=>{u.showNote=!u.showNote;refresh();vsNudge()};
   refresh();d._fit=fit;d._u=u;d._rf=refresh;
   d.classList.toggle('mk',!!(MARK&&MARK.has(u)));
   return d;
@@ -2041,6 +2044,19 @@ const W_dec=s=>s.replace(/&(?:#(\d+)|#x([0-9a-fA-F]+)|(lt|gt|amp|quot|apos));/g,
 /* text of an XML fragment: CDATA sections give their content (Core 3.4), comments and inline tags are dropped, <cp hex=".."/> is the one character it stands for
    (Core 3.7.1.1), entities are decoded */
 const txtOf=t=>W_dec(t.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,(m,c)=>c.replace(/&/g,'&amp;').replace(/</g,'&lt;')).replace(/<!--[\s\S]*?-->/g,'').replace(/<(?:[\w.\-]+:)?cp\s[^>]*?hex\s*=\s*["']([0-9A-Fa-f]+)["'][^>]*>/g,(m,h)=>'&#x'+h+';').replace(/<[^>]*>/g,''));
+/* <note> of an XLIFF 1.2 trans-unit / XLIFF 2 unit (b: real text, bm: same length with comments, CDATA and <alt-trans> blanked).
+   A note is free text for the reader; the attributes differ per version (1.2: from, priority, annotates; 2.x: category, priority, appliesTo)
+   and are shown as they are, none is mapped to another. Returns one display line per note. */
+const W_notes=(b,bm)=>{
+  const re=/<(?:[\w.\-]+:)?note\b((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?note\s*>)/g,out=[];let m;
+  while((m=re.exec(bm))){
+    if(m[2]==='/>')continue;   /* self-closing <note/> has no text */
+    const full=b.slice(m.index,m.index+m[0].length),tx=txtOf(full.slice(m[0].length-m[2].length+1,full.lastIndexOf('</'))).trim();
+    if(!tx)continue;
+    const a=m[1],meta=[],cat=ga(a,'category'),fr=ga(a,'from'),pr=ga(a,'priority'),ap=ga(a,'annotates')||ga(a,'appliesTo');
+    if(cat)meta.push('category: '+cat);if(fr)meta.push('from: '+fr);if(pr)meta.push('priority: '+pr);if(ap&&ap!=='general')meta.push('applies to: '+ap);
+    out.push(meta.length?tx+' ('+meta.join(' \u00b7 ')+')':tx)}
+  return out};
 /* length in characters of an XML fragment as text (XLIFF 2.x size restriction and XLIFF 1.2 size-unit=char count text only) */
 const txtlen=(t,nf)=>{let x=txtOf(t);if(nf==='nfc'||nf==='nfd')x=x.normalize(nf.toUpperCase());return [...x].length};
 /* local name of the root element (skips BOM, <?xml?>, comments, DOCTYPE) */
@@ -2093,7 +2109,7 @@ function W_parse(txt,emit,ihc){
     const u={idx,id:W_dec(ga(stg,'id')||''),rs:grabTagM(b,bm,'source'),rt:grabTagM(b,bm,'target'),is12:tag==='trans-unit',
       rn:ga(stg,'resname')||(tag==='unit'?ga(stg,'name'):'')||'',oAp:ga(stg,'approved')==='yes',
       oTr:(ga(stg,'translate')!==null?ga(stg,'translate'):inh('translate',1))==='no'?'no':'yes',
-      ctx:[],max:0,ct:'',fi:Math.max(fIdx,0)};
+      ctx:[],notes:[],nt:'',max:0,ct:'',fi:Math.max(fIdx,0)};
     {const su=ga(stg,'size-unit')||inh('size-unit',1)||'pixel',mw=ga(stg,'maxwidth')!==null?ga(stg,'maxwidth'):inh('maxwidth',1),
       mbv=ga(stg,'maxbytes')!==null?ga(stg,'maxbytes'):inh('maxbytes',1);
     if(su==='char'&&/^\d+$/.test(mw||'')){u.max=+mw;u.slr=1}   /* size-unit char = Unicode characters of the text: entities decoded, inline tags not counted */
@@ -2105,6 +2121,7 @@ function W_parse(txt,emit,ihc){
       }
     }
     u.ct=ctxLines(u).join('\n');
+    u.notes=W_notes(b,bm);u.nt=u.notes.join('\n');
     buf.push(u);total++;
     if(buf.length>=3000){emit(buf);buf=[]}
   }
@@ -2118,7 +2135,6 @@ function W_parse(txt,emit,ihc){
 function W_parse2(txt,emit){
   const mr=maskRaw(txt),reU=/<((?:[\w.\-]+:)?)unit\b/g,reSg=/<((?:[\w.\-]+:)?)segment\b(?:"[^"]*"|'[^']*'|[^>"'])*>/g;
   const rSrc=/<(?:[\w.\-]+:)?source(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?source\s*>)/,rTgt=/<(?:[\w.\-]+:)?target(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*?(?:\/>|>([\s\S]*?)<\/(?:[\w.\-]+:)?target\s*>)/;
-  const rNote=/<(?:[\w.\-]+:)?note\b((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?note\s*>)/g;
   const pm={},rxn=/xmlns:([\w.\-]+)\s*=\s*["']urn:oasis:names:tc:xliff:(\w+):[12]\.0["']/g;let xn;
   while((xn=rxn.exec(mr))){const k=xn[2].toLowerCase();(pm[k]=pm[k]||[]).push(xn[1])}
   const PX=k=>pm[k]?'(?:'+[...new Set(pm[k])].map(s=>s.replace(/[.\-]/g,'\\$&')).join('|')+')':null;
@@ -2198,12 +2214,7 @@ function W_parse2(txt,emit){
       else if(x.c)fr.pop();else if(!x.sc)fr.push({t:x.t,rl:[],pf:null})}
     let inh=null;for(let j=fr.length-1;j>=0&&!inh;j--)inh=ga(fr[j].t,'translate');
     const b=txt.slice(a,e2),bm=mr.slice(a,e2),sm=START.exec(b),stg=sm?sm[0]:'';
-    const notes=[];let nm;rNote.lastIndex=0;
-    while((nm=rNote.exec(bm))){
-      if(nm[2]==='/>')continue;   /* self-closing <note/> has no text */
-      const full=b.slice(nm.index,nm.index+nm[0].length),tx=full.slice(nm[0].length-nm[2].length+1,full.lastIndexOf('</')),cat=ga(nm[1],'category')||'note';
-      if(tx.trim())notes.push(cat+': '+tx);
-    }
+    const notes=W_notes(b,bm);
     const sgs=[];let sg;reSg.lastIndex=0;
     while((sg=reSg.exec(bm))){const sa=sg.index,se=endTag(bm,sg[1]+'segment',sa);if(se<0)break;sgs.push([sa,se,sg[0]]);reSg.lastIndex=se}
     const uid=W_dec(ga(stg,'id')||''),nme=ga(stg,'name')||'',many=sgs.length>1,ids=sgs.map((s,i)=>ga(s[2],'id')||String(i+1));
@@ -2215,7 +2226,7 @@ function W_parse2(txt,emit){
       const sid=ids[i],st=ga(tag,'state')||'initial';
       const u={idx,id:many?uid+'#'+sid:uid,rs:grabTagM(body,bodyM,'source'),rt:grabTagM(body,bodyM,'target'),is12:false,v2:true,gk:many?g0:undefined,gn:many?sgs.length:undefined,fi:Math.max(fp-1,0),
         rn:many&&nme?nme+'#'+sid:nme,oAp:st==='final',oTr:(ga(stg,'translate')||inh)==='no'?'no':'yes',
-        ctx:notes.slice(),max:0,ct:''};
+        ctx:[],notes:notes.slice(),nt:notes.join('\n'),max:0,ct:''};
       if(R){
         /* a match with ref="#id" belongs to that segment only; without a usable ref it belongs to all segments of the unit */
         u.ctx=u.ctx.concat(R.ml,R.mt.filter(x=>!x.rf||!ids.includes(x.rf)||x.rf===sid).slice(0,5).map(x=>x.l));
@@ -2279,18 +2290,18 @@ function W_query(U,LC,p){
   let idx=[];
   if(!q){for(let i=0;i<n;i++)idx.push(i)}
   else{
-    const fctx=F.ctx;
+    const fctx=F.ctx,fnt=F.note;
     if(p.rx){
       let re;try{re=new RegExp(q,'i')}catch(e){return {bad:true,idx:new Int32Array(0)}}
       for(let i=0;i<n;i++){const u=U[i];
-        if((F.id&&re.test(u.id||''))||(F.rn&&re.test(u.rn||''))||(F.src&&re.test(u.rs||''))||(fctx&&re.test(u.ct||''))||(F.tgt&&re.test(curOf(i)||'')))idx.push(i)}
+        if((F.id&&re.test(u.id||''))||(F.rn&&re.test(u.rn||''))||(F.src&&re.test(u.rs||''))||(fctx&&re.test(u.ct||''))||(fnt&&re.test(u.nt||''))||(F.tgt&&re.test(curOf(i)||'')))idx.push(i)}
     }else{
       const ql=q.toLowerCase();
       const low=(k,f)=>LC[k]||(LC[k]=U.map(u=>(f(u)||'').toLowerCase()));
       const Lid=F.id?low('id',u=>u.id):null,Lrn=F.rn?low('rn',u=>u.rn):null,Lrs=F.src?low('rs',u=>u.rs):null,
-        Lct=fctx?low('ct',u=>u.ct):null,Lrt=F.tgt?low('rt',u=>u.rt):null;
+        Lct=fctx?low('ct',u=>u.ct):null,Lnt=fnt?low('nt',u=>u.nt):null,Lrt=F.tgt?low('rt',u=>u.rt):null;
       for(let i=0;i<n;i++){
-        let ok=(Lid&&Lid[i].includes(ql))||(Lrn&&Lrn[i].includes(ql))||(Lrs&&Lrs[i].includes(ql))||(Lct&&Lct[i].includes(ql));
+        let ok=(Lid&&Lid[i].includes(ql))||(Lrn&&Lrn[i].includes(ql))||(Lrs&&Lrs[i].includes(ql))||(Lct&&Lct[i].includes(ql))||(Lnt&&Lnt[i].includes(ql));
         if(!ok&&F.tgt){const d=D.get(i);ok=d&&d.v!==undefined?(d.v||'').toLowerCase().includes(ql):Lrt[i].includes(ql)}
         if(ok)idx.push(i);
       }
@@ -2345,7 +2356,7 @@ function W_main(){
 }
 const workerSrc=()=>[
   'const ga='+ga,'const START='+START,'const maskRaw='+maskRaw,'const clen='+clen,'const ctxLines='+ctxLines,
-  'const ckey='+ckey,'const grabTag='+grabTag,'const grabTagM='+grabTagM,'const endTag='+endTag,'const W_dec='+W_dec,'const txtOf='+txtOf,'const txtlen='+txtlen,
+  'const ckey='+ckey,'const grabTag='+grabTag,'const grabTagM='+grabTagM,'const endTag='+endTag,'const W_dec='+W_dec,'const txtOf='+txtOf,'const W_notes='+W_notes,'const txtlen='+txtlen,
   parseStrings,W_root,W_parse,W_parse2,W_trans,W_query,
   'const XNAME='+JSON.stringify(XNAME),'const NAME_RX='+NAME_RX,'const CLOSE_RX='+CLOSE_RX,'const ATTR_RX='+ATTR_RX,'const validCP='+validCP,
   checkXml,'('+W_main+')()'
@@ -2516,7 +2527,7 @@ function render(top){
       let hit;
       if(re)hit=v=>re.test(v||'');
       else{const ql=qs.toLowerCase();hit=v=>(v||'').toLowerCase().includes(ql)}
-      let f=units.filter(u=>!qs||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(F.ctx&&hit(u.ct))||(F.tgt&&hit(cur(u))));
+      let f=units.filter(u=>!qs||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(F.ctx&&hit(u.ct))||(F.note&&hit(u.nt))||(F.tgt&&hit(cur(u))));
       if(sk!=='none')f=f.map((u,i)=>[u,i,sortKey(sk,u)]).sort((a,b)=>a[2]-b[2]||a[1]-b[1]).map(x=>x[0]);
       fin(f);
     };
