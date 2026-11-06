@@ -27,6 +27,7 @@ Everything runs on your device. There is no account, no server, and no upload st
 - **Android `strings.xml`**: `<string>`, `<string-array>` and `<plurals>`. Entries marked `translatable="false"` are dimmed.
 - For `strings.xml`, pick a target language and save as `strings-<lang>.xml`. A list of common languages is built in, and you can add, edit and remove your own codes (e.g. `pt-BR`, `fil`, `sr-Latn`) in Settings.
 - XLIFF edits are written back into the original text, so the rest of your file is left untouched. In XLIFF 1.2 the `state` of an edited target follows its text (for example `needs-translation` becomes `translated`).
+- **Small, reviewable Git diffs:** a save changes only the strings you edited, in place. Comments, order, indentation and untranslated entries stay exactly as they were, and hiding or unhiding a unit changes only its `translate` / `translatable` attribute. If a file names no target language, the app asks before adding one. Two exceptions: the app always saves UTF-8, so a file in another encoding is converted and its XML declaration updated; and a `strings.xml` that cannot be patched in place is rebuilt and saved as `strings-<lang>.xml`.
 - Save through the Android share sheet: send to Drive, email, a chat app, or a file manager.
 - **Save as strings.xml (Android):** export any XLIFF 1.2 or 2.x file to `strings.xml`, with a report of anything skipped (empty, hidden, duplicate or invalid entries). Hidden units can be written as `translatable="false"` or left out (Settings).
 
@@ -35,6 +36,7 @@ Everything runs on your device. There is no account, no server, and no upload st
 - **Placeholders, escapes, entities, tags and XLIFF 2 inline codes are highlighted** (`%s`, `%1$d`, `{name}`, `\n`, `&amp;`, `<b>`) so you do not break them by accident.
 - Paging (10 / 20 / 50 / 100 / all), previous/next, and **jump to a page** by typing its number. Large files stay smooth.
 - Optional context panel per card, approve and hide toggles, and a one-tap **undo** for each string.
+- **Hidden units are dimmed** (`translate="no"` in XLIFF, `translatable="false"` in `strings.xml`), so you can tell them apart at a glance. A card dims or brightens as soon as you hide or unhide it, and it stays editable.
 - Light and dark themes: follow the system or choose one.
 
 ### Find things fast
