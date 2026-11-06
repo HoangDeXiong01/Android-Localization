@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="color-scheme" content="light dark"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme:light)"><meta name="theme-color" content="#131415" media="(prefers-color-scheme:dark)">
+<meta name="color-scheme" content="light dark"><meta name="theme-color" content="#131415">
 <title>Android Localization</title>
 <script>try{var c=JSON.parse(localStorage.getItem("cfg")||"{}"),t=c.theme;if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);if(/^[a-z]+$/.test(c.accent||""))document.documentElement.setAttribute("data-accent",c.accent)}catch(e){}</script>
 <style>
@@ -16,8 +16,9 @@
 :root[data-accent=clay]{--acl:#b0603f;--acd:#e8a98d}
 :root[data-accent=sky]{--acl:#2c7da0;--acd:#8ccbe8}
 :root[data-theme=light]{color-scheme:light}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,sans-serif;padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);-webkit-text-size-adjust:100%}
-header{position:sticky;top:0;background:var(--bg);padding:calc(8px + env(safe-area-inset-top,0px)) 10px 8px;border-bottom:1px solid var(--card);z-index:2}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,sans-serif;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:#131415;z-index:10;pointer-events:none}
+header{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding:8px 10px 8px;border-bottom:1px solid var(--card);z-index:2}
 .row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
 .row:last-child{margin-bottom:0}
 button,select{background:var(--card);color:var(--fg);border:0;border-radius:10px;height:40px;min-width:40px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;padding:0 8px}
@@ -348,8 +349,7 @@ const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qm
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
 delete CFG.pv;   /* a setting saved by an older version */
 CFG.qa=Object.assign({},QADEF,CFG.qa||{});
-/* Theme: 'system' follows the device, 'light' / 'dark' force it. The browser bar colour (theme-color) follows too. */
-const TCOL={light:'#ffffff',dark:'#131415'};
+/* Theme: 'system' follows the device, 'light' / 'dark' force it. The status bar stays dark (fixed theme-color + body::before strip) in every theme. */
 const ACCS=['sage','blue','teal','rose','slate','moss','clay','sky'];
 let accDraft='sage';
 function accUi(){document.querySelectorAll('#c-acc .sw').forEach(b=>b.setAttribute('aria-checked',b.dataset.a===accDraft?'true':'false'))}
@@ -357,10 +357,6 @@ function applyTheme(th=CFG.theme,ac=CFG.accent){
   {const a=ACCS.includes(ac)?ac:'sage';if(a==='sage')document.documentElement.removeAttribute('data-accent');else document.documentElement.setAttribute('data-accent',a)}
   const t=th==='light'||th==='dark'?th:'system',r=document.documentElement;
   if(t==='system')r.removeAttribute('data-theme');else r.setAttribute('data-theme',t);
-  document.querySelectorAll('meta[name=theme-color]').forEach(m=>{
-    if(!m.dataset.m)m.dataset.m=m.getAttribute('media')||'all';
-    const k=/dark/.test(m.dataset.m)?'dark':'light';
-    if(t==='system'){m.setAttribute('media',m.dataset.m);m.setAttribute('content',TCOL[k])}else{m.setAttribute('media','all');m.setAttribute('content',TCOL[t])}});
 }
 applyTheme();
 if(GQDEAD[CFG.qmodel])CFG.qmodel=GQDEAD[CFG.qmodel];
