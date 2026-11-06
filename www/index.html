@@ -338,8 +338,8 @@ function toAndroidQuotes(c){
 }
 
 const DEFMODEL='gemini-3.6-flash';
-const QALAB=[['ph','Placeholders & tags'],['ic','XLIFF 2 inline codes (editing hints)'],['ws','Spaces & line breaks'],['dsp','Double spaces'],['pu','End punctuation'],['num','Numbers'],['xml','Valid XML'],['gl','Glossary terms'],['apo','Unescaped quotes (strings.xml)'],['val','XLIFF 2 validation rules'],['len','Max length / storage'],['hid','Also check hidden units (translate=no)']];
-const QADEF={ph:1,ic:1,ws:1,dsp:1,pu:1,num:1,xml:1,gl:1,apo:1,val:1,len:1,hid:1};
+const QALAB=[['ph','Placeholders & tags'],['ic','XLIFF 2 inline codes (editing hints)'],['ws','Spaces & line breaks'],['dsp','Double spaces'],['pu','End punctuation'],['num','Numbers'],['xml','Valid XML'],['gl','Glossary terms'],['apo','Unescaped quotes (strings.xml)'],['val','XLIFF 2 validation rules'],['len','Max length / storage'],['hid','Also check hidden units (translate=no)'],['apr','Also check approved trans-unit/segment']];
+const QADEF={ph:1,ic:1,ws:1,dsp:1,pu:1,num:1,xml:1,gl:1,apo:1,val:1,len:1,hid:1,apr:1};
 let QV=0;
 const GQDEF='openai/gpt-oss-120b';
 /* models Groq has shut down: a stored choice or cached list that still has them is replaced / cleaned */
@@ -590,10 +590,10 @@ function xmlPlain(c){
   return ok;
 }
 function qaOf(u){
-  const c=cur(u),tr=u.tr!==undefined?u.tr:u.oTr;
-  if(u._qa&&u._qv===QV&&u._qm===mode&&u._qt===tr&&u._qc===c)return u._qa;
+  const c=cur(u),tr=u.tr!==undefined?u.tr:u.oTr,apv=!!(u.ap!==undefined?u.ap:u.oAp);   /* apv: approved (XLIFF 1.2 approved="yes" / XLIFF 2 state="final"); strings.xml units are never approved */
+  if(u._qa&&u._qv===QV&&u._qm===mode&&u._qt===tr&&u._qap===apv&&u._qc===c)return u._qa;
   const out=[];
-  if(c.trim()&&(tr!=='no'||CFG.qa.hid)){
+  if(c.trim()&&(tr!=='no'||CFG.qa.hid)&&(!apv||CFG.qa.apr)){
     const Q=CFG.qa,s=u.rs;
     const ni=u.v2&&Q.ic;   /* XLIFF 2: inline codes are judged by their editing hints (inlineViol), not by plain tag equality */
     if(Q.ph){const a=tokCount(ni?s.replace(IC_STRIP,''):s),b=tokCount(ni?c.replace(IC_STRIP,''):c),miss=[],extra=[];
@@ -621,7 +621,7 @@ function qaOf(u){
     if(Q.len&&u.mb){let t=txtOf(c);if(u.nfS==='nfc'||u.nfS==='nfd')t=t.normalize(u.nfS.toUpperCase());const e=u.mb[1],n=e===32?[...t].length*4:e===16?t.length*2:new TextEncoder().encode(t).length;if(n>u.mb[0])out.push('Over storage limit ('+n+'/'+u.mb[0]+' bytes, UTF-'+e+')');if(u.mbMin&&c.trim()&&n<u.mbMin)out.push('Under minimum storage ('+n+'/'+u.mbMin+' bytes, UTF-'+e+')')}
     if(Q.apo&&mode==='strings'&&!/CDATA/.test(c)&&/(?<!\\)['"]/.test(c.replace(/<[^>]+>/g,'')))out.push('Unescaped quote');
   }
-  u._qv=QV;u._qm=mode;u._qt=tr;u._qc=c;u._qa=out;return out;
+  u._qv=QV;u._qm=mode;u._qt=tr;u._qap=apv;u._qc=c;u._qa=out;return out;
 }
 const lastReq={};let onNet=null;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -1009,10 +1009,10 @@ $('c-theme').onchange=themePrev;
 document.querySelectorAll('#c-acc .sw').forEach(b=>b.addEventListener('click',()=>{accDraft=b.dataset.a;accUi();themePrev()}));
 $('qac').innerHTML=QALAB.map(([k,t])=>'<label class="ck"><input type="checkbox" data-q="'+k+'"> '+t+'</label>').join('');
 /* A QA option is greyed out when it cannot apply to the format of the open file.
-   strings.xml: no ic / val / len / hid.  XLIFF 1.2: no ic / val / apo.  XLIFF 2: no apo.  No file open: every option is available. */
+   strings.xml: no ic / val / len / hid / apr.  XLIFF 1.2: no ic / val / apo.  XLIFF 2: no apo.  No file open: every option is available. */
 function qaUi(){
   const sm=!!doc&&mode==='strings',x2=!!doc&&mode==='xliff'&&v2,has=!!doc;
-  const off={apo:has&&!sm,ic:has&&!x2,val:has&&!x2,len:sm};
+  const off={apo:has&&!sm,ic:has&&!x2,val:has&&!x2,len:sm,apr:sm};
   document.querySelectorAll('#qac input').forEach(x=>{const d=!!off[x.dataset.q];x.disabled=d;x.parentElement.style.opacity=d?.5:''});
 }
 let GLd=null;   /* draft glossary [[source,target]...] while Settings is open; null = unchanged. Applied only by Save */
