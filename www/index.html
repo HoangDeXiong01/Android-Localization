@@ -839,8 +839,22 @@ async function readTranslations(txt){
   try{pairs=(await wCall({t:'trans',txt})).pairs}catch(e){pairs=W_trans(txt)}
   const mp=new Map(pairs);mp.strings=W_root(txt)==='resources';return mp;
 }
-/* strings.xml escapes quotes as \' and \"; XLIFF text holds them unescaped. Removes the backslash of an escaped quote. */
-function unescQ(t){let o='',bs=0;for(const c of t){if(c==='\\'){bs++;o+=c;continue}if((c==="'"||c==='"')&&bs%2===1)o=o.slice(0,-1)+c;else o+=c;bs=0}return o}
+/* strings.xml escapes quotes as \' and \"; an XLIFF holds them as the entities &apos; and &quot; (as Crowdin writes them). Turns the escaped quote into its entity. */
+/* CDATA sections, comments and tags are left exactly as they are (same split as toAndroidQuotes): only the text outside them is converted */
+function unescQ(t){
+  const f=s=>{let o='',bs=0;for(const c of s){if(c==='\\'){bs++;o+=c;continue}if((c==="'"||c==='"')&&bs%2===1)o=o.slice(0,-1)+(c==="'"?'&apos;':'&quot;');else o+=c;bs=0}return o};
+  let o='',last=0;
+  t.replace(new RegExp(XTAG.source,'g'),(m,off)=>{o+=f(t.slice(last,off))+m;last=off+m.length;return m});
+  return o+f(t.slice(last));
+}
+/* for comparing the same text written in strings.xml and in an XLIFF: \' \" &apos; &quot; and the plain quote all stand for the same character, so each is read as the plain quote.
+   CDATA sections, comments and tags are compared as they are (nothing is read as an entity or an escape there). Only used to compare, never to write. */
+function rawQ(t){
+  const f=s=>{s=s.replace(/&quot;/g,'"').replace(/&apos;/g,"'");let o='',bs=0;for(const c of s){if(c==='\\'){bs++;o+=c;continue}if((c==="'"||c==='"')&&bs%2===1)o=o.slice(0,-1)+c;else o+=c;bs=0}return o};
+  let o='',last=0;
+  t.replace(new RegExp(XTAG.source,'g'),(m,off)=>{o+=f(t.slice(last,off))+m;last=off+m.length;return m});
+  return o+f(t.slice(last));
+}
 $('imp').onclick=()=>$('f2').click();
 $('f2').onchange=async e=>{
   const file=e.target.files[0];e.target.value='';if(!file||!doc)return;
@@ -857,7 +871,7 @@ $('f2').onchange=async e=>{
     for(const n of ns)if(mp.has(n))return n;
     for(const n of ns)if(bmap.has(n))return bmap.get(n);   /* other file layout: first unit of that name */
     return u.rn?u.rn:u.id};
-  /* between formats the quote escaping differs: XLIFF -> strings.xml escapes quotes; strings.xml -> XLIFF unescapes them
+  /* between formats the quote escaping differs: XLIFF -> strings.xml escapes quotes; strings.xml -> XLIFF writes them as &apos; / &quot; (outside CDATA)
      (unless that XLIFF keeps \' in its own source texts); XLIFF inline codes (<ph/>, <pc>...) cannot go into strings.xml */
   const inl=/<(?:[\w.\-]+:)?(?:ph|pc|sc|ec|sm|em|cp|mrk)(?=[\s\/>])/;
   let adj=v=>v,noInl=false;
@@ -869,7 +883,7 @@ $('f2').onchange=async e=>{
     if(noInl&&inl.test(v0)){nInl++;return}
     hits.push([u,adj(v0)])}});
   const skipped=mp.size-matched.size+nInl;
-  const plan=hits.map(([u,v])=>({u,v,k:cur(u)===v?'same':cur(u).trim()?'over':'fill'}));
+  const plan=hits.map(([u,v])=>({u,v,k:(cur(u)===v||rawQ(cur(u))===rawQ(v))?'same':cur(u).trim()?'over':'fill'}));   /* \' \" &apos; &quot; (and the plain quote) are the same text */
   const nf=plan.filter(p=>p.k==='fill').length,no=plan.filter(p=>p.k==='over').length,same=plan.length-nf-no;
   const nm=skipped?', '+skipped+(mode==='strings'?' not in source':' with no match'):'';
   const nmH=nm+(nHid?', '+nHid+' hidden skipped':'');
