@@ -47,7 +47,8 @@ input[type=search]{flex:1;min-width:0;height:40px;padding:0 10px;border-radius:1
 button.on{background:var(--ac)!important;color:var(--bg)!important}
 .idw{flex:1 1 90px;min-width:0}
 .bt{display:flex;gap:4px;flex:none}
-#fn{flex:1;min-width:0;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fn{flex:1;min-width:0;font-size:14px;font-weight:600;white-space:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;touch-action:pan-x}
+#fn::-webkit-scrollbar{display:none}
 [hidden]{display:none!important}
 select{font-size:16px}button,select,input,label{touch-action:manipulation}button{cursor:pointer}:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 #tl{width:78px;height:36px;padding:0 4px}
@@ -2618,7 +2619,7 @@ function paintList(f,bad,top){
 }
 function upd(quiet){
   if(!quiet)sessDirty();
-  $('fn').textContent=doc?name:'No file';
+  $('fn').textContent=doc?name:'No file';$('fn').scrollLeft=0;
   $('imp').hidden=!doc;$('save').disabled=!doc;$('close').disabled=!doc;
   {const x=!!doc&&mode==='xliff';$('sv2').hidden=!x;$('save').querySelector('span').textContent=x?'Save as XLIFF (.xlf)':'Save'}   /* an XLIFF can be saved as XLIFF or exported as strings.xml: both are offered in the menu */
   let ne=0,nsel=0,ncb=0,nd=0,nh=0;
