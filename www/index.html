@@ -883,7 +883,8 @@ $('f2').onchange=async e=>{
     if(noInl&&inl.test(v0)){nInl++;return}
     hits.push([u,adj(v0)])}});
   const skipped=mp.size-matched.size+nInl;
-  const plan=hits.map(([u,v])=>({u,v,k:(cur(u)===v||rawQ(cur(u))===rawQ(v))?'same':cur(u).trim()?'over':'fill'}));   /* \' \" &apos; &quot; (and the plain quote) are the same text */
+  const xf=(mode==='strings')!==!!mp.strings;   /* strings.xml <-> XLIFF: the quotes are written differently in the two formats, so \' \" &apos; &quot; are the same text; same format on both sides: compared as written */
+  const plan=hits.map(([u,v])=>({u,v,k:(cur(u)===v||(xf&&rawQ(cur(u))===rawQ(v)))?'same':cur(u).trim()?'over':'fill'}));
   const nf=plan.filter(p=>p.k==='fill').length,no=plan.filter(p=>p.k==='over').length,same=plan.length-nf-no;
   const nm=skipped?', '+skipped+(mode==='strings'?' not in source':' with no match'):'';
   const nmH=nm+(nHid?', '+nHid+' hidden skipped':'');
