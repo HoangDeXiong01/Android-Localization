@@ -69,6 +69,7 @@ textarea{width:100%;min-height:70px;padding:8px;border-radius:8px;border:1px sol
 .idw{margin-bottom:2px}
 .bt{margin:6px 0 4px}
 .esc{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 0}
+.esc[hidden]{display:none}
 .esc button{font-family:monospace;font-size:15px;font-weight:700;padding:0 10px}
 .src{margin:6px 0 0}
 .cnt{font-size:11px;color:var(--mut);text-align:right;margin:2px 2px 4px}
@@ -254,7 +255,8 @@ refresh:'M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6
 prev:'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z',
 next:'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z',
 clip:'M19 2h-4.18C14.4.84 13.3 0 12 0S9.6.84 9.18 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z',
-trash:'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z'};
+trash:'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z',
+kb:'M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z'};
 const ic=k=>'<svg viewBox="0 0 24 24"><path d="'+IC[k]+'"/></svg>';
 ['prev','next','flt','cfg','bulk','menu'].forEach(k=>$(k==='cfg'?'cfgb':k==='menu'?'mnb':k).innerHTML=ic(k));
 [['open','Open file'],['imp','Import translations'],['save','Save'],['sv2','Save as strings.xml (Android)'],['close','Close file']].forEach(([k,t])=>{$(k).innerHTML=ic(k==='sv2'?'save':k)+'<span>'+t+'</span>'});   /* sv2 shares the save icon */
@@ -1203,7 +1205,7 @@ function sessSnap(){
   const d={};
   units.forEach((u,i)=>{const o={};
     if(u.val!==undefined)o.v=u.val;if(u.ap!==undefined)o.a=u.ap?1:0;if(u.tr!==undefined)o.r=u.tr;if(u.apAuto)o.z=1;
-    if(cbHas(u))o.c=u.cb;if(u.sel)o.s=1;if(u.showCtx)o.x=1;if(u.showNote)o.n=1;
+    if(cbHas(u))o.c=u.cb;if(u.sel)o.s=1;if(u.showCtx)o.x=1;if(u.showNote)o.n=1;if(u.showEsc)o.k=1;
     if(Object.keys(o).length)d[i]=o});
   return {t:Date.now(),name,n:units.length,d,ui:{q:$('q').value,F:Object.assign({},F),rx:RX,sz:$('sz').value,so:$('so').value,page}};
 }
@@ -1226,7 +1228,7 @@ async function sessCheck(){
       if(!ok||st.n!==units.length)return;
       units.forEach((u,i)=>{const o=st.d[i];if(!o)return;
         if(o.v!==undefined)u.val=o.v;if(o.a!==undefined)u.ap=!!o.a;if(o.r!==undefined)u.tr=o.r;if(o.z)u.apAuto=true;
-        if(o.c)u.cb=o.c;if(o.s)u.sel=true;if(o.x)u.showCtx=true;if(o.n)u.showNote=true});
+        if(o.c)u.cb=o.c;if(o.s)u.sel=true;if(o.x)u.showCtx=true;if(o.n)u.showNote=true;if(o.k)u.showEsc=true});
       const ui=st.ui||{};
       $('q').value=ui.q||'';Object.assign(F,ui.F||{});RX=!!ui.rx;
       if(ui.sz!==undefined&&[...$('sz').options].some(o=>o.value===ui.sz)){$('sz').value=ui.sz;size=+ui.sz}
@@ -1670,6 +1672,12 @@ function xliff2Modules(d,r,isX,add,src,trg){
     for(const it of [...rv.getElementsByTagNameNS('*','item')])if(isNs(it,'ctr')&&it.getAttribute('property')===null)add('<ctr:item> without property');
     for(const re of sub(rv,'ctr','revision'))dup(sub(re,'ctr','item').map(i=>i.getAttribute('property')),'<ctr:item> property value(s) inside one <ctr:revision>')}
 }
+/* an XLIFF whose <file original="..."> files are all named strings.xml (Crowdin and similar exports) comes from an Android strings.xml */
+function fromStringsXml(txt){
+  const o=[...txt.matchAll(/<file\b[^>]*?\soriginal\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)].map(m=>(m[1]!==undefined?m[1]:m[2]).trim());
+  return o.length>0&&o.every(x=>/(?:^|[\/\\])strings\.xml$/i.test(x));
+}
+const isAndroid=()=>mode==='strings'||!!(doc&&doc.android);
 async function loadText(txt,fname,pre){
   const my=++LSEQ;
   busy('Opening\u2026');
@@ -1692,7 +1700,7 @@ async function loadText(txt,fname,pre){
   if(info.mode==='other'){busy('');upd(true);alert('This XML file is neither an XLIFF nor an Android strings.xml file (root element: <'+(info.root||'?')+'>).');return false}
   if(!list.length){busy('');upd(true);alert(info.mode==='strings'?'No translatable strings were found in this file.':'No translation units were found in this XLIFF file.');return false}
   GEN++;qaJob++;qaN=0;
-  name=fname;raw=txt;doc={mode:info.mode};units=list;v2=!!info.v2;WSYNC=sync;
+  name=fname;raw=txt;doc={mode:info.mode,android:info.mode==='strings'||fromStringsXml(txt)};units=list;v2=!!info.v2;WSYNC=sync;
   units.forEach(u=>{u._gen=GEN});MARK=null;MKJ=false;
   page=0;$('q').value='';
   setMode(info.mode);
@@ -1996,10 +2004,10 @@ function openMtm(u,apply){
 }
 function card(u){
   const d=document.createElement('div');d.className='u';
-  d.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="nb"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button></div><div class="cxt" hidden></div><div class="cxt nbx" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="esc"></div><div class="cnt tc"></div><div class="qa" hidden></div>';
+  d.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="nb"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button><button class="kb"></button></div><div class="cxt" hidden></div><div class="cxt nbx" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="esc"></div><div class="cnt tc"></div><div class="qa" hidden></div>';
   const q=s=>d.querySelector(s);
-  const clb=q('.cb'),mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),ntb=q('.nb'),nbx=q('.nbx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
-  mtb.innerHTML=ic('mt');ap.innerHTML=ic('check');cx.innerHTML=ic('help');ntb.innerHTML=ic('note');ntb.hidden=mode==='strings';cp.innerHTML=ic('copy');un.innerHTML=ic('undo');clb.innerHTML=ic('clip');
+  const clb=q('.cb'),mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),ntb=q('.nb'),nbx=q('.nbx'),cp=q('.cp'),un=q('.un'),kbb=q('.kb'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
+  mtb.innerHTML=ic('mt');ap.innerHTML=ic('check');cx.innerHTML=ic('help');ntb.innerHTML=ic('note');ntb.hidden=mode==='strings';cp.innerHTML=ic('copy');un.innerHTML=ic('undo');clb.innerHTML=ic('clip');kbb.innerHTML=ic('kb');kbb.setAttribute('aria-label','Escape keys');
   [[ap,'Approve'],[hd,'Visible'],[cx,mode==='strings'?'Comment':'Context'],[ntb,'Notes'],[mtb,'Machine translate \u00b7 '+engName()+' / similar translations'],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
   const cb=q('.sel');cb.setAttribute('aria-label','Select unit');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
   q('.id').textContent=u.id;q('.rn').textContent=rnShow(u);q('.rn').hidden=!u.rn;
@@ -2011,15 +2019,19 @@ function card(u){
   const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=(u.slr?(x=>txtlen(x,u.nfG)):clen)(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars';tc.classList.toggle('over',!!u.max&&n>u.max)};
   const setText=v=>{ta.value=v;paint();fit()};
   /* ESCBAR: buttons under the target box insert a character in its escaped form at the cursor (replacing the selection).
-     XML entities for & < >; quotes as \' \" in strings.xml, &apos; &quot; in an XLIFF. Inside a CDATA section nothing is escaped, so the plain character goes in. */
+     XML entities for & < >; quotes as \' \" in strings.xml, &apos; &quot; in an XLIFF. Inside a CDATA section nothing is escaped, so the plain character goes in.
+     The last eight are not XML escapes: they are shown only for a strings.xml (or an XLIFF whose <file original> is strings.xml) and always insert
+     %% \\ \n \t \r and the format specifiers %s %d %f, in either format and inside CDATA too.
+     The whole bar is shown only while the keyboard button of the unit is on (u.showEsc). */
   const eb=q('.esc'),sx=mode==='strings';
-  [['&','&amp;','&amp;'],['<','&lt;','&lt;'],['>','&gt;','&gt;'],['"','&quot;','\\"'],["'",'&apos;',"\\'"]].forEach(([ch,xe,se])=>{
-    const b=document.createElement('button'),esc=sx?se:xe;b.type='button';b.textContent=ch;b.title='Insert '+esc;b.setAttribute('aria-label','Insert '+esc);
+  [['&','&amp;','&amp;'],['<','&lt;','&lt;'],['>','&gt;','&gt;'],['"','&quot;','\\"'],["'",'&apos;',"\\'"],
+   ['%','%%','%%',1],['\\','\\\\','\\\\',1],['\u21b2','\\n','\\n',1],['\u21e5','\\t','\\t',1],['\u21e4','\\r','\\r',1],['%s','%s','%s',1],['%d','%d','%d',1],['%f','%f','%f',1]].filter(x=>!x[3]||isAndroid()).forEach(([ch,xe,se,all])=>{
+    const b=document.createElement('button'),esc=sx?se:xe;b.type='button';b.textContent=ch;b.setAttribute('aria-label','Insert '+esc);
     b.onpointerdown=b.onmousedown=e=>e.preventDefault();   /* the box keeps its focus, so the keyboard stays open */
     b.onclick=()=>{
       ta.focus({preventScroll:true});
       const a=ta.selectionStart,z=ta.selectionEnd,pre=ta.value.slice(0,a),o=pre.lastIndexOf('<![CDATA['),inCd=o>=0&&pre.indexOf(']]>',o+9)<0;
-      ta.setRangeText(inCd?ch:esc,a,z,'end');
+      ta.setRangeText(inCd&&!all?ch:esc,a,z,'end');
       ta.dispatchEvent(new Event('input'));
     };
     eb.appendChild(b);
@@ -2036,7 +2048,7 @@ function card(u){
     ap.disabled=!(u.is12||u.v2)||(u.v2&&!a&&!cur(u).trim());hd.disabled=!canTr(u);
     if(u.v2)ap.title=a?'state="final" (tap to unapprove)':cur(u).trim()?'Approve (sets state="final")':'Translate first: without a translation the state stays "initial"';
     const qe=q('.qa'),iss=qaOf(u);qaSet(u,iss.length>0);qe.hidden=!iss.length;qe.textContent=iss.map(x=>'\u26a0 '+x).join('\n');
-    cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;ntb.classList.toggle('on',!!u.showNote);nbx.hidden=!u.showNote||mode==='strings';
+    kbb.classList.toggle('on',!!u.showEsc);eb.hidden=!u.showEsc;cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;ntb.classList.toggle('on',!!u.showNote);nbx.hidden=!u.showNote||mode==='strings';
     const nb=(u.cb||[]).length,ct='Clipboard'+(nb?' ('+nb+'/'+CB_MAX+')':'');
     clb.classList.toggle('on',nb>0);clb.title=ct;clb.setAttribute('aria-label',ct);
   };
@@ -2063,6 +2075,7 @@ function card(u){
   mtb.onclick=()=>openMtm(u,v=>{setText(v);setVal(u,v);sync()});
   cx.onclick=()=>{u.showCtx=!u.showCtx;refresh();vsNudge()};
   ntb.onclick=()=>{u.showNote=!u.showNote;refresh();vsNudge()};
+  kbb.onclick=()=>{u.showEsc=!u.showEsc;refresh();vsNudge()};
   refresh();d._fit=fit;d._u=u;d._rf=refresh;
   d.classList.toggle('mk',!!(MARK&&MARK.has(u)));
   return d;
