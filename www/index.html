@@ -2024,9 +2024,11 @@ function card(u){
       const hide=to==='no',oth=grpOf(u).filter(x=>x!==u),n=oth.length;
       const sm=mode==='strings';
       const r=await msAsk({h:(hide?'Hide':'Unhide')+' '+GW().u+'?',
-        t:(sm?'"'+u.name+'" is a '+GW().u+' with '+u.gn+' items':'Segment '+u.id+' belongs to a multi-segment unit ('+u.gn+' segments)')+'. Visibility is set for the whole '+(sm?'element':'unit')+', so '+(n?'the other '+n+' '+GW().s+(n>1?'s':'')+' will also be ':'the whole '+(sm?'element':'unit')+' will be ')+(hide?'hidden':'unhidden')+'.',
-        l:n?msNames(oth.map(x=>sm?'['+x.rn+']':x.id)):'',view:false});
+        t:(sm?'"'+u.name+'" is a '+GW().u+' with '+u.gn+' items':'Segment '+u.id+' belongs to a multi-segment unit ('+u.gn+' segments)')+'. Visibility is set for the whole '+(sm?'element':'unit')+', so '+(n?'the other '+n+' '+GW().s+(n>1?'s':'')+' will also be ':'the whole '+(sm?'element':'unit')+' will be ')+(hide?'hidden':'unhidden')+'.'+(n?' Tap View to go back and see them marked.':''),
+        l:n?msNames(oth.map(x=>sm?'['+x.rn+']':x.id)):'',view:n>0});
+      if(r==='view'){msMark([grpOf(u)]);return}   /* View: mark every segment this hide / unhide would change, without using Bulk Action */
       if(r!=='apply')return;
+      if(MARK&&MARK.has(u))msUnmark();   /* the marks were for this very change: it is made now */
     }
     setTrG(u,to);sync();msRefresh(u);
   };
