@@ -67,6 +67,8 @@ textarea{width:100%;min-height:70px;padding:8px;border-radius:8px;border:1px sol
 
 .idw{margin-bottom:2px}
 .bt{margin:6px 0 4px}
+.esc{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 0}
+.esc button{font-family:monospace;font-size:15px;font-weight:700;padding:0 10px}
 .src{margin:6px 0 0}
 .cnt{font-size:11px;color:var(--mut);text-align:right;margin:2px 2px 4px}
 .tw{position:relative;background:var(--card);border-radius:8px}
@@ -1998,7 +2000,7 @@ function openMtm(u,apply){
 }
 function card(u){
   const d=document.createElement('div');d.className='u';
-  d.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="nb"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button></div><div class="cxt" hidden></div><div class="cxt nbx" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="cnt tc"></div><div class="qa" hidden></div>';
+  d.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="nb"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button></div><div class="cxt" hidden></div><div class="cxt nbx" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="esc"></div><div class="cnt tc"></div><div class="qa" hidden></div>';
   const q=s=>d.querySelector(s);
   const clb=q('.cb'),mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),ntb=q('.nb'),nbx=q('.nbx'),cp=q('.cp'),un=q('.un'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
   mtb.innerHTML=ic('mt');ap.innerHTML=ic('check');cx.innerHTML=ic('help');ntb.innerHTML=ic('note');ntb.hidden=mode==='strings';cp.innerHTML=ic('copy');un.innerHTML=ic('undo');clb.innerHTML=ic('clip');
@@ -2012,6 +2014,21 @@ function card(u){
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
   const paint=()=>{hl.innerHTML=hlight(ta.value)+' ';const n=(u.slr?(x=>txtlen(x,u.nfG)):clen)(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars';tc.classList.toggle('over',!!u.max&&n>u.max)};
   const setText=v=>{ta.value=v;paint();fit()};
+  /* ESCBAR: buttons under the target box insert a character in its escaped form at the cursor (replacing the selection).
+     XML entities for & < >; quotes as \' \" in strings.xml, &apos; &quot; in an XLIFF. Inside a CDATA section nothing is escaped, so the plain character goes in. */
+  const eb=q('.esc'),sx=mode==='strings';
+  [['&','&amp;','&amp;'],['<','&lt;','&lt;'],['>','&gt;','&gt;'],['"','&quot;','\\"'],["'",'&apos;',"\\'"]].forEach(([ch,xe,se])=>{
+    const b=document.createElement('button'),esc=sx?se:xe;b.type='button';b.textContent=ch;b.title='Insert '+esc;b.setAttribute('aria-label','Insert '+esc);
+    b.onpointerdown=b.onmousedown=e=>e.preventDefault();   /* the box keeps its focus, so the keyboard stays open */
+    b.onclick=()=>{
+      ta.focus({preventScroll:true});
+      const a=ta.selectionStart,z=ta.selectionEnd,pre=ta.value.slice(0,a),o=pre.lastIndexOf('<![CDATA['),inCd=o>=0&&pre.indexOf(']]>',o+9)<0;
+      ta.setRangeText(inCd?ch:esc,a,z,'end');
+      ta.dispatchEvent(new Event('input'));
+    };
+    eb.appendChild(b);
+  });
+  /* END ESCBAR */
   ta.value=cur(u);ta.setAttribute('aria-label','Translation');paint();
   const refresh=()=>{
     const a=u.ap!==undefined?u.ap:u.oAp,t=u.tr!==undefined?u.tr:u.oTr;
