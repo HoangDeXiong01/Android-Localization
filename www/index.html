@@ -182,6 +182,12 @@ body.busy,body.busy *{cursor:progress}
 <label>Model<div class="kr"><select id="c-model"></select><button id="c-ref" type="button" title="Load models from server" aria-label="Load models from server"></button></div></label>
 <div class="hint" id="c-mhint" style="margin-top:4px"></div>
 <label>Notes for the AI (optional)<textarea id="c-notes" placeholder="e.g. Music player app. Informal tone. Keep 'Playlist' untranslated."></textarea></label>
+<label>Send to the AI</label>
+<label class="ck"><input type="checkbox" id="c-aik"> Key name</label>
+<label class="ck"><input type="checkbox" id="c-aic"> strings.xml comments / XLIFF context</label>
+<label class="ck"><input type="checkbox" id="c-ain"> XLIFF notes</label>
+<label class="ck"><input type="checkbox" id="c-ail"> Length limits and validation rules</label>
+<div class="hint" style="margin-top:4px">Sent with each source text as hints for the AI (the source text itself is always sent). Applies to Gemini and Groq; the free engine sends only the text. Fewer items use fewer tokens.</div>
 <label>Rate limit (requests / minute, 0 = none)<input id="c-rpmg" type="number" min="0" inputmode="numeric"></label>
 <div class="hint" id="c-ghint">The key is stored only on this device and sent only to Google. Get one at aistudio.google.com/apikey</div>
 </div>
@@ -201,7 +207,7 @@ body.busy,body.busy *{cursor:progress}
 <label class="ck"><input type="checkbox" id="c-xh"> Export hidden units as translatable="false"</label>
 <div class="hint">Applies to Save (strings.xml) and to Save as strings.xml (XLIFF 1.2 and 2). On: hidden units are written with translatable="false". Off: hidden units are left out of the exported file.</div>
 <label class="ck"><input type="checkbox" id="c-ih"> Inherit comments (strings.xml)</label>
-<div class="hint">A comment placed before a string also applies to the strings that follow it, until a blank line or the next comment. Section titles such as &lt;!-- Home - Status --&gt; are inherited; notes ending with a full stop, or starting with "To translators", only apply to the string right after them. Inherited comments are shown with a ↳ and are also sent to the AI as context.</div>
+<div class="hint">A comment placed before a string also applies to the strings that follow it, until a blank line or the next comment. Section titles such as &lt;!-- Home - Status --&gt; are inherited; notes ending with a full stop, or starting with "To translators", only apply to the string right after them. Inherited comments are shown with a ↳ and are also sent to the AI as context (unless turned off under Send to the AI).</div>
 <label>QA checks</label>
 <div id="qac"></div>
 <div class="dr"><button id="c-cancel" type="button">Close</button><button id="c-save" type="button" class="p">Save</button></div>
@@ -348,7 +354,7 @@ let QV=0;
 const GQDEF='openai/gpt-oss-120b';
 /* models Groq has shut down: a stored choice or cached list that still has them is replaced / cleaned */
 const GQDEAD={'llama-3.3-70b-versatile':GQDEF,'llama-3.1-8b-instant':'openai/gpt-oss-20b'};
-const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,xh:1,ih:1,mrg:1,mrn:10,qa:{},theme:'system',accent:'sage'};
+const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,xh:1,ih:1,mrg:1,mrn:10,aik:1,aic:1,ain:0,ail:1,qa:{},theme:'system',accent:'sage'};
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
 delete CFG.pv;   /* a setting saved by an older version */
 CFG.qa=Object.assign({},QADEF,CFG.qa||{});
@@ -990,7 +996,7 @@ function aiShow(e){
 function openCfg(){
   draft={};mdl={};GLd=null;CLd=CL.map(l=>[l[0],l[1],l[0]]);uiEng='';
   $('c-theme').value=CFG.theme||'system';accDraft=ACCS.includes(CFG.accent)?CFG.accent:'sage';accUi();$('c-eng').value=CFG.eng;$('c-notes').value=CFG.gnotes;$('c-rpmf').value=CFG.rpmF;
-  document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);$('c-xh').checked=!!CFG.xh;$('c-ih').checked=!!CFG.ih;$('c-mrg').checked=!!CFG.mrg;$('c-mrn').value=CFG.mrn;qaUi();glInfo();clRender();clReset();
+  document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);$('c-xh').checked=!!CFG.xh;$('c-ih').checked=!!CFG.ih;$('c-mrg').checked=!!CFG.mrg;$('c-mrn').value=CFG.mrn;$('c-aik').checked=!!CFG.aik;$('c-aic').checked=!!CFG.aic;$('c-ain').checked=!!CFG.ain;$('c-ail').checked=!!CFG.ail;qaUi();glInfo();clRender();clReset();
   $('cfg').hidden=false;aiShow(CFG.eng);
 }
 function applyCfg(persist=true){
@@ -998,7 +1004,7 @@ function applyCfg(persist=true){
   const rp=(v,d)=>{v=String(v==null?'':v).trim();return v===''?d:Math.max(0,Math.floor(+v)||0)};
   for(const e in AIF){const f=AIF[e],d=draft[e];if(!d)continue;CFG[f.key]=d.key;CFG[f.model]=d.model||f.def;CFG[f.rpm]=rp(d.rpm,f.rpmDef)}
   CFG.rpmF=rp($('c-rpmf').value,30);
-  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);CFG.xh=$('c-xh').checked?1:0;CFG.ih=$('c-ih').checked?1:0;CFG.mrg=$('c-mrg').checked?1:0;CFG.mrn=Math.min(30,Math.max(2,Math.floor(+$('c-mrn').value)||10));
+  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);CFG.xh=$('c-xh').checked?1:0;CFG.ih=$('c-ih').checked?1:0;CFG.mrg=$('c-mrg').checked?1:0;CFG.mrn=Math.min(30,Math.max(2,Math.floor(+$('c-mrn').value)||10));CFG.aik=$('c-aik').checked?1:0;CFG.aic=$('c-aic').checked?1:0;CFG.ain=$('c-ain').checked?1:0;CFG.ail=$('c-ail').checked?1:0;
   for(const k in mdl)CFG[k]=mdl[k];
   if(persist){QV++;saveCfg()}
 }
@@ -1674,10 +1680,10 @@ function xliff2Modules(d,r,isX,add,src,trg){
     for(const it of [...rv.getElementsByTagNameNS('*','item')])if(isNs(it,'ctr')&&it.getAttribute('property')===null)add('<ctr:item> without property');
     for(const re of sub(rv,'ctr','revision'))dup(sub(re,'ctr','item').map(i=>i.getAttribute('property')),'<ctr:item> property value(s) inside one <ctr:revision>')}
 }
-/* an XLIFF whose <file original="..."> files are all named strings.xml (Crowdin and similar exports) comes from an Android strings.xml */
+/* an XLIFF whose <file original="..."> files are all named strings.xml, arrays.xml or plurals.xml (Crowdin and similar exports) comes from an Android resource file */
 function fromStringsXml(txt){
   const o=[...txt.matchAll(/<file\b[^>]*?\soriginal\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)].map(m=>(m[1]!==undefined?m[1]:m[2]).trim());
-  return o.length>0&&o.every(x=>/(?:^|[\/\\])strings\.xml$/i.test(x));
+  return o.length>0&&o.every(x=>/(?:^|[\/\\])(?:strings|arrays|plurals)\.xml$/i.test(x));
 }
 const isAndroid=()=>mode==='strings'||!!(doc&&doc.android);
 async function loadText(txt,fname,pre){
@@ -2028,18 +2034,20 @@ function card(u){
   const setText=v=>{ta.value=v;paint();fit()};
   /* ESCBAR: buttons under the target box insert a character in its escaped form at the cursor (replacing the selection).
      XML entities for & < >; quotes as \' \" in strings.xml, &apos; &quot; in an XLIFF. Inside a CDATA section nothing is escaped, so the plain character goes in.
-     The last eight are not XML escapes: they are shown only for a strings.xml (or an XLIFF whose <file original> is strings.xml) and always insert
-     %% \\ \n \t \r and the format specifiers %s %d %f, in either format and inside CDATA too.
+     The last seven are not XML escapes: they are shown only for a strings.xml (or an XLIFF whose <file original> is strings.xml, arrays.xml or plurals.xml) and always insert
+     %% \\ \n \t \r in either format and inside CDATA too; @ and ? insert \@ and \? when the cursor is at the start of the string, otherwise the plain character.
      The whole bar is shown only while the keyboard button of the unit is on (u.showEsc). */
   const eb=q('.esc'),sx=mode==='strings';let ebDone=false;
   const ebBuild=()=>{if(ebDone)return;ebDone=true;[['&','&amp;','&amp;'],['<','&lt;','&lt;'],['>','&gt;','&gt;'],['"','&quot;','\\"'],["'",'&apos;',"\\'"],
-   ['%','%%','%%',1],['\\','\\\\','\\\\',1],['\u21b2','\\n','\\n',1],['\u21e5','\\t','\\t',1],['\u21e4','\\r','\\r',1],['%s','%s','%s',1],['%d','%d','%d',1],['%f','%f','%f',1]].filter(x=>!x[3]||isAndroid()).forEach(([ch,xe,se,all])=>{
+   ['%','%%','%%',1],['\\','\\\\','\\\\',1],['\u21b2','\\n','\\n',1],['\u21e5','\\t','\\t',1],['\u21e4','\\r','\\r',1],['@','@','@',1,1],['?','?','?',1,1]].filter(x=>!x[3]||isAndroid()).forEach(([ch,xe,se,all,lead])=>{
     const b=document.createElement('button'),esc=sx?se:xe;b.type='button';b.textContent=ch;b.setAttribute('aria-label','Insert '+esc);
     b.onpointerdown=b.onmousedown=e=>e.preventDefault();   /* the box keeps its focus, so the keyboard stays open */
     b.onclick=()=>{
       ta.focus({preventScroll:true});
       const a=ta.selectionStart,z=ta.selectionEnd,pre=ta.value.slice(0,a),o=pre.lastIndexOf('<![CDATA['),inCd=o>=0&&pre.indexOf(']]>',o+9)<0;
-      ta.setRangeText(inCd&&!all?ch:esc,a,z,'end');
+      /* @ and ? only need a backslash at the very start of the string (only whitespace or a <![CDATA[ marker before the cursor), also inside CDATA */
+      const atStart=lead&&/^\s*$/.test(pre.replace(/<!\[CDATA\[/g,''));
+      ta.setRangeText(lead?(atStart?'\\'+ch:ch):(inCd&&!all?ch:esc),a,z,'end');
       ta.dispatchEvent(new Event('input'));
     };
     eb.appendChild(b);
@@ -2709,21 +2717,23 @@ function mtSys(multi){
     '- Text inside <xliff:g> ... </xliff:g> is protected: keep the whole element, its content included, exactly as in the source.',
     '- Keep CDATA wrappers (<![CDATA[ ... ]]>) and double-escaped entities such as &amp;quot; exactly as in the source.',
     '- Keep the same line breaks, leading/trailing spaces and punctuation style.',
-    '- The key name and context are only hints about meaning and are not to be translated.',
+    '- The key name, context, comments and notes are only hints about meaning and are not to be translated.',
     '- For a plural form, write the correct plural form for the target language.',
     mode==='strings'?'- Apostrophes and double quotes in the output must be escaped as \\\' and \\\" (Android strings.xml).':'',
     GL.length?'- If a glossary is given with the string, translate the listed terms exactly as specified (adapt only grammar if the target language requires).':'',
     CFG.gnotes.trim()?'Extra notes from the app author:\n'+CFG.gnotes.trim():''].filter(Boolean).join('\n');
 }
 function mtInfo(src,u){
-  const info=['Key: '+(mode==='strings'?u.id:(u.rn||u.id))];
+  const info=[];
+  if(CFG.aik)info.push('Key: '+(mode==='strings'?u.id:(u.rn||u.id)));
   if(u.kind==='p')info.push('Plural quantity: '+u.sub);
   if(u.kind==='a')info.push('Array item index: '+u.sub);
-  if(ctxLines(u).length)info.push('Context: '+ctxLines(u).join('; '));
-  if(u.max||u.mn)info.push((u.max?'Maximum':'Minimum')+' length of the translation: '+(u.max?(u.mn?u.mn+' to ':'')+u.max:u.mn)+' characters (hard limit)');
-  if(u.mb)info.push('Storage limit of the translation: '+(u.mbMin?u.mbMin+' to ':'')+(u.mb[0]===Infinity?'no maximum':u.mb[0])+' bytes in UTF-'+u.mb[1]+' (hard limit)');
+  if(CFG.aic&&ctxLines(u).length)info.push('Context: '+ctxLines(u).join('; '));
+  if(CFG.ain&&u.notes&&u.notes.length){let nt=u.notes.map(x=>String(x).trim()).filter(Boolean).join('; ');if(nt.length>800)nt=nt.slice(0,800)+'\u2026';if(nt)info.push('Notes: '+nt)}
+  if(CFG.ail&&(u.max||u.mn))info.push((u.max?'Maximum':'Minimum')+' length of the translation: '+(u.max?(u.mn?u.mn+' to ':'')+u.max:u.mn)+' characters (hard limit)');
+  if(CFG.ail&&u.mb)info.push('Storage limit of the translation: '+(u.mbMin?u.mbMin+' to ':'')+(u.mb[0]===Infinity?'no maximum':u.mb[0])+' bytes in UTF-'+u.mb[1]+' (hard limit)');
   if(u.gl&&u.gl.length)info.push('Glossary of this unit (use exactly these translations):\n'+u.gl.map(g=>'- '+g.s+' => '+(g.t.join(' / ')||'(keep)')).join('\n'));
-  if(u.vr&&u.vr.length)info.push('The translation must satisfy these rules: '+u.vr.map(r=>[r.pr&&'contain "'+r.pr+'"',r.np&&'not contain "'+r.np+'"',r.sw&&'start with "'+r.sw+'"',r.ew&&'end with "'+r.ew+'"'].filter(Boolean).join(', ')).join('; '));
+  if(CFG.ail&&u.vr&&u.vr.length)info.push('The translation must satisfy these rules: '+u.vr.map(r=>[r.pr&&'contain "'+r.pr+'"',r.np&&'not contain "'+r.np+'"',r.sw&&'start with "'+r.sw+'"',r.ew&&'end with "'+r.ew+'"'].filter(Boolean).join(', ')).join('; '));
   const gh=glossHits(src).slice(0,40);
   if(gh.length)info.push('Glossary (use exactly these translations for these terms):\n'+gh.map(h=>'- '+h.s+' => '+h.t).join('\n'));
   return info;
