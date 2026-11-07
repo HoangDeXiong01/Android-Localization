@@ -56,6 +56,7 @@ select{font-size:16px}button,select,input,label{touch-action:manipulation}button
 body.sm .ap{display:none}
 .u.hv{opacity:.62}
 body.sm #fl [data-f=rn],body.sm #fl [data-f=note]{display:none}
+body:not(.sm) #fl [data-k]{display:none}
 .cxt{font-size:13px;color:var(--mut);white-space:pre-wrap;word-break:break-word;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--card)}
 #fl{display:none;flex-wrap:wrap}
 #fl.show{display:flex}
@@ -161,7 +162,7 @@ body.busy,body.busy *{cursor:progress}
 <div class="row">
 <input id="q" type="search" placeholder="Search"><button id="flt" title="Search in…" aria-label="Search in"></button>
 <input id="f" type="file" accept="*/*" hidden><input id="f2" type="file" accept="*/*" hidden></div>
-<div class="row" id="fl"><button data-f="id">ID</button><button data-f="rn">Name</button><button data-f="src">Source</button><button data-f="ctx">Context</button><button data-f="note">Note</button><button data-f="tgt">Target</button><button id="rx" type="button" title="Regex search" aria-label="Regex search">.*</button><select id="so" title="Show first"></select></div>
+<div class="row" id="fl"><button data-f="id">ID</button><button data-f="rn">Name</button><button data-f="src">Source</button><button data-f="ctx">Context</button><button data-f="note">Note</button><button data-f="tgt">Target</button><button data-k="a" type="button" title="Include string-arrays">Arrays</button><button data-k="p" type="button" title="Include plurals">Plurals</button><button id="rx" type="button" title="Regex search" aria-label="Regex search">.*</button><select id="so" title="Show first"></select></div>
 <div class="row" id="mkb" hidden><span id="mkt"></span><button id="mkc" type="button">Clear marks</button></div>
 <div class="row">
 <label id="sw" title="Select all shown"><input id="sa" type="checkbox"></label><button id="bulk" title="Actions for selected units" aria-label="Actions for selected units" disabled></button>
@@ -274,6 +275,8 @@ $('mn').onclick=e=>{if(e.target===$('mn')||e.target.closest('#ml .mi'))$('mn').h
 let nRes=0,shown=[],doc=null,raw='',name='file.xlf',units=[],page=0,size=20,pages=1,v2=false,mode='xliff',svT=0;
 let RX=false,MARK=null,MKJ=false;   /* MARK: segments of multi-segment units that a pending hide/unhide would change (shown with a dashed border) */
 const F={id:1,rn:1,src:1,ctx:1,note:1,tgt:1};
+const KF={a:1,p:1};   /* strings.xml kind filter, by exclusion: arrays / plurals are included (on) until switched off; plain strings are always included */
+const kfOn=()=>!(KF.a&&KF.p),kfPass=u=>(u.kind!=='a'||!!KF.a)&&(u.kind!=='p'||!!KF.p);
 const ga=(t,n)=>{const r=new RegExp('\\s'+n+'\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')').exec(t);return r?(r[1]!==undefined?r[1]:r[2]):null};
 const setAttr=(t,n,v)=>{const re=new RegExp('(\\s'+n+'\\s*=\\s*)(?:"[^"]*"|\'[^\']*\')');
   return re.test(t)?t.replace(re,'$1"'+v+'"'):t.replace(/\s*(\/?>)$/,' '+n+'="'+v+'"$1')};
@@ -1710,7 +1713,7 @@ async function loadText(txt,fname,pre){
   GEN++;qaJob++;qaN=0;
   name=fname;raw=txt;doc={mode:info.mode,android:info.mode==='strings'||fromStringsXml(txt)};units=list;v2=!!info.v2;WSYNC=sync;
   units.forEach(u=>{u._gen=GEN});MARK=null;MKJ=false;
-  page=0;$('q').value='';
+  page=0;$('q').value='';KF.a=KF.p=1;
   setMode(info.mode);
   if(pre){pre();fchips()}
   busy('');
@@ -1730,15 +1733,17 @@ $('close').onclick=()=>{
   if(!doc)return;
   if(edited()&&!confirm('Close this file? Unsaved changes will not be saved.'))return;
   LSEQ++;GEN++;qaJob++;qaN=0;qaBusy=false;WSYNC=false;wDrop();
-  doc=null;raw='';units=[];MARK=null;MKJ=false;v2=false;page=0;$('q').value='';setMode('xliff');sessClear();render();
+  doc=null;raw='';units=[];MARK=null;MKJ=false;v2=false;page=0;$('q').value='';KF.a=KF.p=1;setMode('xliff');sessClear();render();
 };
 let qt;$('q').oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{RES=null;page=0;render(1)},150)};   /* every edit of the search box refreshes the results, even back to the earlier text */
 $('rx').onclick=()=>{RX=!RX;fchips();page=0;render(1)};
 $('flt').onclick=()=>$('fl').classList.toggle('show');
 document.querySelectorAll('#fl button[data-f]').forEach(b=>b.onclick=()=>{F[b.dataset.f]=F[b.dataset.f]?0:1;fchips();page=0;render(1)});
+document.querySelectorAll('#fl button[data-k]').forEach(b=>b.onclick=()=>{KF[b.dataset.k]=KF[b.dataset.k]?0:1;fchips();page=0;render(1)});
 function fchips(){document.querySelectorAll('#fl button[data-f]').forEach(b=>b.classList.toggle('on',!!F[b.dataset.f]));
+  document.querySelectorAll('#fl button[data-k]').forEach(b=>b.classList.toggle('on',!!KF[b.dataset.k]));
   $('rx').classList.toggle('on',RX);$('q').placeholder=RX?'Regex':'Search';
-  $('flt').classList.toggle('on',Object.values(F).some(v=>!v)||$('so').value!=='none'||RX)}
+  $('flt').classList.toggle('on',Object.values(F).some(v=>!v)||$('so').value!=='none'||RX||kfOn())}
 const SORTS=[['none','Original order',0],['mod','Edited first',0],['qa','QA issues first',0],['cb','Clipboard first',0],['unap','Unapproved first',1],['hid','Hidden first',1],['untr','Untranslated first',0],['same','Same as source first',0],['lsrc','Longest source first',0],['ssrc','Shortest source first',0],['ltgt','Longest target first',0],['stgt','Shortest target first',0],['over','Over max length first',0,'max']];
 function fillSort(){
   const so=$('so'),v=so.value||'none';
@@ -2559,7 +2564,7 @@ const sortByQa=f=>f.map((u,i)=>[u,i,-qaOf(u).length]).sort((a,b)=>a[2]-b[2]||a[1
 /* The result list is a snapshot: it is rebuilt only when the search changes (text, scope, regex, sort) or the file does, not when a page is turned
    or units are edited / approved / bulk-processed. RK = key of the latest render, RES = the finished result list. */
 let RES=null,RK=null;
-const resKey=()=>{const q=$('q').value,sk=$('so').value;return JSON.stringify([GEN,mode,q,q?RX:0,q?F:0,sk,sk==='qa'?QV:0])};
+const resKey=()=>{const q=$('q').value,sk=$('so').value;return JSON.stringify([GEN,mode,q,q?RX:0,q?F:0,sk,sk==='qa'?QV:0,KF.a,KF.p])};
 function render(top){
   const seq=++RSEQ,L=$('list');
   if(!doc){
@@ -2586,7 +2591,7 @@ function render(top){
       let hit;
       if(re)hit=v=>re.test(v||'');
       else{const ql=qs.toLowerCase();hit=v=>(v||'').toLowerCase().includes(ql)}
-      let f=units.filter(u=>!qs||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(F.ctx&&hit(u.ct))||(F.note&&hit(u.nt))||(F.tgt&&hit(cur(u))));
+      let f=units.filter(u=>kfPass(u)&&(!qs||(F.id&&hit(u.id))||(F.rn&&hit(u.rn))||(F.src&&hit(u.rs))||(F.ctx&&hit(u.ct))||(F.note&&hit(u.nt))||(F.tgt&&hit(cur(u)))));
       if(sk!=='none')f=f.map((u,i)=>[u,i,sortKey(sk,u)]).sort((a,b)=>a[2]-b[2]||a[1]-b[1]).map(x=>x[0]);
       fin(f);
     };
@@ -2596,7 +2601,7 @@ function render(top){
     L.classList.add('wait');
     wCall({t:'query',q:qs,rx:!!(RX&&qs),F:Object.assign({},F),sk:sk==='qa'?'none':sk,dyn:wDyn()}).then(m=>{
       if(seq!==RSEQ)return;
-      const f=Array.from(m.idx,i=>units[i]);
+      let f=Array.from(m.idx,i=>units[i]);if(kfOn())f=f.filter(kfPass);
       if(sk==='qa')qaScan(()=>fin(sortByQa(f)));else fin(f);
     }).catch(()=>{if(seq===RSEQ){WSYNC=false;local()}});
   }else local();
