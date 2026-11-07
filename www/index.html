@@ -36,7 +36,7 @@ input[type=search]{flex:1;min-width:0;height:40px;padding:0 10px;border-radius:1
 #sb i{position:absolute;right:3px;width:8px;border-radius:4px;background:var(--mut);opacity:0;transition:opacity .2s,width .15s,right .15s}
 #sb.show i{opacity:.5;transition:opacity .1s,width .15s,right .15s}
 #sb.act i,#sb:hover i{opacity:.9;width:12px;right:1px;background:var(--ac);transition:opacity .1s,width .15s,right .15s}
-.u{background:var(--bg);margin:10px;padding:10px 12px;border-radius:12px;border:2px solid var(--card)}
+.u{background:var(--bg);margin:10px;padding:10px 12px;border-radius:12px;border:2px solid var(--card);contain:layout style}
 .u.ch{border-color:var(--ac)}
 .u.mk{border-color:#f57c00;border-style:dashed}
 #mkb{justify-content:space-between;font-size:13px;color:#f57c00}#mkt{flex:1;min-width:0}#mkb button{height:30px;font-size:13px}
@@ -1204,7 +1204,8 @@ async function sGet(k){try{const db=await sIdb();const v=await new Promise((res,
 async function sessClear(){clearTimeout(svT);try{const db=await sIdb();await new Promise((res,rej)=>{const t=db.transaction('s','readwrite');t.objectStore('s').clear();t.oncomplete=res;t.onerror=()=>rej(t.error)});db.close()}catch(e){}}
 function sessSnap(){
   const d={};
-  units.forEach((u,i)=>{const o={};
+  units.forEach((u,i)=>{if(u.val===undefined&&u.ap===undefined&&u.tr===undefined&&!u.apAuto&&!(u.cb&&u.cb.length)&&!u.sel&&!u.showCtx&&!u.showNote&&!u.showEsc)return;
+    const o={};
     if(u.val!==undefined)o.v=u.val;if(u.ap!==undefined)o.a=u.ap?1:0;if(u.tr!==undefined)o.r=u.tr;if(u.apAuto)o.z=1;
     if(cbHas(u))o.c=u.cb;if(u.sel)o.s=1;if(u.showCtx)o.x=1;if(u.showNote)o.n=1;if(u.showEsc)o.k=1;
     if(Object.keys(o).length)d[i]=o});
@@ -2003,12 +2004,18 @@ function openMtm(u,apply){
   $('mtm-c').onclick=close;
   dlg.hidden=false;dlg.firstElementChild.scrollTop=0;
 }
+let CARD_T=null;
+function cardTpl(){
+  if(CARD_T)return CARD_T;
+  const t=document.createElement('div');t.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="nb"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button><button class="kb"></button></div><div class="cxt" hidden></div><div class="cxt nbx" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="esc"></div><div class="cnt tc"></div><div class="qa" hidden></div>';
+  [['.mt','mt'],['.ap','check'],['.cx','help'],['.nb','note'],['.cp','copy'],['.un','undo'],['.cb','clip'],['.kb','kb']].forEach(([sl,k])=>{t.querySelector(sl).innerHTML=ic(k)});
+  return CARD_T=t;
+}
 function card(u){
-  const d=document.createElement('div');d.className='u';
-  d.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="nb"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button><button class="kb"></button></div><div class="cxt" hidden></div><div class="cxt nbx" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="esc"></div><div class="cnt tc"></div><div class="qa" hidden></div>';
+  const d=cardTpl().cloneNode(true);d.className='u';
   const q=s=>d.querySelector(s);
   const clb=q('.cb'),mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),cx=q('.cx'),ntb=q('.nb'),nbx=q('.nbx'),cp=q('.cp'),un=q('.un'),kbb=q('.kb'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
-  mtb.innerHTML=ic('mt');ap.innerHTML=ic('check');cx.innerHTML=ic('help');ntb.innerHTML=ic('note');ntb.hidden=mode==='strings';cp.innerHTML=ic('copy');un.innerHTML=ic('undo');clb.innerHTML=ic('clip');kbb.innerHTML=ic('kb');kbb.setAttribute('aria-label','Escape keys');
+  ntb.hidden=mode==='strings';kbb.setAttribute('aria-label','Escape keys');
   [[ap,'Approve'],[hd,'Visible'],[cx,mode==='strings'?'Comment':'Context'],[ntb,'Notes'],[mtb,'Machine translate \u00b7 '+engName()+' / similar translations'],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
   const cb=q('.sel');cb.setAttribute('aria-label','Select unit');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
   q('.id').textContent=u.id;q('.rn').textContent=rnShow(u);q('.rn').hidden=!u.rn;
@@ -2024,8 +2031,8 @@ function card(u){
      The last eight are not XML escapes: they are shown only for a strings.xml (or an XLIFF whose <file original> is strings.xml) and always insert
      %% \\ \n \t \r and the format specifiers %s %d %f, in either format and inside CDATA too.
      The whole bar is shown only while the keyboard button of the unit is on (u.showEsc). */
-  const eb=q('.esc'),sx=mode==='strings';
-  [['&','&amp;','&amp;'],['<','&lt;','&lt;'],['>','&gt;','&gt;'],['"','&quot;','\\"'],["'",'&apos;',"\\'"],
+  const eb=q('.esc'),sx=mode==='strings';let ebDone=false;
+  const ebBuild=()=>{if(ebDone)return;ebDone=true;[['&','&amp;','&amp;'],['<','&lt;','&lt;'],['>','&gt;','&gt;'],['"','&quot;','\\"'],["'",'&apos;',"\\'"],
    ['%','%%','%%',1],['\\','\\\\','\\\\',1],['\u21b2','\\n','\\n',1],['\u21e5','\\t','\\t',1],['\u21e4','\\r','\\r',1],['%s','%s','%s',1],['%d','%d','%d',1],['%f','%f','%f',1]].filter(x=>!x[3]||isAndroid()).forEach(([ch,xe,se,all])=>{
     const b=document.createElement('button'),esc=sx?se:xe;b.type='button';b.textContent=ch;b.setAttribute('aria-label','Insert '+esc);
     b.onpointerdown=b.onmousedown=e=>e.preventDefault();   /* the box keeps its focus, so the keyboard stays open */
@@ -2036,25 +2043,25 @@ function card(u){
       ta.dispatchEvent(new Event('input'));
     };
     eb.appendChild(b);
-  });
+  });};
   /* END ESCBAR */
   ta.value=cur(u);ta.setAttribute('aria-label','Translation');paint();
   const refresh=()=>{
     const a=u.ap!==undefined?u.ap:u.oAp,t=u.tr!==undefined?u.tr:u.oTr;
     d.classList.toggle('ch',changed(u));un.disabled=!changed(u);
     ap.classList.toggle('on',a);ap.title=a?'Approved':'Not approved';
-    hd.innerHTML=ic(t==='yes'?'eye':'eyeoff');hd.classList.toggle('on',t==='yes');
+    {const ek=t==='yes'?'eye':'eyeoff';if(hd._k!==ek){hd._k=ek;hd.innerHTML=ic(ek)}}hd.classList.toggle('on',t==='yes');
     hd.title=(mode==='strings'?(t==='yes'?'Visible (tap to hide: translatable="false")':'Hidden, translatable="false" (tap to unhide)'):(t==='yes'?'translate=yes (tap to hide)':'translate=no (tap to unhide)'))+(u.gk!==undefined?' \u00b7 '+GW().u+': applies to all its '+GW().s+'s':'');
     d.classList.toggle('hv',t==='no');
     ap.disabled=!(u.is12||u.v2)||(u.v2&&!a&&!cur(u).trim());hd.disabled=!canTr(u);
     if(u.v2)ap.title=a?'state="final" (tap to unapprove)':cur(u).trim()?'Approve (sets state="final")':'Translate first: without a translation the state stays "initial"';
     const qe=q('.qa'),iss=qaOf(u);qaSet(u,iss.length>0);qe.hidden=!iss.length;qe.textContent=iss.map(x=>'\u26a0 '+x).join('\n');
-    kbb.classList.toggle('on',!!u.showEsc);eb.hidden=!u.showEsc;cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;ntb.classList.toggle('on',!!u.showNote);nbx.hidden=!u.showNote||mode==='strings';
+    if(u.showEsc)ebBuild();kbb.classList.toggle('on',!!u.showEsc);eb.hidden=!u.showEsc;cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;ntb.classList.toggle('on',!!u.showNote);nbx.hidden=!u.showNote||mode==='strings';
     const nb=(u.cb||[]).length,ct='Clipboard'+(nb?' ('+nb+'/'+CB_MAX+')':'');
     clb.classList.toggle('on',nb>0);clb.title=ct;clb.setAttribute('aria-label',ct);
   };
   const sync=()=>{refresh();upd();vsNudge()};
-  ta.oninput=()=>{setVal(u,ta.value);paint();fit();sync()};
+  ta.oninput=()=>{setVal(u,ta.value);paint();fit();refresh();updLater();vsNudge()};
   cp.onclick=()=>{setText(u.rs);setVal(u,u.rs);sync()};
   clb.onclick=()=>openClip(u,v=>{setText(v);setVal(u,v);sync()},sync);
   un.onclick=()=>{setText(u.rt);delete u.val;delete u.ap;delete u.apAuto;delete u.tr;sync()};
@@ -2617,6 +2624,8 @@ function paintList(f,bad,top){
   }
   qaScan();upd();
 }
+let updTm=0;
+const updLater=()=>{clearTimeout(updTm);updTm=setTimeout(()=>upd(),150)};
 function upd(quiet){
   if(!quiet)sessDirty();
   $('fn').textContent=doc?name:'No file';$('fn').scrollLeft=0;
@@ -2637,7 +2646,7 @@ function upd(quiet){
   $('selc').textContent=nsel+' selected';$('selc').hidden=!doc||!nsel;
   $('resc').textContent=nRes.toLocaleString()+(nRes===1?' result':' results');$('resc').hidden=!doc||!$('q').value;   /* shown only while a search is active */
   $('bulk').disabled=!nsel;
-  const sc=shown.filter(x=>x.sel).length;
+  let sc=0;for(let i=0;i<shown.length;i++)if(shown[i].sel)sc++;
   $('sa').checked=shown.length>0&&sc===shown.length;$('sa').indeterminate=sc>0&&sc<shown.length;$('sa').disabled=!shown.length;
   const pgOn=doc&&size>0,pgi=$('pgi');
   $('pg').textContent=pgOn?`/ ${pages}`:'\u2013';
