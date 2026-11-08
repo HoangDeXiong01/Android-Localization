@@ -1073,10 +1073,17 @@ $('c-test').onclick=async()=>{
   catch(e){alert('Failed: '+e.message)}
   undo();b.disabled=false;
 };
-const BM=[['mt','Machine translate selected','mt',0],['check','Approve selected','ap',1],['close','Unapprove selected','un',1],['eyeoff','Hide selected','hd',0],['eye','Unhide selected','sh',0],['copy','Copy source to selected','cs',0],['undo','Undo changes in selected','ud',0],['clip','Save to clipboard','cb',0],['trash','Clear clipboard of selected','cc',0],['close','Clear selection','cl',0]];
+const BM=[['mt','Machine translate selected','mt',0],['check','Approve selected','ap',1],['close','Unapprove selected','un',1],['eyeoff','Hide selected','hd',0],['eye','Unhide selected','sh',0],['copy','Copy source to selected','cs',0],['undo','Undo changes in selected','ud',0],['clip','Save to clipboard','cb',0],['trash','Clear clipboard of selected','cc',0],['eyeoff','Deselect hidden units','dh',0],['check','Deselect translated units','dt',0],['close','Clear selection','cl',0]];
 $('bl').innerHTML=BM.map(([i,t,a,x])=>'<button class="mi'+(x?' x':'')+'" data-a="'+a+'" type="button">'+ic(i)+'<span>'+t+'</span></button>').join('');
 $('bl').querySelectorAll('.mi').forEach(b=>b.onclick=()=>{$('bm').hidden=true;bulk(b.dataset.a)});
-$('bulk').onclick=()=>{$('bm').hidden=false};
+/* the two Deselect items are dimmed (disabled) while no selected unit is hidden / translated */
+const isHidU=u=>canTr(u)&&trOf(u)==='no',isTrU=u=>cur(u).trim()!=='';
+$('bulk').onclick=()=>{
+  const sel=units.filter(u=>u.sel);
+  $('bl').querySelector('[data-a=dh]').disabled=!sel.some(isHidU);
+  $('bl').querySelector('[data-a=dt]').disabled=!sel.some(isTrU);
+  $('bm').hidden=false;
+};
 $('bclose').onclick=()=>{$('bm').hidden=true};
 $('sa').onchange=()=>{const v=$('sa').checked;shown.forEach(u=>u.sel=v);document.querySelectorAll('.u .sel').forEach(c=>c.checked=v);upd()};
 async function bulkMT(sel){
@@ -1165,6 +1172,7 @@ async function bulk(a){
   const sel=units.filter(u=>u.sel);
   if(!sel.length)return;
   if(a==='cl'){sel.forEach(u=>delete u.sel);render();return}
+  if(a==='dh'||a==='dt'){const t=a==='dh'?isHidU:isTrU;sel.forEach(u=>{if(t(u))delete u.sel});render();return}
   if(a==='ud'){
     const n=sel.filter(changed).length;
     if(!n){alert('No changes in the selected units');return}
