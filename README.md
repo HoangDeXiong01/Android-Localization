@@ -114,3 +114,13 @@ If a file fails to open because of broken XML, the app locates the problem lines
 ## Contributing
 
 Issues and pull requests are welcome, especially bug reports with a sample file that fails to open or save correctly. Please remove any private strings from files before attaching them.
+
+---
+
+## License
+
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPLv3)**. 
+
+You may copy, distribute, and modify the software under the terms of the AGPLv3. Please note that if you modify the code and run it as a network service or distribute modified versions, you must make the complete corresponding source code available. 
+
+For more details, see the [LICENSE](LICENSE) file in the repository or visit [https://www.gnu.org/licenses/agpl-3.0.html](https://www.gnu.org/licenses/agpl-3.0.html).
