@@ -622,7 +622,7 @@ function qaOf(u){
       if(miss.length)out.push('Missing: '+miss.slice(0,4).join(' '));
       if(extra.length)out.push('Extra: '+extra.slice(0,4).join(' '));
       if(!ni){const xc=xgChanged(s,c);if(xc.length)out.push('Protected text inside <xliff:g> changed: '+xc.slice(0,3).join(', '));}
-      if(mode==='strings'&&!u.fm&&/%/.test(c)&&(s.match(TOK)||[]).some(x=>x[0]==='%'&&x!=='%%')&&c.replace(TOK,'').includes('%'))out.push('Stray % (a literal percent must be written %%)')}
+    }
     if(ni)inlineViol(u,c).forEach(x=>out.push(x));
     if(Q.ws){
       /* strings.xml: indentation and line breaks around / inside the text are only layout of the file (Android collapses them); a real line break is the \n escape, which the tag check covers */
@@ -2703,7 +2703,8 @@ function langs(){
 }
 /* target language of the open file: its own (XLIFF), else the selector (strings.xml, or an XLIFF that names none) */
 const tlNow=()=>mode==='strings'?lc($('tl').value):doc?(langs().tl||lc($('tl').value)):'';
-const TOK=/%(?:\d+\$)?[-#+0,(]*\d*(?:\.\d+)?(?:[tT][a-zA-Z]|[a-zA-Z%])|\\u[0-9a-fA-F]{4}|\\[nt'"@?\\]|&amp;(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|<!\[CDATA\[|\]\]>|<!--[\s\S]*?-->|<[^<>]+>|\{[^{}]*\}|[\u00A0\u00AD\u200B-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]/g;
+/* %: the space flag (e.g. "% 2d") counts only before width/precision digits and d or f, so "50 % de" or "100 % sure" stay plain text */
+const TOK=/%(?:\d+\$)?[-#+0,(]*(?: [-#+0,( ]*(?:\d+(?:\.\d+)?|\.\d+)[df](?![A-Za-z0-9])|\d*(?:\.\d+)?(?:[tT][a-zA-Z]|[a-zA-Z%]))|\\u[0-9a-fA-F]{4}|\\[nt'"@?\\]|&amp;(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|<!\[CDATA\[|\]\]>|<!--[\s\S]*?-->|<[^<>]+>|\{[^{}]*\}|[\u00A0\u00AD\u200B-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]/g;
 /* what each token is: %... format spec, \n \uXXXX escape, &amp;quot; (double-escaped) / &lt; entity, <![CDATA[ ]]> markers, <xliff:g> wrapper, other tag, invisible / bidi character */
 const INV=/^[\u00A0\u00AD\u200B-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]$/;
 const uPlus=c=>'U+'+c.codePointAt(0).toString(16).toUpperCase().padStart(4,'0');
