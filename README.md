@@ -123,4 +123,4 @@ This project is licensed under the **GNU Affero General Public License v3.0 (AGP
 
 You may copy, distribute, and modify the software under the terms of the AGPLv3. Please note that if you modify the code and run it as a network service or distribute modified versions, you must make the complete corresponding source code available. 
 
-For more details, see the [LICENSE](LICENSE) file in the repository or visit [https://www.gnu.org/licenses/agpl-3.0.html](https://www.gnu.org/licenses/agpl-3.0.html).
+For more details, see the [LICENSE.md](LICENSE.md) file in the repository or visit [https://www.gnu.org/licenses/agpl-3.0.html](https://www.gnu.org/licenses/agpl-3.0.html).
