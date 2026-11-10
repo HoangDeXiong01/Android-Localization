@@ -42,6 +42,7 @@ input[type=search]{flex:1;min-width:0;height:40px;padding:0 10px;border-radius:1
 #mkb{justify-content:space-between;font-size:13px;color:#f57c00}#mkt{flex:1;min-width:0}#mkb button{height:30px;font-size:13px}
 #ms-t{font-size:14px;line-height:1.45;margin:10px 0 0}#ms-l{max-height:30vh;overflow:auto;font-size:12px;color:var(--mut);word-break:break-all;white-space:pre-wrap;margin-top:8px}
 .id{font-size:12px;color:var(--mut);word-break:break-all}
+.fmc{display:inline-block;margin-top:3px;padding:1px 8px;border:1px solid var(--ac);border-radius:10px;font-size:11px;line-height:1.4;color:var(--ac);white-space:nowrap}
 .u button{height:34px;min-width:34px;padding:0;background:var(--card)}
 .u svg{width:18px;height:18px}
 button.on{background:var(--ac)!important;color:var(--bg)!important}
@@ -342,6 +343,17 @@ const wsTrail=t=>{let e=t.length;while(e>0&&/\s/.test(t[e-1]))e--;return t.slice
 const wsEdge=t=>{const l=wsLead(t);if(l.includes('\n'))t=t.slice(l.length);const r=wsTrail(t);return r.includes('\n')?t.slice(0,t.length-r.length):t};   /* drops leading / trailing whitespace that holds a line break */
 // strings.xml: \' and \" are the escaped quotes
 function escQ(t){let o='',bs=0;for(const c of t){if(c==='\\'){bs++;o+=c;continue}o+=(c==="'"||c==='"')&&!(bs%2)?'\\'+c:c;bs=0}return o}
+/* strings.xml QA: walks the text once, so a quote after an escaped backslash (\\\\') is still seen as unescaped.
+   q: a ' or " without a backslash before it.  b: a backslash that does not start a valid escape (\n \t \\ \' \" \@ \? \uXXXX), or that ends the text */
+function apoViol(t){let q=false,b=false;
+  for(let i=0;i<t.length;i++){const c=t[i];
+    if(c==='\\'){const n=t[i+1];
+      if(n===undefined){b=true;break}
+      if(n==='u'){if(!/^[0-9A-Fa-f]{4}/.test(t.slice(i+2)))b=true;i+=1;continue}
+      if(!'nt\\\'"@?'.includes(n))b=true;
+      i++;continue}
+    if(c==="'"||c==='"')q=true}
+  return{q,b}}
 // XLIFF content -> strings.xml content: quotes become \' and \" (used when exporting an XLIFF as strings.xml)
 function toAndroidQuotes(c){
   const f=t=>escQ(t.replace(/&quot;/g,'"').replace(/&apos;/g,"'"));
@@ -351,7 +363,7 @@ function toAndroidQuotes(c){
 }
 
 const DEFMODEL='gemini-3.6-flash';
-const QALAB=[['ph','Placeholders & tags'],['ic','XLIFF 2 inline codes (editing hints)'],['ws','Spaces & line breaks'],['dsp','Double spaces'],['pu','End punctuation'],['num','Numbers'],['xml','Valid XML'],['gl','Glossary terms'],['apo','Unescaped quotes (strings.xml)'],['val','XLIFF 2 validation rules'],['len','Max length / storage'],['hid','Also check hidden units (translate=no)'],['apr','Also check approved trans-unit/segment']];
+const QALAB=[['ph','Placeholders & tags'],['ic','XLIFF 2 inline codes (editing hints)'],['ws','Spaces & line breaks'],['dsp','Double spaces'],['pu','End punctuation'],['num','Numbers'],['xml','Valid XML'],['gl','Glossary terms'],['apo','Unescaped quotes and \\ (strings.xml)'],['val','XLIFF 2 validation rules'],['len','Max length / storage'],['hid','Also check hidden units (translate=no)'],['apr','Also check approved trans-unit/segment']];
 const QADEF={ph:1,ic:1,ws:1,dsp:1,pu:1,num:1,xml:1,gl:1,apo:1,val:1,len:1,hid:1,apr:1};
 let QV=0;
 const GQDEF='openai/gpt-oss-120b';
@@ -489,7 +501,7 @@ function glMap(txt){
   });
 }
 function tcls(t){
-  t=txtOf(t);{let e=t.length;while(e>0&&/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\s]/.test(t[e-1]))e--;t=t.slice(0,e)}t=t.replace(/(?:\\[nrt])+$/,'');t=t.slice(0,t.length-wsTrail(t).length);if(!t)return '';   /* the text only: tags and CDATA marks dropped, entities decoded ("Loading&#8230;" ends with an ellipsis, not with a ";"), a trailing \n escape is no punctuation */
+  t=txtOf(t);{let e=t.length;while(e>0&&/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\s]/.test(t[e-1]))e--;t=t.slice(0,e)}t=t.replace(/(?:\\[nt])+$/,'');t=t.slice(0,t.length-wsTrail(t).length);if(!t)return '';   /* the text only: tags and CDATA marks dropped, entities decoded ("Loading&#8230;" ends with an ellipsis, not with a ";"), a trailing \n escape is no punctuation */
   if(/(\.\.\.|\u2026)$/.test(t))return 'ell';
   const c=t.slice(-1);
   if('.\u3002\uff0e'.includes(c))return 'dot';
@@ -627,7 +639,7 @@ function qaOf(u){
     if(Q.val&&u.vr)vrCheck(u,c).forEach(x=>out.push(x));
     if(Q.len&&(u.max||u.mn)){const cl=u.slr?txtlen(c,u.nfG):clen(c);if(u.max&&cl>u.max)out.push('Over max length ('+cl+'/'+u.max+')');if(u.mn&&c.trim()&&cl<u.mn)out.push('Under min length ('+cl+'/'+u.mn+')')}
     if(Q.len&&u.mb){let t=txtOf(c);if(u.nfS==='nfc'||u.nfS==='nfd')t=t.normalize(u.nfS.toUpperCase());const e=u.mb[1],n=e===32?[...t].length*4:e===16?t.length*2:new TextEncoder().encode(t).length;if(n>u.mb[0])out.push('Over storage limit ('+n+'/'+u.mb[0]+' bytes, UTF-'+e+')');if(u.mbMin&&c.trim()&&n<u.mbMin)out.push('Under minimum storage ('+n+'/'+u.mbMin+' bytes, UTF-'+e+')')}
-    if(Q.apo&&mode==='strings'&&!/CDATA/.test(c)&&/(?<!\\)['"]/.test(c.replace(/<[^>]+>/g,'')))out.push('Unescaped quote');
+    if(Q.apo&&mode==='strings'&&!/CDATA/.test(c)){const e=apoViol(c.replace(/<[^>]+>/g,''));if(e.q)out.push('Unescaped quote');if(e.b)out.push('Unescaped \\ (a literal backslash is written \\\\)')}
   }
   u._qv=QV;u._qm=mode;u._qt=tr;u._qap=apv;u._qc=c;u._qa=out;return out;
 }
@@ -2027,7 +2039,7 @@ function openMtm(u,apply){
 let CARD_T=null;
 function cardTpl(){
   if(CARD_T)return CARD_T;
-  const t=document.createElement('div');t.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="nb"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button><button class="kb"></button></div><div class="cxt" hidden></div><div class="cxt nbx" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="esc"></div><div class="cnt tc"></div><div class="qa" hidden></div>';
+  const t=document.createElement('div');t.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div><span class="fmc" hidden>formatted="false"</span></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="cx"></button><button class="nb"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button><button class="kb"></button></div><div class="cxt" hidden></div><div class="cxt nbx" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="esc"></div><div class="cnt tc"></div><div class="qa" hidden></div>';
   [['.mt','mt'],['.ap','check'],['.cx','help'],['.nb','note'],['.cp','copy'],['.un','undo'],['.cb','clip'],['.kb','kb']].forEach(([sl,k])=>{t.querySelector(sl).innerHTML=ic(k)});
   return CARD_T=t;
 }
@@ -2038,7 +2050,7 @@ function card(u){
   ntb.hidden=mode==='strings';kbb.setAttribute('aria-label','Escape keys');
   [[ap,'Approve'],[hd,'Visible'],[cx,mode==='strings'?'Comment':'Context'],[ntb,'Notes'],[mtb,'Machine translate \u00b7 '+engName()+' / similar translations'],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
   const cb=q('.sel');cb.setAttribute('aria-label','Select unit');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
-  q('.id').textContent=u.id;q('.rn').textContent=rnShow(u);q('.rn').hidden=!u.rn;
+  q('.id').textContent=u.id;q('.rn').textContent=rnShow(u);q('.rn').hidden=!u.rn;q('.fmc').hidden=!(mode==='strings'&&u.fm);   /* strings.xml: formatted="false" shown as a chip */
   q('.src').innerHTML=hlight(u.rs);
   q('.sc').textContent=clen(u.rs)+' chars';
   cxt.textContent=mode==='strings'?(ctxLines(u).length?(u.ih?'\u21b3 ':'')+ctxLines(u).join('\n'):'No comment'):(ctxLines(u).join('\n')||'No context')
@@ -2048,12 +2060,12 @@ function card(u){
   const setText=v=>{ta.value=v;paint();fit()};
   /* ESCBAR: buttons under the target box insert a character in its escaped form at the cursor (replacing the selection).
      XML entities for & < >; quotes as \' \" in strings.xml, &apos; &quot; in an XLIFF. Inside a CDATA section nothing is escaped, so the plain character goes in.
-     The last seven are not XML escapes: they are shown only for a strings.xml (or an XLIFF whose <file original> is strings.xml, arrays.xml or plurals.xml) and always insert
-     %% \\ \n \t \r in either format and inside CDATA too; @ and ? insert \@ and \? when the cursor is at the start of the string, otherwise the plain character.
+     The last six are not XML escapes: they are shown only for a strings.xml (or an XLIFF whose <file original> is strings.xml, arrays.xml or plurals.xml) and always insert
+     %% \\ \n \t in either format and inside CDATA too; @ and ? insert \@ and \? when the cursor is at the start of the string, otherwise the plain character.
      The whole bar is shown only while the keyboard button of the unit is on (u.showEsc). */
   const eb=q('.esc'),sx=mode==='strings';let ebDone=false;
   const ebBuild=()=>{if(ebDone)return;ebDone=true;[['&','&amp;','&amp;'],['<','&lt;','&lt;'],['>','&gt;','&gt;'],['"','&quot;','\\"'],["'",'&apos;',"\\'"],
-   ['%','%%','%%',1],['\\','\\\\','\\\\',1],['\u21b2','\\n','\\n',1],['\u21e5','\\t','\\t',1],['\u21e4','\\r','\\r',1],['@','@','@',1,1],['?','?','?',1,1]].filter(x=>!x[3]||isAndroid()).forEach(([ch,xe,se,all,lead])=>{
+   ['%','%%','%%',1],['\\','\\\\','\\\\',1],['\u21b2','\\n','\\n',1],['\u21e5','\\t','\\t',1],['@','@','@',1,1],['?','?','?',1,1]].filter(x=>!x[3]||isAndroid()).forEach(([ch,xe,se,all,lead])=>{
     const b=document.createElement('button'),esc=sx?se:xe;b.type='button';b.textContent=ch;b.setAttribute('aria-label','Insert '+esc);
     b.onpointerdown=b.onmousedown=e=>e.preventDefault();   /* the box keeps its focus, so the keyboard stays open */
     b.onclick=()=>{
@@ -2691,7 +2703,7 @@ function langs(){
 }
 /* target language of the open file: its own (XLIFF), else the selector (strings.xml, or an XLIFF that names none) */
 const tlNow=()=>mode==='strings'?lc($('tl').value):doc?(langs().tl||lc($('tl').value)):'';
-const TOK=/%(?:\d+\$)?[-#+0,(]*\d*(?:\.\d+)?(?:[tT][a-zA-Z]|[a-zA-Z%])|\\u[0-9a-fA-F]{4}|\\[nrt'"@?\\]|&amp;(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|<!\[CDATA\[|\]\]>|<!--[\s\S]*?-->|<[^<>]+>|\{[^{}]*\}|[\u00A0\u00AD\u200B-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]/g;
+const TOK=/%(?:\d+\$)?[-#+0,(]*\d*(?:\.\d+)?(?:[tT][a-zA-Z]|[a-zA-Z%])|\\u[0-9a-fA-F]{4}|\\[nt'"@?\\]|&amp;(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|<!\[CDATA\[|\]\]>|<!--[\s\S]*?-->|<[^<>]+>|\{[^{}]*\}|[\u00A0\u00AD\u200B-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]/g;
 /* what each token is: %... format spec, \n \uXXXX escape, &amp;quot; (double-escaped) / &lt; entity, <![CDATA[ ]]> markers, <xliff:g> wrapper, other tag, invisible / bidi character */
 const INV=/^[\u00A0\u00AD\u200B-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]$/;
 const uPlus=c=>'U+'+c.codePointAt(0).toString(16).toUpperCase().padStart(4,'0');
