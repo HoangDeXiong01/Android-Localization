@@ -5,9 +5,9 @@
 <title>Android Localization</title>
 <script>try{var c=JSON.parse(localStorage.getItem("cfg")||"{}"),t=c.theme;if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);if(/^[a-z]+$/.test(c.accent||""))document.documentElement.setAttribute("data-accent",c.accent)}catch(e){}</script>
 <style>
-:root{--acl:#3f7d6b;--acd:#8cc7b2;--bg:#fff;--fg:#1c1c1e;--card:#f2f3f3;--ac:var(--acl);--mut:#6b6f73;color-scheme:light dark}
-@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#131415;--fg:#e4e4e6;--card:#1f2022;--ac:var(--acd);--mut:#9a9da1}}
-:root[data-theme=dark]{--bg:#131415;--fg:#e4e4e6;--card:#1f2022;--ac:var(--acd);--mut:#9a9da1;color-scheme:dark}
+:root{--acl:#3f7d6b;--acd:#8cc7b2;--bg:#fff;--fg:#1c1c1e;--card:#f2f3f3;--ac:var(--acl);--mut:#6b6f73;--hn:#a85d00;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#131415;--fg:#e4e4e6;--card:#1f2022;--ac:var(--acd);--mut:#9a9da1;--hn:#e6b566}}
+:root[data-theme=dark]{--bg:#131415;--fg:#e4e4e6;--card:#1f2022;--ac:var(--acd);--mut:#9a9da1;--hn:#e6b566;color-scheme:dark}
 :root[data-accent=blue]{--acl:#3b6ea5;--acd:#8fb8e6}
 :root[data-accent=teal]{--acl:#2f7f86;--acd:#86c5ca}
 :root[data-accent=rose]{--acl:#a15d6b;--acd:#e0a5b1}
@@ -58,6 +58,11 @@ body.sm .ap{display:none}
 .u.hv{opacity:.62}
 body.sm #fl [data-f=rn],body.sm #fl [data-f=note]{display:none}
 body:not(.sm) #fl [data-k]{display:none}
+.cxt .nk{font:600 11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:1px 6px;border-radius:6px;margin-right:6px;white-space:nowrap}
+.cxt .nk{color:var(--hn);background:color-mix(in srgb,var(--hn) 16%,transparent)}
+.cxt .nm{font:600 11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:1px 6px;border-radius:6px;margin-right:6px;color:var(--hn);background:color-mix(in srgb,var(--hn) 16%,transparent);word-break:break-word}
+.cxt .nm b{font-weight:700}
+.cxt .cl+.cl{margin-top:4px}
 .cxt{font-size:13px;color:var(--mut);white-space:pre-wrap;word-break:break-word;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--card)}
 #fl{display:none;flex-wrap:wrap}
 #fl.show{display:flex}
@@ -1854,6 +1859,29 @@ $('prev').onclick=()=>{if(page>0){page--;render();scrollTo(0,0)}};
 $('next').onclick=()=>{if(page<pages-1){page++;render();scrollTo(0,0)}};
 
 $('sm-prev').innerHTML=ic('prev');$('sm-next').innerHTML=ic('next');
+/* XLIFF context / notes: the type ("source", "sourcefile" ...) and the note attributes are shown as coloured tags, apart from the text */
+function paintCtx(el,lines,empty){
+  el.textContent='';
+  if(!lines.length){el.textContent=empty;return}
+  lines.forEach(x=>{
+    const d=document.createElement('div');d.className='cl';
+    const m=/^([\w:-]+): ([\s\S]*)$/.exec(x);
+    if(m){const k=document.createElement('span');k.className='nk';k.textContent=m[1];d.append(k,document.createTextNode(m[2]))}
+    else d.textContent=x;
+    el.appendChild(d)});
+}
+function paintNotes(el,notes,meta){
+  el.textContent='';
+  if(!notes.length){el.textContent='No notes';return}
+  notes.forEach((x,i)=>{
+    const d=document.createElement('div'),n=meta&&meta[i];d.className='cl';
+    if(n&&n.m.length){const mt=document.createElement('span');mt.className='nm';   /* the attributes of <note> (from, priority ...), straight from the file */
+      n.m.forEach(([k,v],z)=>{if(z)mt.appendChild(document.createTextNode(' \u00b7 '));
+        const b=document.createElement('b');b.textContent=k;mt.append(b,document.createTextNode(': '+v))});
+      d.appendChild(mt)}
+    d.appendChild(document.createTextNode(n?n.t:x));
+    el.appendChild(d)});
+}
 const ctxLines=u=>{   /* every context type is listed as "type: text", none is special; a text equal to the resname counts as empty */
   const rn=(u.fi!==undefined&&u.rn?u.rn:'').trim(),rb=u.v2?rn.replace(/#[^#]*$/,''):rn;   /* fi: XLIFF unit (strings.xml comments are plain text); XLIFF 2 multi-segment resname is name#segment */
   return u.ctx.filter(x=>{
@@ -2062,8 +2090,9 @@ function card(u){
   q('.id').textContent=u.id;q('.rn').textContent=rnShow(u);q('.rn').hidden=!u.rn;q('.fmc').hidden=!(mode==='strings'&&u.fm);   /* strings.xml: formatted="false" shown as a chip */
   q('.src').innerHTML=hlight(u.rs,u);d._fm=u.fm;
   q('.sc').textContent=clen(u.rs)+' chars';
-  cxt.textContent=mode==='strings'?(ctxLines(u).length?(u.ih?'\u21b3 ':'')+ctxLines(u).join('\n'):'No comment'):(ctxLines(u).join('\n')||'No context')
-  nbx.textContent=(u.notes&&u.notes.length)?u.notes.join('\n'):'No notes';
+  if(mode==='strings')cxt.textContent=ctxLines(u).length?(u.ih?'\u21b3 ':'')+ctxLines(u).join('\n'):'No comment';
+  else paintCtx(cxt,ctxLines(u),'No context');   /* XLIFF: the context-type is shown as a coloured tag, like syntax highlighting */
+  paintNotes(nbx,u.notes||[],u.nmeta);
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
   const paint=()=>{hl.innerHTML=hlight(ta.value,u)+' ';const n=(u.slr?(x=>txtlen(x,u.nfG)):clen)(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars';tc.classList.toggle('over',!!u.max&&n>u.max)};
   const setText=v=>{ta.value=v;paint();fit()};
@@ -2155,7 +2184,7 @@ const txtOf=t=>W_dec(t.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,(m,c)=>c.replace(/&
 /* <note> of an XLIFF 1.2 trans-unit / XLIFF 2 unit (b: real text, bm: same length with comments, CDATA and <alt-trans> blanked).
    A note is free text for the reader; the attributes differ per version (1.2: from, priority, annotates; 2.x: category, priority, appliesTo)
    and are shown as they are, none is mapped to another. Returns one display line per note. */
-const W_notes=(b,bm)=>{
+const W_notes=(b,bm,mo)=>{   /* mo (optional): receives {m:[[attribute,value]...],t:text} per note, so the attributes are never parsed back out of the text */
   const re=/<(?:[\w.\-]+:)?note\b((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?note\s*>)/g,out=[];let m;
   while((m=re.exec(bm))){
     if(m[2]==='/>')continue;   /* self-closing <note/> has no text */
@@ -2163,6 +2192,7 @@ const W_notes=(b,bm)=>{
     if(!tx)continue;
     const a=m[1],meta=[],cat=ga(a,'category'),fr=ga(a,'from'),pr=ga(a,'priority'),ap=ga(a,'annotates')||ga(a,'appliesTo');
     if(cat)meta.push('category: '+cat);if(fr)meta.push('from: '+fr);if(pr)meta.push('priority: '+pr);if(ap&&ap!=='general')meta.push('applies to: '+ap);
+    if(mo)mo.push({m:meta.map(x=>{const i=x.indexOf(': ');return [x.slice(0,i),x.slice(i+2)]}),t:tx});
     out.push(meta.length?tx+' ('+meta.join(' \u00b7 ')+')':tx)}
   return out};
 /* length in characters of an XML fragment as text (XLIFF 2.x size restriction and XLIFF 1.2 size-unit=char count text only) */
@@ -2229,7 +2259,7 @@ function W_parse(txt,emit,ihc){
       }
     }
     u.ct=ctxLines(u).join('\n');
-    u.notes=W_notes(b,bm);u.nt=u.notes.join('\n');
+    u.nmeta=[];u.notes=W_notes(b,bm,u.nmeta);u.nt=u.notes.join('\n');
     buf.push(u);total++;
     if(buf.length>=3000){emit(buf);buf=[]}
   }
@@ -2322,7 +2352,7 @@ function W_parse2(txt,emit){
       else if(x.c)fr.pop();else if(!x.sc)fr.push({t:x.t,rl:[],pf:null})}
     let inh=null;for(let j=fr.length-1;j>=0&&!inh;j--)inh=ga(fr[j].t,'translate');
     const b=txt.slice(a,e2),bm=mr.slice(a,e2),sm=START.exec(b),stg=sm?sm[0]:'';
-    const notes=W_notes(b,bm);
+    const nmeta=[],notes=W_notes(b,bm,nmeta);
     const sgs=[];let sg;reSg.lastIndex=0;
     while((sg=reSg.exec(bm))){const sa=sg.index,se=endTag(bm,sg[1]+'segment',sa);if(se<0)break;sgs.push([sa,se,sg[0]]);reSg.lastIndex=se}
     const uid=W_dec(ga(stg,'id')||''),nme=ga(stg,'name')||'',many=sgs.length>1,ids=sgs.map((s,i)=>ga(s[2],'id')||String(i+1));
@@ -2334,7 +2364,7 @@ function W_parse2(txt,emit){
       const sid=ids[i],st=ga(tag,'state')||'initial';
       const u={idx,id:many?uid+'#'+sid:uid,rs:grabTagM(body,bodyM,'source'),rt:grabTagM(body,bodyM,'target'),is12:false,v2:true,gk:many?g0:undefined,gn:many?sgs.length:undefined,fi:Math.max(fp-1,0),
         rn:many&&nme?nme+'#'+sid:nme,oAp:st==='final',oTr:(ga(stg,'translate')||inh)==='no'?'no':'yes',
-        ctx:[],notes:notes.slice(),nt:notes.join('\n'),max:0,ct:''};
+        ctx:[],notes:notes.slice(),nmeta:nmeta.slice(),nt:notes.join('\n'),max:0,ct:''};
       if(R){
         /* a match with ref="#id" belongs to that segment only; without a usable ref it belongs to all segments of the unit */
         u.ctx=u.ctx.concat(R.ml,R.mt.filter(x=>!x.rf||!ids.includes(x.rf)||x.rf===sid).slice(0,5).map(x=>x.l));
