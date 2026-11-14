@@ -42,7 +42,6 @@ input[type=search]{flex:1;min-width:0;height:40px;padding:0 10px;border-radius:1
 #mkb{justify-content:space-between;font-size:13px;color:#f57c00}#mkt{flex:1;min-width:0}#mkb button{height:30px;font-size:13px}
 #ms-t{font-size:14px;line-height:1.45;margin:10px 0 0}#ms-l{max-height:30vh;overflow:auto;font-size:12px;color:var(--mut);word-break:break-all;white-space:pre-wrap;margin-top:8px}
 .id{font-size:12px;color:var(--mut);word-break:break-all}
-.fmc{display:inline-block;margin-top:3px;padding:1px 8px;border:1px solid var(--ac);border-radius:10px;font-size:11px;line-height:1.4;color:var(--ac);white-space:nowrap}
 .u button{height:34px;min-width:34px;padding:0;background:var(--card)}
 .u svg{width:18px;height:18px}
 button.on{background:var(--ac)!important;color:var(--bg)!important}
@@ -2076,7 +2075,7 @@ function openMtm(u,apply){
 let CARD_T=null;
 function cardTpl(){
   if(CARD_T)return CARD_T;
-  const t=document.createElement('div');t.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div><span class="fmc" hidden>formatted="false"</span></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="fx"></button><button class="cx"></button><button class="nb"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button><button class="kb"></button></div><div class="cxt" hidden></div><div class="cxt nbx" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="esc"></div><div class="cnt tc"></div><div class="qa" hidden></div>';
+  const t=document.createElement('div');t.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="fx"></button><button class="cx"></button><button class="nb"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button><button class="kb"></button></div><div class="cxt" hidden></div><div class="cxt nbx" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="esc"></div><div class="cnt tc"></div><div class="qa" hidden></div>';
   [['.mt','mt'],['.ap','check'],['.cx','help'],['.nb','note'],['.cp','copy'],['.un','undo'],['.cb','clip'],['.kb','kb'],['.fx','pct']].forEach(([sl,k])=>{t.querySelector(sl).innerHTML=ic(k)});
   return CARD_T=t;
 }
@@ -2087,7 +2086,7 @@ function card(u){
   ntb.hidden=mode==='strings';fx.hidden=mode!=='strings';kbb.setAttribute('aria-label','Escape keys');
   [[ap,'Approve'],[hd,'Visible'],[cx,mode==='strings'?'Comment':'Context'],[ntb,'Notes'],[mtb,'Machine translate \u00b7 '+engName()+' / similar translations'],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
   const cb=q('.sel');cb.setAttribute('aria-label','Select unit');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
-  q('.id').textContent=u.id;q('.rn').textContent=rnShow(u);q('.rn').hidden=!u.rn;q('.fmc').hidden=!(mode==='strings'&&u.fm);   /* strings.xml: formatted="false" shown as a chip */
+  q('.id').textContent=u.id;q('.rn').textContent=rnShow(u);q('.rn').hidden=!u.rn;
   q('.src').innerHTML=hlight(u.rs,u);d._fm=u.fm;
   q('.sc').textContent=clen(u.rs)+' chars';
   if(mode==='strings')cxt.textContent=ctxLines(u).length?(u.ih?'\u21b3 ':'')+ctxLines(u).join('\n'):'No comment';
@@ -2126,7 +2125,6 @@ function card(u){
     hd.title=(mode==='strings'?(t==='yes'?'Visible (tap to hide: translatable="false")':'Hidden, translatable="false" (tap to unhide)'):(t==='yes'?'translate=yes (tap to hide)':'translate=no (tap to unhide)'))+(u.gk!==undefined?' \u00b7 '+GW().u+': applies to all its '+GW().s+'s':'');
     d.classList.toggle('hv',t==='no');
     fx.classList.toggle('on',!!u.fm);{const ft='formatted="false" is '+(u.fm?'ON: % placeholders are not detected (tap to turn off)':'off: % placeholders are detected (tap to turn on)')+(u.gk!==undefined?' \u00b7 applies to all '+GW().s+'s of this '+GW().u:'');fx.title=ft;fx.setAttribute('aria-label',ft)}
-    q('.fmc').hidden=!(mode==='strings'&&u.fm);
     if(d._fm!==u.fm){d._fm=u.fm;q('.src').innerHTML=hlight(u.rs,u);paint()}   /* placeholders were switched on / off: highlight again */
     ap.disabled=!(u.is12||u.v2)||(u.v2&&!a&&!cur(u).trim());hd.disabled=!canTr(u);
     if(u.v2)ap.title=a?'state="final" (tap to unapprove)':cur(u).trim()?'Approve (sets state="final")':'Translate first: without a translation the state stays "initial"';
