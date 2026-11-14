@@ -268,7 +268,7 @@ refresh:'M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6
 prev:'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z',
 next:'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z',
 clip:'M19 2h-4.18C14.4.84 13.3 0 12 0S9.6.84 9.18 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z',
-trash:'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z',
+clipx:'M19 2h-4.18C14.4.84 13.3 0 12 0S9.6.84 9.18 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16zM8.5 12.7h7v1.6h-7z',
 pct:'M7.5 11C9.43 11 11 9.43 11 7.5S9.43 4 7.5 4 4 5.57 4 7.5 5.57 11 7.5 11zm0-5C8.33 6 9 6.67 9 7.5S8.33 9 7.5 9 6 8.33 6 7.5 6.67 6 7.5 6zM4.0025 18.5832L18.5832 4.0025l1.4142 1.4142L5.4167 19.9974zM16.5 13c-1.93 0-3.5 1.57-3.5 3.5s1.57 3.5 3.5 3.5 3.5-1.57 3.5-3.5-1.57-3.5-3.5-3.5zm0 5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z',
 kb:'M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z'};
 const ic=k=>'<svg viewBox="0 0 24 24"><path d="'+IC[k]+'"/></svg>';
@@ -1097,7 +1097,7 @@ $('c-test').onclick=async()=>{
   catch(e){alert('Failed: '+e.message)}
   undo();b.disabled=false;
 };
-const BM=[['mt','Machine translate selected','mt',0],['check','Approve selected','ap',1],['close','Unapprove selected','un',1],['eyeoff','Hide selected','hd',0],['eye','Unhide selected','sh',0],['copy','Copy source to selected','cs',0],['undo','Undo changes in selected','ud',0],['clip','Save to clipboard','cb',0],['trash','Clear clipboard of selected','cc',0],['','Deselect hidden units','dh',0],['','Deselect translated units','dt',0],['','Deselect approved units','da',1],['','Clear selection','cl',0]];
+const BM=[['mt','Machine translate selected','mt',0],['check','Approve selected','ap',1],['close','Unapprove selected','un',1],['eyeoff','Hide selected','hd',0],['eye','Unhide selected','sh',0],['copy','Copy source to selected','cs',0],['undo','Undo changes in selected','ud',0],['clip','Save to clipboard','cb',0],['clipx','Clear clipboard of selected','cc',0],['','Deselect hidden units','dh',0],['','Deselect translated units','dt',0],['','Deselect approved units','da',1],['','Clear selection','cl',0]];
 $('bl').innerHTML=BM.map(([i,t,a,x])=>'<button class="mi'+(x?' x':'')+'" data-a="'+a+'" type="button">'+(i?ic(i):'')+'<span>'+t+'</span></button>').join('');
 $('bl').querySelectorAll('.mi').forEach(b=>b.onclick=()=>{$('bm').hidden=true;bulk(b.dataset.a)});
 /* the three Deselect items are dimmed (disabled) while no selected unit is hidden / translated */
