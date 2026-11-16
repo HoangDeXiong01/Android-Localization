@@ -2420,10 +2420,14 @@ function mtSys(multi){
 }
 function mtInfo(src,u){
   const info=[];
-  if(CFG.aik)info.push('Key: '+(mode==='strings'?u.id:(u.rn||u.id)));
+  if(CFG.aik)info.push('Key: '+(mode==='strings'?u.id:u.seg!==undefined?(u.rn0||u.tid):(u.rn||u.id)));
   if(u.kind==='p')info.push('Plural quantity: '+u.sub);
   if(u.kind==='a')info.push('Array item index: '+u.sub);
-  if(u.seg!==undefined)info.push('This is segment '+u.seg+' of a longer text that is split into segments: translate only this segment.');
+  if(u.seg!==undefined){
+    const g=grpOf(u),cl=(t,n)=>t.length>n?t.slice(0,n)+'\u2026':t;
+    info.push('This is segment '+u.seg+' of '+g.length+' of a longer text that is split into segments: translate only this segment.');
+    info.push('Full source text (all segments together):\n'+cl(segJoin(g,x=>x.rs),1500));
+  }
   if(CFG.aic&&ctxLines(u).length)info.push('Context: '+ctxLines(u).join('; '));
   if(CFG.ain&&u.notes&&u.notes.length){let nt=u.notes.map(x=>String(x).trim()).filter(Boolean).join('; ');if(nt.length>800)nt=nt.slice(0,800)+'\u2026';if(nt)info.push('Notes: '+nt)}
   if(CFG.ail&&u.max)info.push(u.seg!==undefined?'Maximum length of the whole text (all its segments together): '+u.max+' characters (hard limit)':'Maximum length of the translation: '+u.max+' characters (hard limit)');
@@ -2574,14 +2578,29 @@ async function machine(src,u){
    Returns one result per unit, or null where the answer for that unit is missing / unusable (the caller translates it alone). */
 function mtChunks(list){
   const ai=aiOn(CFG.eng),max=CFG.mrg?Math.min(30,Math.max(2,Math.floor(+CFG.mrn)||10)):1,lim=ai?8000:4500,out=[];
-  let c=[],n=0;
+  const size=u=>(ai?u.rs.length:encodeURIComponent(u.rs).length)+60;   /* the free engine takes the text in the URL */
+  /* the segments of one text stay in the same request when they fit, so they are translated (and read) together */
+  const atoms=[],at=new Map();
   for(const u of list){
-    if(max<2||u.rs.length>1500){if(c.length)out.push(c);c=[];n=0;out.push([u]);continue}
-    const l=(ai?u.rs.length:encodeURIComponent(u.rs).length)+60;   /* the free engine takes the text in the URL */
-    if(c.length&&(c.length>=max||n+l>lim)){out.push(c);c=[];n=0}
-    c.push(u);n+=l;
+    if(max>=2&&u.seg!==undefined&&u.rs.length<=1500){let a=at.get(u.gk);if(!a){a=[];at.set(u.gk,a);atoms.push(a)}a.push(u)}
+    else atoms.push([u]);
   }
-  if(c.length)out.push(c);return out;
+  let c=[],n=0;
+  const flush=()=>{if(c.length)out.push(c);c=[];n=0};
+  for(const a of atoms){
+    const l=a.reduce((t,u)=>t+size(u),0);
+    if(a.length>1&&a.length<=max&&l<=lim){   /* all the segments in one request */
+      if(c.length&&(c.length+a.length>max||n+l>lim))flush();
+      c.push(...a);n+=l;continue;
+    }
+    for(const u of a){   /* a single unit, or segments that are too many / too long for one request: one by one */
+      if(max<2||u.rs.length>1500){flush();out.push([u]);continue}
+      const l1=size(u);
+      if(c.length&&(c.length>=max||n+l1>lim))flush();
+      c.push(u);n+=l1;
+    }
+  }
+  flush();return out;
 }
 function mtParse(t){
   t=String(t).replace(/<think>[\s\S]*?<\/think>/g,'').trim().replace(/^```[a-z]*\n?/i,'').replace(/\n?```$/,'').trim();
