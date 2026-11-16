@@ -5,9 +5,9 @@
 <title>Android Localization</title>
 <script>try{var c=JSON.parse(localStorage.getItem("cfg")||"{}"),t=c.theme;if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);if(/^[a-z]+$/.test(c.accent||""))document.documentElement.setAttribute("data-accent",c.accent)}catch(e){}</script>
 <style>
-:root{--acl:#3f7d6b;--acd:#8cc7b2;--bg:#fff;--fg:#1c1c1e;--card:#f2f3f3;--ac:var(--acl);--mut:#6b6f73;--hn:#a85d00;color-scheme:light dark}
-@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#131415;--fg:#e4e4e6;--card:#1f2022;--ac:var(--acd);--mut:#9a9da1;--hn:#e6b566}}
-:root[data-theme=dark]{--bg:#131415;--fg:#e4e4e6;--card:#1f2022;--ac:var(--acd);--mut:#9a9da1;--hn:#e6b566;color-scheme:dark}
+:root{--acl:#3f7d6b;--acd:#8cc7b2;--bg:#fff;--fg:#1c1c1e;--card:#f2f3f3;--ac:var(--acl);--mut:#6b6f73;--hn:#a85d00;--rt:#7a4fa8;--gn:#2e7d32;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#131415;--fg:#e4e4e6;--card:#1f2022;--ac:var(--acd);--mut:#9a9da1;--hn:#e6b566;--rt:#c4a6ea;--gn:#81c784}}
+:root[data-theme=dark]{--bg:#131415;--fg:#e4e4e6;--card:#1f2022;--ac:var(--acd);--mut:#9a9da1;--hn:#e6b566;--rt:#c4a6ea;--gn:#81c784;color-scheme:dark}
 :root[data-accent=blue]{--acl:#3b6ea5;--acd:#8fb8e6}
 :root[data-accent=teal]{--acl:#2f7f86;--acd:#86c5ca}
 :root[data-accent=rose]{--acl:#a15d6b;--acd:#e0a5b1}
@@ -80,7 +80,9 @@ body:not(.sm) #fl [data-k]{display:none}
 .cxt .nm b{font-weight:700}
 .cxt .cl+.cl{margin-top:4px}
 .cxt .cg+.cg{margin-top:6px}
-.cxt .gn{font:700 11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:1px 8px;border-radius:6px;color:var(--ac);background:color-mix(in srgb,var(--ac) 18%,transparent);word-break:break-word}   /* group name: the accent colour, apart from the orange context-type tags */
+.cxt .gn{font:700 11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:1px 8px;border-radius:6px;color:var(--gn);background:color-mix(in srgb,var(--gn) 18%,transparent);word-break:break-word}   /* group purpose: always green, whatever the accent colour */
+.cxt .cgh{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cxt .rt{font:700 11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:1px 8px;border-radius:6px;color:var(--rt);background:color-mix(in srgb,var(--rt) 16%,transparent);word-break:break-word}   /* restype: its own colour, on the same row as the group's purpose */
 .cxt .ci{display:flex;gap:6px;align-items:flex-start;margin-top:2px}
 .cxt .cv{min-width:0}
 .cxt{font-size:13px;color:var(--mut);white-space:pre-wrap;word-break:break-word;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--card)}
@@ -223,6 +225,7 @@ body.busy,body.busy *{cursor:progress}
 <label>Send to the AI</label>
 <label class="ck"><input type="checkbox" id="c-aik"> Key name</label>
 <label class="ck"><input type="checkbox" id="c-aic"> strings.xml comments / XLIFF context</label>
+<label class="ck"><input type="checkbox" id="c-aig"> XLIFF group purpose and resource type (restype)</label>
 <label class="ck"><input type="checkbox" id="c-ain"> XLIFF notes</label>
 <label class="ck"><input type="checkbox" id="c-ail"> Length limits and validation rules</label>
 <div class="hint" style="margin-top:4px">Sent with each source text as hints for the AI (the source text itself is always sent). Applies to Gemini and Groq; the free engine sends only the text. Fewer items use fewer tokens.</div>
@@ -422,7 +425,7 @@ let QV=0;
 const GQDEF='openai/gpt-oss-120b';
 /* models Groq has shut down: a stored choice or cached list that still has them is replaced / cleaned */
 const GQDEAD={'llama-3.3-70b-versatile':GQDEF,'llama-3.1-8b-instant':'openai/gpt-oss-20b'};
-const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,xh:1,ih:1,mrg:1,mrn:10,aik:1,aic:1,ain:0,ail:1,qa:{},theme:'system',accent:'sage'};
+const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,xh:1,ih:1,mrg:1,mrn:10,aik:1,aic:1,aig:1,ain:0,ail:1,qa:{},theme:'system',accent:'sage'};
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
 delete CFG.pv;   /* a setting saved by an older version */
 CFG.qa=Object.assign({},QADEF,CFG.qa||{});
@@ -1016,7 +1019,7 @@ function aiShow(e){
 function openCfg(){
   draft={};mdl={};GLd=null;uiEng='';
   $('c-theme').value=CFG.theme||'system';accDraft=ACCS.includes(CFG.accent)?CFG.accent:'sage';accUi();$('c-eng').value=CFG.eng;$('c-notes').value=CFG.gnotes;$('c-rpmf').value=CFG.rpmF;
-  document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);$('c-xh').checked=!!CFG.xh;$('c-ih').checked=!!CFG.ih;$('c-mrg').checked=!!CFG.mrg;$('c-mrn').value=CFG.mrn;$('c-aik').checked=!!CFG.aik;$('c-aic').checked=!!CFG.aic;$('c-ain').checked=!!CFG.ain;$('c-ail').checked=!!CFG.ail;qaUi();glInfo();
+  document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);$('c-xh').checked=!!CFG.xh;$('c-ih').checked=!!CFG.ih;$('c-mrg').checked=!!CFG.mrg;$('c-mrn').value=CFG.mrn;$('c-aik').checked=!!CFG.aik;$('c-aic').checked=!!CFG.aic;$('c-aig').checked=!!CFG.aig;$('c-ain').checked=!!CFG.ain;$('c-ail').checked=!!CFG.ail;qaUi();glInfo();
   $('cfg').hidden=false;aiShow(CFG.eng);
 }
 function applyCfg(persist=true){
@@ -1024,7 +1027,7 @@ function applyCfg(persist=true){
   const rp=(v,d)=>{v=String(v==null?'':v).trim();return v===''?d:Math.max(0,Math.floor(+v)||0)};
   for(const e in AIF){const f=AIF[e],d=draft[e];if(!d)continue;CFG[f.key]=d.key;CFG[f.model]=d.model||f.def;CFG[f.rpm]=rp(d.rpm,f.rpmDef)}
   CFG.rpmF=rp($('c-rpmf').value,30);
-  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);CFG.xh=$('c-xh').checked?1:0;CFG.ih=$('c-ih').checked?1:0;CFG.mrg=$('c-mrg').checked?1:0;CFG.mrn=Math.min(30,Math.max(2,Math.floor(+$('c-mrn').value)||10));CFG.aik=$('c-aik').checked?1:0;CFG.aic=$('c-aic').checked?1:0;CFG.ain=$('c-ain').checked?1:0;CFG.ail=$('c-ail').checked?1:0;
+  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);CFG.xh=$('c-xh').checked?1:0;CFG.ih=$('c-ih').checked?1:0;CFG.mrg=$('c-mrg').checked?1:0;CFG.mrn=Math.min(30,Math.max(2,Math.floor(+$('c-mrn').value)||10));CFG.aik=$('c-aik').checked?1:0;CFG.aic=$('c-aic').checked?1:0;CFG.aig=$('c-aig').checked?1:0;CFG.ain=$('c-ain').checked?1:0;CFG.ail=$('c-ail').checked?1:0;
   for(const k in mdl)CFG[k]=mdl[k];
   if(persist){QV++;saveCfg()}
 }
@@ -1518,12 +1521,19 @@ function paintCtx(el,lines,empty){
    Contexts outside any group, or a unit without a group at all, are listed flat as before. */
 function paintCtxTree(el,u,empty){
   const lines=[];u.ctx.forEach((x,i)=>{if(ctxKeep(u,x))lines.push([x,(u.cg&&u.cg[i])||''])});
-  if(!lines.some(l=>l[1]))return paintCtx(el,lines.map(l=>l[0]),empty);
+  const rty=u.rty||'';   /* restype of the unit (or of its <group>): same row as the first group's purpose, other colour */
+  if(!lines.length&&!rty){el.textContent=empty;return}
+  if(!rty&&!lines.some(l=>l[1]))return paintCtx(el,lines.map(l=>l[0]),empty);
   el.textContent='';
   const nodes=[];lines.forEach(([x,g])=>{let n=nodes[nodes.length-1];if(!n||n.g!==g){n={g,items:[]};nodes.push(n)}n.items.push(x)});
-  nodes.forEach(n=>{
+  if(!nodes.length)nodes.push({g:'',items:[]});
+  nodes.forEach((n,ni)=>{
     const box=document.createElement('div');box.className='cg';
-    if(n.g){const h=document.createElement('div'),nm=document.createElement('span');h.className='cgh';nm.className='gn';nm.textContent=n.g.slice(n.g.indexOf('\u0001')+1);h.appendChild(nm);box.appendChild(h)}
+    const showR=ni===0&&rty;
+    if(n.g||showR){const h=document.createElement('div');h.className='cgh';
+      if(n.g){const nm=document.createElement('span');nm.className='gn';nm.textContent=n.g.slice(n.g.indexOf('\u0001')+1);h.appendChild(nm)}
+      if(showR){const rt=document.createElement('span');rt.className='rt';rt.textContent=rty;rt.title='restype';h.appendChild(rt)}
+      box.appendChild(h)}
     n.items.forEach(x=>{
       const r=document.createElement('div'),m=/^([\w:-]+): ([\s\S]*)$/.exec(x);r.className='ci';
       const b=document.createElement('div');b.className='cv';
@@ -1965,7 +1975,7 @@ function W_parse(txt,emit,ihc){
     if(!rSrcTag.test(bm))continue;   /* units without a <source> are skipped, but still counted in idx */
     const b=txt.slice(a,end),sm=START.exec(b),stg=sm?sm[0]:'';
     const u={idx,id:W_dec(ga(stg,'id')||''),rs:grabTagM(b,bm,'source'),rt:grabTagM(b,bm,'target'),is12:true,
-      rn:ga(stg,'resname')||'',oAp:ga(stg,'approved')==='yes',
+      rn:ga(stg,'resname')||'',rty:(ga(stg,'restype')||inh('restype',1)||'').trim(),oAp:ga(stg,'approved')==='yes',
       oTr:(ga(stg,'translate')!==null?ga(stg,'translate'):inh('translate',1))==='no'?'no':'yes',
       ctx:[],cg:[],notes:[],nt:'',max:0,ct:'',fi:Math.max(fIdx,0)};
     {const su=ga(stg,'size-unit')||inh('size-unit',1)||'pixel',mw=ga(stg,'maxwidth')!==null?ga(stg,'maxwidth'):inh('maxwidth',1),
@@ -2412,7 +2422,7 @@ function mtSys(multi){
     '- Text inside <xliff:g> ... </xliff:g> is protected: keep the whole element, its content included, exactly as in the source.',
     '- Keep CDATA wrappers (<![CDATA[ ... ]]>) and double-escaped entities such as &amp;quot; exactly as in the source.',
     '- Keep the same line breaks, leading/trailing spaces and punctuation style.',
-    '- The key name, context, comments and notes are only hints about meaning and are not to be translated.',
+    '- The key name, context, context group purpose, resource type, comments and notes are only hints about meaning and are not to be translated.',
     '- For a plural form, write the correct plural form for the target language.',
     mode==='strings'?'- Apostrophes and double quotes in the output must be escaped as \\\' and \\\" (Android strings.xml).':'',
     GL.length?'- If a glossary is given with the string, translate the listed terms exactly as specified (adapt only grammar if the target language requires).':'',
@@ -2428,7 +2438,13 @@ function mtInfo(src,u){
     info.push('This is segment '+u.seg+' of '+g.length+' of a longer text that is split into segments: translate only this segment.');
     info.push('Full source text (all segments together):\n'+cl(segJoin(g,x=>x.rs),1500));
   }
-  if(CFG.aic&&ctxLines(u).length)info.push('Context: '+ctxLines(u).join('; '));
+  if(CFG.aig&&u.rty)info.push('Resource type (restype): '+u.rty);
+  if(CFG.aic&&ctxLines(u).length){
+    const pr=[];u.ctx.forEach((x,i)=>{if(ctxKeep(u,x)){const g=(u.cg&&u.cg[i])||'',lb=g?g.slice(g.indexOf('\u0001')+1):'';pr.push([x,CFG.aig&&lb!=='context'?lb:''])}});
+    if(pr.some(p=>p[1])){   /* group purpose on: the context lines are listed per <context-group> */
+      const sg=[];pr.forEach(([x,g])=>{let n=sg[sg.length-1];if(!n||n.g!==g){n={g,t:[]};sg.push(n)}n.t.push(x)});
+      sg.forEach(n=>info.push((n.g?'Context group (purpose: '+n.g+'): ':'Context: ')+n.t.join('; ')))
+    }else info.push('Context: '+ctxLines(u).join('; '))}
   if(CFG.ain&&u.notes&&u.notes.length){let nt=u.notes.map(x=>String(x).trim()).filter(Boolean).join('; ');if(nt.length>800)nt=nt.slice(0,800)+'\u2026';if(nt)info.push('Notes: '+nt)}
   if(CFG.ail&&u.max)info.push(u.seg!==undefined?'Maximum length of the whole text (all its segments together): '+u.max+' characters (hard limit)':'Maximum length of the translation: '+u.max+' characters (hard limit)');
   if(CFG.ail&&u.mb)info.push(u.seg!==undefined?'Storage limit of the whole text (all its segments together): '+u.mb+' bytes in UTF-8 (hard limit)':'Storage limit of the translation: '+u.mb+' bytes in UTF-8 (hard limit)');
