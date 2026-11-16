@@ -79,10 +79,14 @@ body:not(.sm) #fl [data-k]{display:none}
 .cxt .nm{font:600 11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:1px 6px;border-radius:6px;margin-right:6px;color:var(--hn);background:color-mix(in srgb,var(--hn) 16%,transparent);word-break:break-word}
 .cxt .nm b{font-weight:700}
 .cxt .cl+.cl{margin-top:4px}
+.cxt .cg+.cg{margin-top:6px}
+.cxt .gn{font:700 11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:1px 8px;border-radius:6px;color:var(--ac);background:color-mix(in srgb,var(--ac) 18%,transparent);word-break:break-word}   /* group name: the accent colour, apart from the orange context-type tags */
+.cxt .ci{display:flex;gap:6px;align-items:flex-start;margin-top:2px}
+.cxt .cv{min-width:0}
 .cxt{font-size:13px;color:var(--mut);white-space:pre-wrap;word-break:break-word;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--card)}
 #fl{display:none;flex-wrap:wrap}
 #fl.show{display:flex}
-#fl button{height:32px;font-size:13px}
+#fl button{height:32px;font-size:13px;min-width:0;padding:0 7px}   /* the buttons hug their text */
 #q.bad{border-color:#e53935;outline:1px solid #e53935}
 #rx{min-width:44px;font-family:monospace;font-weight:700}
 #so{flex:1 1 100%;height:36px;font-size:16px}
@@ -108,6 +112,8 @@ mark.xg{background:rgba(171,71,188,.34)}
 mark.xp{background:rgba(171,71,188,.14)}
 mark.cd{background:rgba(158,158,158,.42)}
 .src mark{unicode-bidi:isolate}
+.sg-o{color:var(--hn);background:color-mix(in srgb,var(--hn) 16%,transparent);border-radius:6px;padding:1px 4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}   /* same colours as the tags in Context */
+
 .src mark.iv::before{content:attr(data-u);font-size:.65em;vertical-align:super;color:var(--mut)}
 .hl mark{color:transparent}
 #cfg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
@@ -129,7 +135,7 @@ mark.cd{background:rgba(158,158,158,.42)}
 .dr{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 .dr button{padding:0 16px}
 #fnw{flex:1;min-width:0}
-#bm,#prog,#ip,#rp,#gm,#cm,#sr,#ms,#mn,#mtm{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
+#bm,#prog,#ip,#rp,#gm,#cm,#sr,#ms,#mn,#mtm,#cn{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}
 #sw{width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex:none}
 .sel,#sa{width:20px;height:20px;accent-color:var(--ac);margin:2px 0 0;flex:none}
 #sa{margin:0}
@@ -151,6 +157,15 @@ body.sm .mi.x{display:none}
 .ck{display:flex!important;align-items:center;gap:10px;margin:6px 0!important;color:var(--fg)!important;font-size:14px!important}
 .qa{font-size:12px;color:#f57c00;margin:2px 2px 6px;white-space:pre-wrap;word-break:break-word}
 .cnt.over{color:#e53935;font-weight:700}
+.cq{min-width:0;height:22px;padding:0 7px;margin-left:6px;font-size:13px;line-height:1;border-radius:6px;vertical-align:middle}
+.cnt-t{width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px;margin-top:8px}   /* fixed segment column; Source and Target share the rest, so Target starts halfway between Source and the right edge */
+.cnt-t th:first-child,.cnt-t td:first-child{width:76px}
+.cnt-t th{font-size:11px;font-weight:600;color:var(--mut);padding:4px 6px}
+.cnt-t th,.cnt-t td{text-align:left}   /* numbers start at the left edge of their column and grow to the right */
+.cnt-t td{padding:5px 6px;font-variant-numeric:tabular-nums;border-top:1px solid rgba(128,128,128,.2)}
+.cnt-t tr.me td{font-weight:600}.cnt-t tfoot td{font-weight:700}
+.cnt-t td.over{color:#e53935}
+#cn-n{font-size:12px;color:var(--mut);margin-top:8px}
 .clr{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:14px}
 .clr span{flex:1;min-width:0;word-break:break-word}
 .clr button{height:34px;min-width:34px;padding:0}
@@ -184,7 +199,7 @@ body.busy,body.busy *{cursor:progress}
 <div class="row">
 <input id="q" type="search" placeholder="Search"><button id="flt" title="Search in…" aria-label="Search in"></button>
 <input id="f" type="file" accept="*/*" hidden><input id="f2" type="file" accept="*/*" hidden></div>
-<div class="row" id="fl"><button data-f="id" type="button" title="Search in ID">ID</button><button data-f="rn" type="button" title="Search in resource name">Name</button><button data-f="src" type="button" title="Search in source text">Source</button><button data-f="ctx" type="button" title="Search in context">Context</button><button data-f="note" type="button" title="Search in notes">Note</button><button data-f="tgt" type="button" title="Search in target text">Target</button><button data-k="a" type="button" title="Include string-arrays">Arrs</button><button data-k="p" type="button" title="Include plurals">Plur.</button><button id="rx" type="button" title="Regex search" aria-label="Regex search">.*</button><select id="so" title="Show first"></select></div>
+<div class="row" id="fl"><button data-f="id" type="button" title="Search in ID">ID</button><button data-f="rn" type="button" title="Search in resource name">Name</button><button data-f="src" type="button" title="Search in source text">Source</button><button data-f="ctx" type="button" title="Search in context">Context</button><button data-f="note" type="button" title="Search in notes">Note</button><button data-f="tgt" type="button" title="Search in target text">Target</button><button data-k="a" type="button" title="Include string-arrays">Arrays</button><button data-k="p" type="button" title="Include plurals">Plurals</button><button id="rx" type="button" title="Regex search" aria-label="Regex search">.*</button><select id="so" title="Show first"></select></div>
 <div class="row" id="mkb" hidden><span id="mkt"></span><button id="mkc" type="button">Clear marks</button></div>
 <div class="row">
 <label id="sw" title="Select all shown"><input id="sa" type="checkbox"></label><button id="bulk" title="Actions for selected units" aria-label="Actions for selected units" disabled></button>
@@ -231,6 +246,7 @@ body.busy,body.busy *{cursor:progress}
 <div id="qac"></div>
 <div class="dr"><button id="c-cancel" type="button">Close</button><button id="c-save" type="button" class="p">Save</button></div>
 </div></div>
+<div id="cn" hidden><div class="dlg"><h3 id="cn-h"></h3><div id="cn-b"></div><div id="cn-n"></div><div class="dr"><button id="cn-c" type="button" class="p">Close</button></div></div></div>
 <div id="ms" hidden><div class="dlg"><h3 id="ms-h"></h3><div id="ms-t"></div><div id="ms-l"></div><div class="dr"><button id="ms-c" type="button">Cancel</button><button id="ms-v" type="button">View</button><button id="ms-a" type="button" class="p">Apply</button></div></div></div>
 <div id="mn" hidden><div class="dlg"><div id="ml"><button class="mi" id="open" type="button"></button><button class="mi" id="imp" type="button" hidden></button><button class="mi" id="save" type="button"></button><button class="mi" id="sv2" type="button" hidden></button><button class="mi" id="close" type="button"></button></div><div class="dr"><button id="mn-x" type="button">Close</button></div></div></div>
 <div id="lp" hidden><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="lp-h">
@@ -292,6 +308,7 @@ clip:'M19 2h-4.18C14.4.84 13.3 0 12 0S9.6.84 9.18 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9
 desel:'M3 3h2v2H3zM3 19h2v2H3zM7 3h2v2H7zM7 19h2v2H7zM11 3h2v2h-2zM11 19h2v2h-2zM15 3h2v2h-2zM15 19h2v2h-2zM19 3h2v2h-2zM19 19h2v2h-2zM3 7h2v2H3zM19 7h2v2h-2zM3 11h2v2H3zM19 11h2v2h-2zM3 15h2v2H3zM19 15h2v2h-2zM8 11.1h8v1.8H8z',
 clipx:'M19 2h-4.18C14.4.84 13.3 0 12 0S9.6.84 9.18 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16zM8.5 12.7h7v1.6h-7z',
 pct:'M7.5 11C9.43 11 11 9.43 11 7.5S9.43 4 7.5 4 4 5.57 4 7.5 5.57 11 7.5 11zm0-5C8.33 6 9 6.67 9 7.5S8.33 9 7.5 9 6 8.33 6 7.5 6.67 6 7.5 6zM4.0025 18.5832L18.5832 4.0025l1.4142 1.4142L5.4167 19.9974zM16.5 13c-1.93 0-3.5 1.57-3.5 3.5s1.57 3.5 3.5 3.5 3.5-1.57 3.5-3.5-1.57-3.5-3.5-3.5zm0 5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z',
+sg:'M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7s-1.21 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7 1.49 0 2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z',
 kb:'M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z'};
 const ic=k=>'<svg viewBox="0 0 24 24"><path d="'+IC[k]+'"/></svg>';
 ['prev','next','flt','cfg','bulk','menu'].forEach(k=>$(k==='cfg'?'cfgb':k==='menu'?'mnb':k).innerHTML=ic(k));
@@ -317,22 +334,30 @@ const grpOf=u=>{if(u.gk===undefined)return [u];
   if(!GM||GMg!==GEN){GM=new Map();for(const x of units)if(x.gk!==undefined){let a=GM.get(x.gk);if(!a)GM.set(x.gk,a=[]);a.push(x)}GMg=GEN}
   return GM.get(u.gk)||[u]};
 const setTrG=(u,n)=>grpOf(u).forEach(x=>setTr(x,n));
+/* XLIFF 1.2 segments (u.seg = mid of a <mrk mtype="seg">): approved / translate belong to the <trans-unit>, so the segments of one unit share them.
+   sgOf: the segments of u's trans-unit, or just [u] for every other unit (nothing changes for them) */
+const sgOf=u=>u.seg!==undefined?grpOf(u):[u];
+const setApG=(u,n)=>sgOf(u).forEach(x=>setAp(x,n));
+const grpUndo=u=>{delete u.val;const g=sgOf(u);g.forEach(x=>{delete x.ap;delete x.apAuto;delete x.tr});
+  if(g.some(x=>x.val!==undefined))g.forEach(x=>{if(x.is12&&x.oAp){x.ap=false;x.apAuto=true}})};   /* another segment is still edited: the unit stays unapproved */
 /* formatted is an attribute of the <string> / <plurals> / <string-array>, so the items of a group share it; QA of each is recomputed */
 const fmSet=(u,v)=>grpOf(u).forEach(x=>{x.fm=v;qaSet(x,qaOf(x).length>0)});
 const trOf=u=>u.tr!==undefined?u.tr:u.oTr;
 /* hide / unhide (translate="no" in XLIFF, translatable="false" in strings.xml): strings.xml units are the ones that have a kind */
 const canTr=u=>u.is12||u.kind!==undefined;
 /* wording for a group that shares one visibility: the items of a strings.xml <plurals> / <string-array> */
-const GW=()=>({u:'plurals / array',s:'item'});
+const GW=()=>mode==='xliff'?{u:'segmented unit',s:'segment',e:'<trans-unit>'}:{u:'plurals / array',s:'item',e:'<plurals> / <string-array>'};
 const changed=u=>u.val!==undefined||u.ap!==undefined||u.tr!==undefined||u.fm!==u.oFm;   /* fm: formatted="false" of a strings.xml unit, oFm: as read from the file */
 const byLocal=(p,n)=>[...p.children].find(c=>c.localName===n);
 const cur=u=>u.val!==undefined?u.val:u.rt;
 const edited=()=>units.filter(changed).length;
 const setVal=(u,v)=>{
+  const g=sgOf(u);
   if(v===u.rt){delete u.val;
-    if(u.apAuto){delete u.ap;delete u.apAuto}   /* the approval was only withdrawn by the edit: the original text gets it back */
-    else if(u.ap!==undefined&&u.ap===u.oAp)delete u.ap;
-  }else{u.val=v;if(u.is12&&u.oAp&&u.ap===undefined){u.ap=false;u.apAuto=true}}
+    if(!g.some(x=>x.val!==undefined))g.forEach(x=>{   /* no segment of the unit is edited any more */
+      if(x.apAuto){delete x.ap;delete x.apAuto}   /* the approval was only withdrawn by the edit: the original text gets it back */
+      else if(x.ap!==undefined&&x.ap===x.oAp)delete x.ap});
+  }else{u.val=v;g.forEach(x=>{if(x.is12&&x.oAp&&x.ap===undefined){x.ap=false;x.apAuto=true}})}
 };   /* editing the text of an approved unit withdraws the approval, so show it that way (approved means the translation passed its final review, which new text has not) */
 
 // Clipboard: up to 3 backup versions of a unit's translation, kept for this session only (u.cb, newest first)
@@ -553,7 +578,8 @@ function xmlPlain(c){
 }
 function qaOf(u){
   const c=cur(u),tr=u.tr!==undefined?u.tr:u.oTr,apv=!!(u.ap!==undefined?u.ap:u.oAp);   /* apv: approved (XLIFF 1.2 approved="yes"); strings.xml units are never approved */
-  if(u._qa&&u._qv===QV&&u._qm===mode&&u._qt===tr&&u._qap===apv&&u._qc===c&&u._qf===u.fm)return u._qa;
+  const sgm=u.seg!==undefined&&(u.max||u.mb)?segJoin(grpOf(u),cur):null;   /* a segment: the limits cover the segments joined, so another segment's text matters too */
+  if(u._qa&&u._qv===QV&&u._qm===mode&&u._qt===tr&&u._qap===apv&&u._qc===c&&u._qf===u.fm&&u._qs===sgm)return u._qa;
   const out=[];
   if(c.trim()&&(tr!=='no'||CFG.qa.hid)&&(!apv||CFG.qa.apr)){
     const Q=CFG.qa,s=u.rs;
@@ -575,13 +601,13 @@ function qaOf(u){
       if(n1!==n2)out.push('Numbers differ')}
     if(Q.xml&&/[<&\x00-\x08\x0B\x0C\x0E-\x1F]/.test(c)&&!xmlPlain(c)&&new DOMParser().parseFromString(xmlWrap(c),'application/xml').querySelector('parsererror'))out.push('Invalid XML');
     if(Q.gl&&GL.length){const lcc=c.toLowerCase();glossHits(s).forEach(h=>{if(!lcc.includes(h.t.toLowerCase()))out.push('Glossary: '+h.s+' \u2192 '+h.t)})}
-    if(Q.len&&u.max){const cl=u.slr?txtlen(c):clen(c);if(cl>u.max)out.push('Over max length ('+cl+'/'+u.max+')')}
-    if(Q.len&&u.mb){const n=new TextEncoder().encode(txtOf(c)).length;if(n>u.mb)out.push('Over storage limit ('+n+'/'+u.mb+' bytes, UTF-8)')}
+    if(Q.len&&u.max){const cl=sgm!==null?lenOf(u,sgm):u.slr?txtlen(c):clen(c);if(cl>u.max)out.push(sgm!==null?'Over max length! Tap \u22ee for more details.':'Over max length ('+cl+'/'+u.max+')')}
+    if(Q.len&&u.mb){const n=bytesOf(sgm!==null?sgm:c);if(n>u.mb)out.push(sgm!==null?'Over storage limit! Tap \u22ee for more details.':'Over storage limit ('+n+'/'+u.mb+' bytes, UTF-8)')}
     if(Q.apo&&mode==='strings'&&!/CDATA/.test(c)){const e=apoViol(c.replace(/<[^>]+>/g,''));if(e.q)out.push('Unescaped quote');if(e.b)out.push('Unescaped \\ (a literal backslash is written \\\\)');
       if(u.fm){if(e.pp)out.push('%% does not need escaping: formatted="false" (write a single %)')}
       else if(e.p)out.push('Unescaped % (a literal percent is written %%)')}
   }
-  u._qv=QV;u._qm=mode;u._qt=tr;u._qap=apv;u._qc=c;u._qf=u.fm;u._qa=out;return out;
+  u._qv=QV;u._qm=mode;u._qt=tr;u._qap=apv;u._qc=c;u._qf=u.fm;u._qs=sgm;u._qa=out;return out;
 }
 const lastReq={};let onNet=null;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -688,7 +714,7 @@ function setMode(m){
   mode=m;document.body.classList.toggle('sm',m==='strings');
   $('tl').hidden=!(m==='strings'||(doc&&!langs().tl));   /* an XLIFF that names no target language needs the selector too */
   {const ib=document.querySelector('#fl [data-f=id]');ib.textContent=m==='strings'?'Key':'ID';ib.title=m==='strings'?'Search in key (string name)':'Search in ID'}
-  {const cb=document.querySelector('#fl [data-f=ctx]');cb.textContent=m==='strings'?'Comm':'Context';cb.title=m==='strings'?'Search in comment':'Search in context'}
+  {const cb=document.querySelector('#fl [data-f=ctx]');cb.textContent=m==='strings'?'Comment':'Context';cb.title=m==='strings'?'Search in comment':'Search in context'}
   fillSort();fchips();
 }
 function parseStrings(txt,inh){   /* inh: a comment also applies to the following strings (see grpCm) */
@@ -712,7 +738,7 @@ function parseStrings(txt,inh){   /* inh: a comment also applies to the followin
   const grpCm=c=>{const x=c.join(' ').trim();return !(/^(to\s+translators?|translators?\b|note\s*:|todo\b|fixme\b)/i.test(x)||/[.!?\u3002]$/.test(x))};
   let inhC=null,lastEnd=0,ihNow=0;   /* inhC: the comment now inherited; lastEnd: end of the previous resource */
   const res=[];let fm=false,prod='',hidN=false;const re=/<(string-array|plurals|string)(?=[\s>\/])((?:"[^"]*"|'[^']*'|[^>"'])*?)(?:\/>|>([\s\S]*?)<\/\1\s*>)/g;let m;
-  const add=(kind,name,sub,rs,cm)=>res.push({kind,name,sub,rs,fm,oFm:fm,prod,id:name,rn:(kind==='p'?sub:kind==='a'?'['+sub+']':'')+(prod?(kind==='s'?'product: ':' \u00b7 ')+prod:''),
+  const add=(kind,name,sub,rs,cm)=>res.push({kind,name,sub,rs,fm,oFm:fm,prod,id:name,rn:(kind==='p'||kind==='a'?'['+sub+']':'')+(prod?(kind==='s'?'product: ':' \u00b7 ')+prod:''),
     rt:'',is12:false,oAp:false,oTr:hidN?'no':'yes',ctx:cm,max:0,ct:cm.join('\n'),ih:ihNow,idx:res.length});
   const inner=(src,r,g)=>{const c=r[g];if(c===undefined)return '';const e=r.index+r[0].lastIndexOf('</');return src.slice(e-c.length,e)};
   while((m=re.exec(tm))){
@@ -866,11 +892,11 @@ $('f2').onchange=async e=>{
   if(!mp){await errorFlow(file.name,txt);return}
   const bmap=new Map();mp.forEach((v,k)=>{const i=k.indexOf('\u0001');if(i>0){const b=k.slice(0,i);if(!bmap.has(b))bmap.set(b,k)}});
   const kOf=u=>{if(mode==='strings')return mp.has(ckey(u))?ckey(u):ckey(u,1);
-    const ns=[u.rn,u.id].filter(Boolean);
+    const ns=u.seg!==undefined?[...new Set([u.rn0,u.tid].filter(Boolean).map(n=>n+'#'+u.seg))]:[u.rn,u.id].filter(Boolean);   /* a segment is imported from the same segment (mid) of the other file */
     if(u.fi!==undefined)for(const n of ns){const s=n+'\u0001'+u.fi;if(mp.has(s))return s}   /* same file first */
     for(const n of ns)if(mp.has(n))return n;
     for(const n of ns)if(bmap.has(n))return bmap.get(n);   /* other file layout: first unit of that name */
-    return u.rn?u.rn:u.id};
+    return u.seg!==undefined?(ns[0]||u.id):u.rn?u.rn:u.id};
   /* between formats the quote escaping differs: XLIFF -> strings.xml escapes quotes; strings.xml -> XLIFF writes them as &apos; / &quot; (outside CDATA)
      (unless that XLIFF keeps \' in its own source texts); XLIFF inline codes (<ph/>, <pc>...) cannot go into strings.xml */
   const inl=/<(?:[\w.\-]+:)?(?:ph|pc|sc|ec|sm|em|cp|mrk)(?=[\s\/>])/;
@@ -879,6 +905,7 @@ $('f2').onchange=async e=>{
   else if(mode!=='strings'&&mp.strings&&!units.some(u=>/\\['"]/.test(u.rs)))adj=unescQ;
   const hits=[],matched=new Set();let nInl=0,nHid=0;
   units.forEach(u=>{const k=kOf(u);if(mp.has(k)){const v0=mp.get(k);matched.add(k);
+    if(u.seg!==undefined){const m=/^([\s\S]*)#[^#\u0001]*(\u0001\d+)?$/.exec(k);if(m&&mp.has(m[1]+(m[2]||'')))matched.add(m[1]+(m[2]||''))}   /* the whole-target key of a segmented unit is used too: not a "no match" */
     if(trOf(u)==='no'){nHid++;return}   /* hidden units are not imported */
     if(noInl&&inl.test(v0)){nInl++;return}
     hits.push([u,adj(v0)])}});
@@ -1118,6 +1145,18 @@ async function bulkMT(sel){
   render();
 }
 /* ---- plurals / arrays: hide / unhide confirmation ---- */
+/* counter menu of a segment: the characters of every segment, and of the unit when the segments are joined (the limit applies to that) */
+function cntMenu(u){
+  const T=segTot(u),E=t=>String(t).replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';'),mx=u.max,mb=u.mb;
+  let h='<table class="cnt-t"><thead><tr><th>Segment</th><th>Source</th><th>Target</th></tr></thead><tbody>';
+  T.g.forEach(x=>{h+='<tr'+(x===u?' class="me"':'')+'><td>['+E(x.seg)+']</td><td>'+clen(x.rs)+'</td><td>'+lenOf(x,cur(x))+'</td></tr>'});
+  h+='</tbody><tfoot><tr><td>Total</td><td>'+T.sn+'</td><td'+(mx&&T.tn>mx?' class="over"':'')+'>'+T.tn+(mx?'/'+mx:'')+'</td></tr>';
+  if(mb)h+='<tr><td>Bytes</td><td></td><td'+(T.tb>mb?' class="over"':'')+'>'+T.tb+'/'+mb+'</td></tr>';
+  h+='</tfoot></table>';
+  $('cn-h').textContent='Characters in '+u.name;$('cn-b').innerHTML=h;
+  $('cn-n').textContent='Total: the segments joined as one text'+(mx||mb?', which is what the limit applies to':'')+(mb?'. Bytes: UTF-8, target.':'.');
+  $('cn-c').onclick=()=>{$('cn').hidden=true};$('cn').hidden=false;
+}
 function msAsk(o){
   return new Promise(res=>{
     $('ms-h').textContent=o.h;$('ms-t').textContent=o.t;$('ms-l').textContent=o.l||'';$('ms-l').hidden=!o.l;
@@ -1127,8 +1166,30 @@ function msAsk(o){
     $('ms').hidden=false;
   });
 }
+/* length limits of a segmented unit: maxwidth / maxbytes cover the whole target, so they are measured on the segments joined */
+const lenOf=(u,t)=>(u.slr?txtlen:clen)(t);
+const bytesOf=t=>new TextEncoder().encode(txtOf(t)).length;
+function segTot(u){const g=grpOf(u),s=segJoin(g,x=>x.rs),t=segJoin(g,cur);return {g,s,t,sn:clen(s),tn:lenOf(u,t),tb:bytesOf(t)}}
+const apOf=x=>x.ap!==undefined?x.ap:x.oAp;
+/* segmented units among sel whose approval would change when set to `to` */
+function msApGroups(sel,to){
+  const seen=new Set(),out=[];
+  for(const u of sel){
+    if(u.seg===undefined||seen.has(u.gk))continue;
+    seen.add(u.gk);const g=grpOf(u);
+    if(g.some(x=>apOf(x)!==to))out.push(g);
+  }
+  return out;
+}
+function msApBulkAsk(gs,to){
+  const n=gs.length,seg=gs.reduce((t,g)=>t+g.length,0),extra=gs.reduce((t,g)=>t+g.filter(x=>!x.sel).length,0);
+  return msAsk({
+    h:(to?'Approve ':'Unapprove ')+n+' '+GW().u+(n>1?'s':'')+'?',
+    t:'Your selection includes '+GW().s+'s of '+n+' '+GW().u+(n>1?'s':'')+'. Approval is set per '+GW().e+', so all '+seg+' '+GW().s+'s of '+(n>1?'these':'this')+' will be '+(to?'approved':'unapproved')+(extra?', including '+extra+' you did not select':'')+'. Tap View to go back and see them marked.',
+    l:msNames(gs.map(g=>msBase(g[0])+' ('+g.length+' '+GW().s+'s)')),view:true});
+}
 const msNames=a=>a.slice(0,8).join('\n')+(a.length>8?'\n\u2026 and '+(a.length-8)+' more':'');
-const msBase=u=>u.kind!==undefined?u.name:u.id.slice(0,u.id.lastIndexOf('#'));
+const msBase=u=>u.kind!==undefined||u.seg!==undefined?u.name:u.id.slice(0,u.id.lastIndexOf('#'));
 /* the plurals / arrays among sel whose visibility would change when set to `to` */
 function msGroups(sel,to){
   const seen=new Set(),out=[];
@@ -1143,7 +1204,7 @@ function msBulkAsk(gs,hide){
   const n=gs.length,seg=gs.reduce((t,g)=>t+g.length,0),extra=gs.reduce((t,g)=>t+g.filter(x=>!x.sel).length,0);
   return msAsk({
     h:(hide?'Hide ':'Unhide ')+n+' '+GW().u+(n>1?' groups':'')+'?',
-    t:'Your selection includes '+GW().s+'s of '+n+' '+GW().u+(n>1?' groups':'')+'. Visibility is set per '+'<plurals> / <string-array>'+', so all '+seg+' '+GW().s+'s of '+(n>1?'these':'this')+' will be '+(hide?'hidden':'unhidden')+(extra?', including '+extra+' you did not select':'')+'. Tap View to go back and see them marked.',
+    t:'Your selection includes '+GW().s+'s of '+n+' '+GW().u+(n>1?' groups':'')+'. Visibility is set per '+GW().e+', so all '+seg+' '+GW().s+'s of '+(n>1?'these':'this')+' will be '+(hide?'hidden':'unhidden')+(extra?', including '+extra+' you did not select':'')+'. Tap View to go back and see them marked.',
     l:msNames(gs.map(g=>msBase(g[0])+' ('+g.length+' '+GW().s+'s)')),view:true});
 }
 /* View: back to the edit screen with every affected item marked */
@@ -1168,7 +1229,7 @@ async function bulk(a){
     const n=sel.filter(changed).length;
     if(!n){alert('No changes in the selected units');return}
     if(!confirm('Discard the changes in '+n+' selected units?'))return;
-    sel.forEach(u=>{delete u.val;delete u.ap;delete u.apAuto;delete u.tr;if(u.fm!==u.oFm)fmSet(u,u.oFm)});render();return;
+    sel.forEach(u=>{grpUndo(u);if(u.fm!==u.oFm)fmSet(u,u.oFm)});render();return;
   }
   if(a==='cb'){
     let n=0,same=0,full=0,skip=0;
@@ -1196,9 +1257,13 @@ async function bulk(a){
       const gs=msGroups(sel,a==='hd'?'no':'yes');
       if(gs.length){const r=await msBulkAsk(gs,a==='hd');if(r!=='apply'){if(r==='view')msMark(gs);return}}
       MARK=null;MKJ=false;
+    }else if(a==='ap'||a==='un'){
+      const gs=msApGroups(sel,a==='ap');
+      if(gs.length){const r=await msApBulkAsk(gs,a==='ap');if(r!=='apply'){if(r==='view')msMark(gs);return}}
+      MARK=null;MKJ=false;
     }
     sel.forEach(u=>{if(!(a==='hd'||a==='sh'?canTr(u):u.is12))return;
-      if(a==='ap')setAp(u,true);else if(a==='un')setAp(u,false);
+      if(a==='ap')setApG(u,true);else if(a==='un')setApG(u,false);
       else if(a==='hd')setTrG(u,'no');else if(a==='sh')setTrG(u,'yes')});
   }
   render();
@@ -1210,10 +1275,10 @@ async function sGet(k){try{const db=await sIdb();const v=await new Promise((res,
 async function sessClear(){clearTimeout(svT);try{const db=await sIdb();await new Promise((res,rej)=>{const t=db.transaction('s','readwrite');t.objectStore('s').clear();t.oncomplete=res;t.onerror=()=>rej(t.error)});db.close()}catch(e){}}
 function sessSnap(){
   const d={};
-  units.forEach((u,i)=>{if(u.val===undefined&&u.ap===undefined&&u.tr===undefined&&u.fm===u.oFm&&!u.apAuto&&!(u.cb&&u.cb.length)&&!u.sel&&!u.showCtx&&!u.showNote&&!u.showEsc)return;
+  units.forEach((u,i)=>{if(u.val===undefined&&u.ap===undefined&&u.tr===undefined&&u.fm===u.oFm&&!u.apAuto&&!(u.cb&&u.cb.length)&&!u.sel&&!u.showCtx&&!u.showNote&&!u.showSeg)return;
     const o={};
     if(u.val!==undefined)o.v=u.val;if(u.ap!==undefined)o.a=u.ap?1:0;if(u.tr!==undefined)o.r=u.tr;if(u.fm!==u.oFm)o.f=u.fm?1:0;if(u.apAuto)o.z=1;
-    if(cbHas(u))o.c=u.cb;if(u.sel)o.s=1;if(u.showCtx)o.x=1;if(u.showNote)o.n=1;if(u.showEsc)o.k=1;
+    if(cbHas(u))o.c=u.cb;if(u.sel)o.s=1;if(u.showCtx)o.x=1;if(u.showNote)o.n=1;if(u.showSeg)o.g=1;
     if(Object.keys(o).length)d[i]=o});
   return {t:Date.now(),name,n:units.length,d,ui:{q:$('q').value,F:Object.assign({},F),rx:RX,sz:$('sz').value,so:$('so').value,page}};
 }
@@ -1236,7 +1301,7 @@ async function sessCheck(){
       if(!ok||st.n!==units.length)return;
       units.forEach((u,i)=>{const o=st.d[i];if(!o)return;
         if(o.v!==undefined)u.val=o.v;if(o.a!==undefined)u.ap=!!o.a;if(o.r!==undefined)u.tr=o.r;if(o.f!==undefined)u.fm=!!o.f;if(o.z)u.apAuto=true;
-        if(o.c)u.cb=o.c;if(o.s)u.sel=true;if(o.x)u.showCtx=true;if(o.n)u.showNote=true;if(o.k)u.showEsc=true});
+        if(o.c)u.cb=o.c;if(o.s)u.sel=true;if(o.x)u.showCtx=true;if(o.n)u.showNote=true;if(o.g)u.showSeg=true});
       const ui=st.ui||{};
       $('q').value=ui.q||'';Object.assign(F,ui.F||{});RX=!!ui.rx;
       if(ui.sz!==undefined&&[...$('sz').options].some(o=>o.value===ui.sz)){$('sz').value=ui.sz;size=+ui.sz}
@@ -1375,7 +1440,7 @@ const sortKey=(k,u)=>{
     case 'fmf':return u.fm?0:1;
     case 'untr':return c.trim()===''?0:1;
     case 'same':return c!==''&&c===u.rs?0:1;
-    case 'over':return u.max&&(u.slr?txtlen(c):clen(c))>u.max?0:1;
+    case 'over':return u.max&&(u.seg!==undefined?lenOf(u,segJoin(grpOf(u),cur)):u.slr?txtlen(c):clen(c))>u.max?0:1;
     case 'lsrc':return -clen(u.rs);
     case 'ssrc':return clen(u.rs);
     case 'ltgt':return -clen(c);
@@ -1449,6 +1514,23 @@ function paintCtx(el,lines,empty){
     else d.textContent=x;
     el.appendChild(d)});
 }
+/* XLIFF context grouped: the name of every <context-group> (its purpose) is a coloured heading, its <context> elements are listed under it.
+   Contexts outside any group, or a unit without a group at all, are listed flat as before. */
+function paintCtxTree(el,u,empty){
+  const lines=[];u.ctx.forEach((x,i)=>{if(ctxKeep(u,x))lines.push([x,(u.cg&&u.cg[i])||''])});
+  if(!lines.some(l=>l[1]))return paintCtx(el,lines.map(l=>l[0]),empty);
+  el.textContent='';
+  const nodes=[];lines.forEach(([x,g])=>{let n=nodes[nodes.length-1];if(!n||n.g!==g){n={g,items:[]};nodes.push(n)}n.items.push(x)});
+  nodes.forEach(n=>{
+    const box=document.createElement('div');box.className='cg';
+    if(n.g){const h=document.createElement('div'),nm=document.createElement('span');h.className='cgh';nm.className='gn';nm.textContent=n.g.slice(n.g.indexOf('\u0001')+1);h.appendChild(nm);box.appendChild(h)}
+    n.items.forEach(x=>{
+      const r=document.createElement('div'),m=/^([\w:-]+): ([\s\S]*)$/.exec(x);r.className='ci';
+      const b=document.createElement('div');b.className='cv';
+      if(m){const k=document.createElement('span');k.className='nk';k.textContent=m[1];b.append(k,document.createTextNode(m[2]))}else b.textContent=x;
+      r.appendChild(b);box.appendChild(r)});
+    el.appendChild(box)});
+}
 function paintNotes(el,notes,meta){
   el.textContent='';
   if(!notes.length){el.textContent='No notes';return}
@@ -1461,13 +1543,13 @@ function paintNotes(el,notes,meta){
     d.appendChild(document.createTextNode(n?n.t:x));
     el.appendChild(d)});
 }
-const ctxLines=u=>{   /* every context type is listed as "type: text", none is special; a text equal to the resname counts as empty */
-  const rn=(u.fi!==undefined&&u.rn?u.rn:'').trim(),rb=rn;   /* fi: XLIFF unit (strings.xml comments are plain text) */
-  return u.ctx.filter(x=>{
-    if(!x.trim()||/^[\w:-]+: $/.test(x))return false;
-    const m=/^[\w:-]+: ([\s\S]*)$/.exec(x);
-    if(m&&rn){const t=m[1].trim();if(t===rn||t===rb)return false}
-    return true})};
+const ctxKeep=(u,x)=>{   /* false for an empty context, or one whose text equals the resname */
+  const rn=(u.fi!==undefined&&u.rn0!==undefined?u.rn0:u.fi!==undefined&&u.rn?u.rn:'').trim();   /* fi: XLIFF unit (strings.xml comments are plain text) */
+  if(!x.trim()||/^[\w:-]+: $/.test(x))return false;
+  const m=/^[\w:-]+: ([\s\S]*)$/.exec(x);
+  if(m&&rn){const t=m[1].trim();if(t===rn)return false}
+  return true};
+const ctxLines=u=>u.ctx.filter(x=>ctxKeep(u,x));   /* every context type is listed as "type: text", none is special */
 const hesc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 function pcls(m){
   const c=m[0];
@@ -1655,31 +1737,41 @@ function openMtm(u,apply){
 let CARD_T=null;
 function cardTpl(){
   if(CARD_T)return CARD_T;
-  const t=document.createElement('div');t.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="fx"></button><button class="cx"></button><button class="nb"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button><button class="kb"></button></div><div class="cxt" hidden></div><div class="cxt nbx" hidden></div><div class="src"></div><div class="cnt sc"></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="esc"></div><div class="cnt tc"></div><div class="qa" hidden></div>';
-  [['.mt','mt'],['.ap','check'],['.cx','help'],['.nb','note'],['.cp','copy'],['.un','undo'],['.cb','clip'],['.kb','kb'],['.fx','pct']].forEach(([sl,k])=>{t.querySelector(sl).innerHTML=ic(k)});
+  const t=document.createElement('div');t.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="fx"></button><button class="cx"></button><button class="nb"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button><button class="sg"></button></div><div class="cxt" hidden></div><div class="cxt nbx" hidden></div><div class="src"></div><div class="cnt sc"><span class="cvl"></span></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="esc"></div><div class="cnt tc"><span class="cvl"></span><button class="cq" type="button" hidden>\u22ee</button></div><div class="qa" hidden></div>';
+  [['.mt','mt'],['.ap','check'],['.cx','help'],['.nb','note'],['.cp','copy'],['.un','undo'],['.cb','clip'],['.sg','sg'],['.fx','pct']].forEach(([sl,k])=>{t.querySelector(sl).innerHTML=ic(k)});
   return CARD_T=t;
 }
+let ESC_CUR=null;
 function card(u){
   const d=cardTpl().cloneNode(true);d.className='u';
   const q=s=>d.querySelector(s);
-  const clb=q('.cb'),mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),fx=q('.fx'),cx=q('.cx'),ntb=q('.nb'),nbx=q('.nbx'),cp=q('.cp'),un=q('.un'),kbb=q('.kb'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
-  ntb.hidden=mode==='strings';fx.hidden=mode!=='strings';kbb.setAttribute('aria-label','Escape keys');kbb.title='Insert escaped characters';
+  const clb=q('.cb'),mtb=q('.mt'),ap=q('.ap'),hd=q('.hd'),fx=q('.fx'),cx=q('.cx'),ntb=q('.nb'),nbx=q('.nbx'),cp=q('.cp'),un=q('.un'),sgb=q('.sg'),cxt=q('.cxt'),ta=q('textarea'),hl=q('.hl');
+  sgb.hidden=u.seg===undefined;sgb.title='Show the whole source (other segments highlighted)';sgb.setAttribute('aria-label','Show the whole source');ntb.hidden=mode==='strings';fx.hidden=mode!=='strings';
   [[ap,'Approve'],[hd,'Visible'],[cx,mode==='strings'?'Comment':'Context'],[ntb,'Notes'],[mtb,'Machine translate \u00b7 '+engName()+' / similar translations'],[cp,'Copy source'],[un,'Undo changes']].forEach(([e,t])=>{e.title=t;e.setAttribute('aria-label',t)});
   const cb=q('.sel');cb.setAttribute('aria-label','Select unit');cb.checked=!!u.sel;cb.onchange=()=>{u.sel=cb.checked;upd()};
   q('.id').textContent=u.id;q('.rn').textContent=u.rn;q('.rn').hidden=!u.rn;
-  q('.src').innerHTML=hlight(u.rs,u);d._fm=u.fm;
-  q('.sc').textContent=clen(u.rs)+' chars';
+  /* a segment can show the whole <seg-source>: its own text as it is, everything else (the other segments and what lies between) highlighted */
+  const fullSrc=()=>{const g=grpOf(u),w=(t,edge)=>t&&!(edge&&/^\s*$/.test(t))?'<span class="sg-o">'+(/^\s*$/.test(t)?' ':hlight(t,u))+'</span>':'';   /* blanks at the very start / end are left out */
+    return g.map((x,i)=>w(x.pre,!i)+(x===u?'<span class="sg-c">'+hlight(x.rs,u)+'</span>':w(x.rs))).join('')+w(g[g.length-1].tl,1)};
+  const paintSrc=()=>{q('.src').innerHTML=u.showSeg&&u.seg!==undefined?fullSrc():hlight(u.rs,u)};
+  paintSrc();d._fm=u.fm;
+  q('.sc .cvl').textContent=clen(u.rs)+' chars';
+  d.querySelectorAll('.cq').forEach(b=>{b.hidden=u.seg===undefined;b.title='Characters per segment and in total';b.setAttribute('aria-label','Character counts of the segments');b.onclick=()=>cntMenu(u)});
   if(mode==='strings')cxt.textContent=ctxLines(u).length?(u.ih?'\u21b3 ':'')+ctxLines(u).join('\n'):'No comment';
-  else paintCtx(cxt,ctxLines(u),'No context');   /* XLIFF: the context-type is shown as a coloured tag, like syntax highlighting */
+  else paintCtxTree(cxt,u,'No context');   /* XLIFF: the context-type is shown as a coloured tag, like syntax highlighting */
   paintNotes(nbx,u.notes||[],u.nmeta);
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
-  const paint=()=>{hl.innerHTML=hlight(ta.value,u)+' ';const n=(u.slr?txtlen:clen)(ta.value),tc=q('.tc');tc.textContent=n+(u.max?'/'+u.max:'')+' chars';tc.classList.toggle('over',!!u.max&&n>u.max)};
+  /* target counter: a segment shows its own count (the limit is on the whole unit, see the counter menu); red when the unit is over its limit */
+  const cntUpd=()=>{const n=(u.slr?txtlen:clen)(ta.value),tc=q('.tc'),sg=u.seg!==undefined;let over=!!u.max&&n>u.max;
+    if(sg){const T=segTot(u);over=!!(u.max&&T.tn>u.max)||!!(u.mb&&T.tb>u.mb)}
+    q('.tc .cvl').textContent=n+(!sg&&u.max?'/'+u.max:'')+' chars';tc.classList.toggle('over',over)};
+  const paint=()=>{hl.innerHTML=hlight(ta.value,u)+' ';cntUpd()};
   const setText=v=>{ta.value=v;paint();fit()};
   /* ESCBAR: buttons under the target box insert a character in its escaped form at the cursor (replacing the selection).
      XML entities for & < >; quotes as \' \" in strings.xml, &apos; &quot; in an XLIFF. Inside a CDATA section nothing is escaped, so the plain character goes in.
      The last six are not XML escapes: they are shown only for a strings.xml (or an XLIFF whose <file original> is strings.xml, arrays.xml or plurals.xml) and always insert
      %% \\ \n \t in either format and inside CDATA too; @ and ? insert \@ and \? when the cursor is at the start of the string, otherwise the plain character.
-     The whole bar is shown only while the keyboard button of the unit is on (u.showEsc). */
+     The whole bar is shown from the moment the cursor is in the translation box of the unit until it is in another box (d._foc). */
   const eb=q('.esc'),sx=mode==='strings';let ebDone=false;
   const ebBuild=()=>{if(ebDone)return;ebDone=true;[['&','&amp;','&amp;'],['<','&lt;','&lt;'],['>','&gt;','&gt;'],['"','&quot;','\\"'],["'",'&apos;',"\\'"],
    ['%','%%','%%',1],['\\','\\\\','\\\\',1],['\u21b2','\\n','\\n',1],['\u21e5','\\t','\\t',1],['@','@','@',1,1],['?','?','?',1,1]].filter(x=>!x[3]||isAndroid()).forEach(([ch,xe,se,all,lead])=>{
@@ -1699,32 +1791,41 @@ function card(u){
   ta.value=cur(u);ta.setAttribute('aria-label','Translation');paint();
   const refresh=()=>{
     const a=u.ap!==undefined?u.ap:u.oAp,t=u.tr!==undefined?u.tr:u.oTr;
-    d.classList.toggle('ch',changed(u));un.disabled=!changed(u);
+    d.classList.toggle('ch',changed(u));un.disabled=!changed(u);if(u.seg!==undefined)cntUpd();
     ap.classList.toggle('on',a);ap.title=a?'Approved':'Not approved';
     {const ek=t==='yes'?'eye':'eyeoff';if(hd._k!==ek){hd._k=ek;hd.innerHTML=ic(ek)}}hd.classList.toggle('on',t==='yes');
     hd.title=(mode==='strings'?(t==='yes'?'Visible (tap to hide: translatable="false")':'Hidden, translatable="false" (tap to unhide)'):(t==='yes'?'translate=yes (tap to hide)':'translate=no (tap to unhide)'))+(u.gk!==undefined?' \u00b7 '+GW().u+': applies to all its '+GW().s+'s':'');
     d.classList.toggle('hv',t==='no');
     fx.classList.toggle('on',!!u.fm);{const ft='formatted="false" is '+(u.fm?'ON: % placeholders are not detected (tap to turn off)':'off: % placeholders are detected (tap to turn on)')+(u.gk!==undefined?' \u00b7 applies to all '+GW().s+'s of this '+GW().u:'');fx.title=ft;fx.setAttribute('aria-label',ft)}
-    if(d._fm!==u.fm){d._fm=u.fm;q('.src').innerHTML=hlight(u.rs,u);paint()}   /* placeholders were switched on / off: highlight again */
+    if(d._fm!==u.fm){d._fm=u.fm;paintSrc();paint()}   /* placeholders were switched on / off: highlight again */
     ap.disabled=!u.is12;hd.disabled=!canTr(u);
     const qe=q('.qa'),iss=qaOf(u);qaSet(u,iss.length>0);qe.hidden=!iss.length;qe.textContent=iss.map(x=>'\u26a0 '+x).join('\n');
-    if(u.showEsc)ebBuild();kbb.classList.toggle('on',!!u.showEsc);eb.hidden=!u.showEsc;cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;ntb.classList.toggle('on',!!u.showNote);nbx.hidden=!u.showNote||mode==='strings';
+    if(d._foc)ebBuild();sgb.classList.toggle('on',!!u.showSeg);eb.hidden=!d._foc;cx.classList.toggle('on',!!u.showCtx);cxt.hidden=!u.showCtx;ntb.classList.toggle('on',!!u.showNote);nbx.hidden=!u.showNote||mode==='strings';
     const nb=(u.cb||[]).length,ct='Clipboard'+(nb?' ('+nb+'/'+CB_MAX+')':'');
     clb.classList.toggle('on',nb>0);clb.title=ct;clb.setAttribute('aria-label',ct);
   };
-  const sync=()=>{refresh();upd();vsNudge()};
-  ta.oninput=()=>{setVal(u,ta.value);paint();fit();refresh();updLater();vsNudge()};
+  const sync=()=>{refresh();upd();vsNudge();if(u.seg!==undefined)msRefresh(u)};   /* segments: approval / visibility are shared by the unit, so its other cards follow */
+  ta.oninput=()=>{setVal(u,ta.value);paint();fit();refresh();updLater();vsNudge();if(u.seg!==undefined)msRefresh(u)};
   cp.onclick=()=>{setText(u.rs);setVal(u,u.rs);sync()};
   clb.onclick=()=>openClip(u,v=>{setText(v);setVal(u,v);sync()},sync);
-  un.onclick=()=>{setText(u.rt);delete u.val;delete u.ap;delete u.apAuto;delete u.tr;const fc=u.fm!==u.oFm;if(fc)fmSet(u,u.oFm);sync();if(fc)msRefresh(u)};
-  ap.onclick=()=>{const a=u.ap!==undefined?u.ap:u.oAp;setAp(u,!a);sync()};
+  un.onclick=()=>{setText(u.rt);grpUndo(u);const fc=u.fm!==u.oFm;if(fc)fmSet(u,u.oFm);sync();if(fc)msRefresh(u)};
+  ap.onclick=async()=>{
+    const a=u.ap!==undefined?u.ap:u.oAp;
+    if(u.seg!==undefined&&grpOf(u).length>1){   /* approval belongs to the whole <trans-unit>: ask first */
+      const n=u.gn,r=await msAsk({h:(a?'Unapprove':'Approve')+' '+GW().u+'?',
+        t:(a?'Unapproving':'Approving')+' will be applied to all '+n+' '+GW().s+'s in '+u.name+'. Approval is set for the whole '+GW().e+'. Tap View to go back and see them marked.',view:true});
+      if(r==='view'){msMark([grpOf(u)]);return}
+      if(r!=='apply')return;
+      if(MARK&&MARK.has(u))msUnmark();
+    }
+    setApG(u,!a);sync()};
   hd.onclick=async()=>{
     const to=trOf(u)==='yes'?'no':'yes';
     if(u.gk!==undefined){
       const hide=to==='no',oth=grpOf(u).filter(x=>x!==u),n=oth.length;
       const r=await msAsk({h:(hide?'Hide':'Unhide')+' '+GW().u+'?',
-        t:'"'+u.name+'" is a '+GW().u+' with '+u.gn+' items. Visibility is set for the whole element, so '+(n?'the other '+n+' '+GW().s+(n>1?'s':'')+' will also be ':'the whole element will be ')+(hide?'hidden':'unhidden')+'.'+(n?' Tap View to go back and see them marked.':''),
-        l:n?msNames(oth.map(x=>'['+x.rn+']')):'',view:n>0});
+        t:(hide?'Hiding':'Unhiding')+' will be applied to '+(n?u.gn+' '+GW().s+'s in '+u.name:'the whole '+GW().u+' "'+u.name+'"')+'. Visibility is set for the whole element.'+(n?' Tap View to go back and see them marked.':''),
+        view:n>0});
       if(r==='view'){msMark([grpOf(u)]);return}   /* View: mark every item this hide / unhide would change, without using Bulk Action */
       if(r!=='apply')return;
       if(MARK&&MARK.has(u))msUnmark();   /* the marks were for this very change: it is made now */
@@ -1734,7 +1835,7 @@ function card(u){
   fx.onclick=async()=>{
     const to=!u.fm,n=grpOf(u).length,grp=n>1?' It is an attribute of the whole <'+(u.kind==='p'?'plurals':'string-array')+'>, so all '+n+' items change together. Tap View to go back and see them marked.':'';
     const r=await msAsk(to?{h:'Turn on formatted="false"?',
-      t:'"'+u.name+'" will be marked formatted="false": Android will not treat it as a format string. This app will then stop detecting, highlighting and protecting its % placeholders (QA checks and machine translation included): %s, %d, %1$s... become plain text, and a literal % is written as a single %, not %%. Use it only if the string takes no format arguments.'+grp,view:n>1}
+      t:'The formatted=\"false\" attribute will be applied to '+(n>1?n+' items in '+u.name:'\"'+u.name+'\"')+'. % placeholders will no longer be detected and protected. Only use this option if the strings do not contain any format arguments.'+(n>1?' Tap View to go back and see them marked.':''),view:n>1}
       :{h:'Turn off formatted="false"?',
       t:'"'+u.name+'" will be a normal format string again: % placeholders are detected and protected, and a literal % must be written %% (QA flags a lone %).'+grp,view:n>1});
     if(r==='view'){msMark([grpOf(u)]);return}   /* back to the edit screen with every item of the group marked */
@@ -1745,7 +1846,10 @@ function card(u){
   mtb.onclick=()=>openMtm(u,v=>{setText(v);setVal(u,v);sync()});
   cx.onclick=()=>{u.showCtx=!u.showCtx;refresh();vsNudge()};
   ntb.onclick=()=>{u.showNote=!u.showNote;refresh();vsNudge()};
-  kbb.onclick=()=>{u.showEsc=!u.showEsc;refresh();vsNudge()};
+  /* the escape bar opens when the box gets the cursor and stays until the cursor shows up in another box (ESC_CUR: the one that is open) */
+  const escHide=()=>{if(!d._foc)return;d._foc=0;refresh();vsNudge()};
+  ta.addEventListener('focus',()=>{if(ESC_CUR&&ESC_CUR!==escHide)ESC_CUR();ESC_CUR=escHide;if(d._foc)return;d._foc=1;refresh();vsNudge()});
+  sgb.onclick=()=>{u.showSeg=!u.showSeg;paintSrc();refresh();vsNudge()};
   refresh();d._fit=fit;d._u=u;d._rf=refresh;
   d.classList.toggle('mk',!!(MARK&&MARK.has(u)));
   return d;
@@ -1789,6 +1893,46 @@ function W_root(t){
   const m=/^<(?:[\w.\-]+:)?([\w.\-]+)/.exec(t.slice(i,i+200));
   return m?m[1]:'';
 }
+/* XLIFF 1.2 segmentation. segMrks: the top-level <mrk mtype="seg"> of a masked fragment (comments / CDATA blanked), as {mid, a, z} = mid and the range of its content.
+   tagIn: the content range of the first <n> element of bm. segSplit: the segments of a <trans-unit> (b: its text, bm: same with comments, CDATA and <alt-trans> blanked)
+   as [{mid, rs, rt, pre, tl}] (pre: what lies before the segment in the <seg-source>, tl: what follows the last one), or null when the unit is not split: fewer than 2 segments, a mid that is missing or repeated, or a non-empty <target> that is not segmented the same way. */
+function segMrks(m){
+  const re=/<(?:[\w.\-]+:)?mrk(?=[\s>\/])((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/?)>|<\/(?:[\w.\-]+:)?mrk\s*>/g,out=[],st=[];let x;
+  while((x=re.exec(m))){
+    if(x[0].charAt(1)==='/'){const o=st.pop();if(o&&o.seg){o.z=x.index;o.e=x.index+x[0].length;out.push(o)}continue}
+    if(x[2]==='/')continue;   /* <mrk/> has no content */
+    const seg=!st.some(o=>o.seg)&&/\smtype\s*=\s*(?:"seg"|'seg')/.test(x[1]);
+    st.push({seg,mid:seg?ga(x[1],'mid'):null,a:x.index+x[0].length,z:0,o:x.index,e:0});
+  }
+  return out.sort((p,q)=>p.a-q.a);
+}
+function tagIn(bm,n){
+  const r=new RegExp('<(?:[\\w.\\-]+:)?'+n+'(?=[\\s/>])(?:"[^"]*"|\'[^\']*\'|[^>"\'])*?(?:/>|>([\\s\\S]*?)<\\/(?:[\\w.\\-]+:)?'+n+'\\s*>)').exec(bm);
+  if(!r||r[1]===undefined)return null;
+  const z=r.index+r[0].lastIndexOf('</');return {a:z-r[1].length,z};
+}
+/* the segments of a trans-unit g (in order) as one text; get(x) is the text of a segment. What lies between two segments in the <seg-source> counts as one space
+   (as one text it is a sentence), a blank at the very start / end does not count. */
+function segJoin(g,get){
+  let o='';
+  g.forEach((x,i)=>{const p=x.pre||'',bl=/^\s*$/.test(p);o+=(i?(bl?(p?' ':''):p):(bl?'':p))+get(x)});
+  const t=g[g.length-1].tl||'';
+  return o+(/^\s*$/.test(t)?'':t);
+}
+function segSplit(b,bm){
+  const gi=tagIn(bm,'seg-source');if(!gi)return null;
+  const sm=segMrks(bm.slice(gi.a,gi.z));if(sm.length<2)return null;
+  const mids=sm.map(x=>x.mid);
+  if(mids.some(x=>!x)||new Set(mids).size!==mids.length)return null;
+  const ti=tagIn(bm,'target');let tm=null;
+  if(ti&&b.slice(ti.a,ti.z).trim()!==''){
+    tm=new Map(segMrks(bm.slice(ti.a,ti.z)).map(x=>[x.mid,x]));
+    if(mids.some(x=>!tm.has(x)))return null;
+  }
+  let pe=0;
+  return sm.map((x,i)=>{const r={mid:x.mid,rs:b.slice(gi.a+x.a,gi.a+x.z),rt:tm?b.slice(ti.a+tm.get(x.mid).a,ti.a+tm.get(x.mid).z):'',pre:b.slice(gi.a+pe,gi.a+x.o)};
+    pe=x.e;if(i===sm.length-1)r.tl=b.slice(gi.a+pe,gi.z);return r});
+}
 /* file text -> unit data (plain objects, no DOM). emit(chunk) is called every 3000 units */
 function W_parse(txt,emit,ihc){
   const root=W_root(txt);
@@ -1823,19 +1967,31 @@ function W_parse(txt,emit,ihc){
     const u={idx,id:W_dec(ga(stg,'id')||''),rs:grabTagM(b,bm,'source'),rt:grabTagM(b,bm,'target'),is12:true,
       rn:ga(stg,'resname')||'',oAp:ga(stg,'approved')==='yes',
       oTr:(ga(stg,'translate')!==null?ga(stg,'translate'):inh('translate',1))==='no'?'no':'yes',
-      ctx:[],notes:[],nt:'',max:0,ct:'',fi:Math.max(fIdx,0)};
+      ctx:[],cg:[],notes:[],nt:'',max:0,ct:'',fi:Math.max(fIdx,0)};
     {const su=ga(stg,'size-unit')||inh('size-unit',1)||'pixel',mw=ga(stg,'maxwidth')!==null?ga(stg,'maxwidth'):inh('maxwidth',1),
       mbv=ga(stg,'maxbytes')!==null?ga(stg,'maxbytes'):inh('maxbytes',1);
     if(su==='char'&&/^\d+$/.test(mw||'')){u.max=+mw;u.slr=1}   /* size-unit char = Unicode characters of the text: entities decoded, inline tags not counted */
     if(/^\d+$/.test(mbv||''))u.mb=+mbv;else if(su==='byte'&&/^\d+$/.test(mw||''))u.mb=+mw}
     if(rCx0.test(bm)){   /* bm: <alt-trans> blanked, so its own <context-group> is not taken as the unit's context */
       rCx.lastIndex=0;let cm;
+      const grp=[],rCg=/<(?:[\w.\-]+:)?context-group(?=[\s>])((?:"[^"]*"|'[^']*'|[^>"'])*)>([\s\S]*?)<\/(?:[\w.\-]+:)?context-group\s*>/g;
+      let gm;while((gm=rCg.exec(bm))){const pu=ga(gm[1],'purpose'),nm=ga(gm[1],'name');grp.push([gm.index,gm.index+gm[0].length,(pu||nm||'context')+(pu&&nm?' ('+nm+')':'')])}
       while((cm=rCx.exec(bm))){
         const ce=cm.index+cm[0].lastIndexOf('</'),ty=ga(cm[1],'context-type')||'context',tx=b.slice(ce-cm[2].length,ce);u.ctx.push(ty+': '+tx);
+        const g=grp.find(x=>cm.index>=x[0]&&cm.index<x[1]);u.cg.push(g?g[0]+'\u0001'+g[2]:'');   /* position + name: two groups with the same name stay two nodes */
       }
     }
     u.ct=ctxLines(u).join('\n');
     u.nmeta=[];u.notes=W_notes(b,bm,u.nmeta);u.nt=u.notes.join('\n');
+    const sgs=segSplit(b,bm);
+    if(sgs){   /* a <seg-source> with 2+ segments: one unit per segment, grouped like the items of a <plurals> (gk / gn); id is <unit id>#<mid> */
+      const g0=total;
+      sgs.forEach(sg=>{const x=Object.assign({},u);x.tid=u.id;x.rn0=u.rn;x.rn=(u.rn?u.rn+' \u00b7 ':'')+'['+sg.mid+']';x.name=u.rn||u.id;x.seg=sg.mid;x.rs=sg.rs;x.rt=sg.rt;if(sg.pre)x.pre=sg.pre;if(sg.tl)x.tl=sg.tl;
+        /* max / slr / mb stay: maxwidth / maxbytes limit the whole target, so they are checked against the segments joined (segJoin) */
+        x.gk=g0;x.gn=sgs.length;buf.push(x);total++;
+        if(buf.length>=3000){emit(buf);buf=[]}});
+      continue;
+    }
     buf.push(u);total++;
     if(buf.length>=3000){emit(buf);buf=[]}
   }
@@ -1860,15 +2016,19 @@ function W_trans(txt){
       const kn=ga(tg,'resname')||'',id=W_dec(ga(tg,'id')||''),k0=kn||id;
       while(fp<fst.length&&fst[fp]<m.index)fp++;
       const fk=b=>fst.length>1&&b?b+'\u0001'+Math.max(fp-1,0):b,k=fk(k0);   /* ids are unique per <file> in XLIFF 1.2 */
-      const v=grabTagM(b,bm.replace(rAlt,x=>' '.repeat(x.length)),'target');
+      const bmA=bm.replace(rAlt,x=>' '.repeat(x.length)),v=grabTagM(b,bmA,'target');
       if(k&&v.trim()&&!mp.has(k))mp.set(k,v);
+      if(k0&&v.trim()){   /* a segmented target also gives one text per segment, keyed <unit>#<mid> */
+        const ti=tagIn(bmA,'target'),ms=ti?segMrks(bmA.slice(ti.a,ti.z)):[];
+        if(ms.length>1)ms.forEach(x=>{const sv=b.slice(ti.a+x.a,ti.a+x.z);if(x.mid&&sv.trim()){const sk=fk(k0+'#'+x.mid);if(!mp.has(sk))mp.set(sk,sv)}});
+      }
     }
   }
   return [...mp];
 }
 /* search + sort over the worker's copy of the units. p.dyn lists the units edited on the main thread. */
 function W_query(U,LC,p){
-  const n=U.length,q=p.q,F=p.F,D=new Map();
+  const n=U.length,q=p.q,F=p.F,D=new Map();let GW_=null,IXm=null;
   p.dyn.forEach(d=>D.set(d.p,d));
   const curOf=i=>{const d=D.get(i);return d&&d.v!==undefined?d.v:U[i].rt};
   let idx=[];
@@ -1903,7 +2063,11 @@ function W_query(U,LC,p){
         case 'fmf':return ((d&&d.f)?!u.fm:u.fm)?0:1;   /* the worker's copy holds the value read from the file; d.f marks a change made since */
         case 'untr':return c.trim()===''?0:1;
         case 'same':return c!==''&&c===u.rs?0:1;
-        case 'over':return u.max&&(u.slr?txtlen(c):clen(c))>u.max?0:1;
+        case 'over':{if(!u.max)return 1;let t=c;
+          if(u.seg!==undefined){   /* a segment: the segments of its unit joined */
+            if(!GW_){GW_=new Map();IXm=new Map();U.forEach((x,j)=>{IXm.set(x,j);if(x.seg!==undefined){let a=GW_.get(x.gk);if(!a)GW_.set(x.gk,a=[]);a.push(x)}})}
+            t=segJoin(GW_.get(u.gk),x=>curOf(IXm.get(x)))}
+          return (u.slr?txtlen(t):clen(t))>u.max?0:1}
         case 'lsrc':return -clen(u.rs);
         case 'ssrc':return clen(u.rs);
         case 'ltgt':return -clen(c);
@@ -1940,9 +2104,9 @@ function W_main(){
   };
 }
 const workerSrc=()=>[
-  'const ga='+ga,'const START='+START,'const maskRaw='+maskRaw,'const clen='+clen,'const ctxLines='+ctxLines,
+  'const ga='+ga,'const START='+START,'const maskRaw='+maskRaw,'const clen='+clen,'const ctxKeep='+ctxKeep,'const ctxLines='+ctxLines,
   'const ckey='+ckey,'const grabTag='+grabTag,'const grabTagM='+grabTagM,'const endTag='+endTag,'const W_dec='+W_dec,'const txtOf='+txtOf,'const W_notes='+W_notes,'const txtlen='+txtlen,
-  parseStrings,W_root,W_parse,W_trans,W_query,
+  parseStrings,W_root,segMrks,tagIn,segJoin,segSplit,W_parse,W_trans,W_query,
   'const XNAME='+JSON.stringify(XNAME),'const NAME_RX='+NAME_RX,'const CLOSE_RX='+CLOSE_RX,'const ATTR_RX='+ATTR_RX,'const validCP='+validCP,
   checkXml,'('+W_main+')()'
 ].join(';\n');
@@ -2259,10 +2423,11 @@ function mtInfo(src,u){
   if(CFG.aik)info.push('Key: '+(mode==='strings'?u.id:(u.rn||u.id)));
   if(u.kind==='p')info.push('Plural quantity: '+u.sub);
   if(u.kind==='a')info.push('Array item index: '+u.sub);
+  if(u.seg!==undefined)info.push('This is segment '+u.seg+' of a longer text that is split into segments: translate only this segment.');
   if(CFG.aic&&ctxLines(u).length)info.push('Context: '+ctxLines(u).join('; '));
   if(CFG.ain&&u.notes&&u.notes.length){let nt=u.notes.map(x=>String(x).trim()).filter(Boolean).join('; ');if(nt.length>800)nt=nt.slice(0,800)+'\u2026';if(nt)info.push('Notes: '+nt)}
-  if(CFG.ail&&u.max)info.push('Maximum length of the translation: '+u.max+' characters (hard limit)');
-  if(CFG.ail&&u.mb)info.push('Storage limit of the translation: '+u.mb+' bytes in UTF-8 (hard limit)');
+  if(CFG.ail&&u.max)info.push(u.seg!==undefined?'Maximum length of the whole text (all its segments together): '+u.max+' characters (hard limit)':'Maximum length of the translation: '+u.max+' characters (hard limit)');
+  if(CFG.ail&&u.mb)info.push(u.seg!==undefined?'Storage limit of the whole text (all its segments together): '+u.mb+' bytes in UTF-8 (hard limit)':'Storage limit of the translation: '+u.mb+' bytes in UTF-8 (hard limit)');
   const gh=glossHits(src).slice(0,40);
   if(gh.length)info.push('Glossary (use exactly these translations for these terms):\n'+gh.map(h=>'- '+h.s+' => '+h.t).join('\n'));
   return info;
@@ -2610,14 +2775,19 @@ async function exportStrings(){
     if(++nIt%300===0){busy('Preparing export\u2026 '+nIt+' / '+units.length);await new Promise(r=>setTimeout(r,0))}
     const hid=trOf(u)==='no';
     if(hid&&!CFG.xh){hidden++;continue}
-    let c=cur(u);if(hid&&!c.trim())c=u.rs||'';   /* a hidden unit usually has no translation: its source text is the value */
+    let c;
+    if(u.seg!==undefined){   /* the segments of one <trans-unit> make one string: exported once, from its first segment, joined by a space */
+      const g=grpOf(u);if(g[0]!==u)continue;
+      const parts=g.map(x=>cur(x).trim()?cur(x):(hid?x.rs||'':''));c=parts.every(t=>t.trim())?parts.join(' '):'';
+    }else{c=cur(u);if(hid&&!c.trim())c=u.rs||''}   /* a hidden unit usually has no translation: its source text is the value */
     if(!c.trim()){empty++;continue}
-    if(!/^[A-Za-z_][A-Za-z0-9_.]*$/.test(u.rn||'')){badName.push(u.rn||u.id);continue}
-    if(seen.has(u.rn)){dup++;continue}
-    const d=parse(c);if(d.querySelector('parsererror')){badXml.push(u.rn);continue}
+    const rnm=u.seg!==undefined?(u.rn0||''):(u.rn||'');
+    if(!/^[A-Za-z_][A-Za-z0-9_.]*$/.test(rnm)){badName.push(rnm||u.id);continue}
+    if(seen.has(rnm)){dup++;continue}
+    const d=parse(c);if(d.querySelector('parsererror')){badXml.push(rnm);continue}
     let text=c;
     {const t2=toAndroidQuotes(text);if(t2!==text){quoted++;text=t2}}   /* strings.xml needs \' and \" whatever the XLIFF used (plain quote, &apos; / &quot;) */
-    seen.add(u.rn);items.push([u.rn,text,hid]);if(hid)hiddenOut++;
+    seen.add(rnm);items.push([rnm,text,hid]);if(hid)hiddenOut++;
   }
   busy('');upd(true);
   if(!items.length){alert('Nothing to export: no translated, visible unit has a valid resname.');return}
@@ -2665,16 +2835,50 @@ function segWrap(mk,val,pfx){
   const mid=ga(ms[0][1],'mid');
   return '<'+pfx+'mrk mtype="seg"'+(mid!==null?' mid="'+mid+'"':'')+'>'+val+'</'+pfx+'mrk>';
 }
+/* XLIFF 1.2 Segmentation, several segments: puts the texts of the edited segments into the <target> of blk (the <trans-unit>, mk: same with comments, CDATA and
+   <alt-trans> blanked). A target that holds every segment is changed in place (only the content of the edited <mrk> elements, whatever lies between them stays).
+   A missing or empty target is made from the <seg-source>: same markup and spacing, each segment's content replaced by its translation. */
+function segPut(blk,mk,g,tgtState){
+  const gi=tagIn(mk,'seg-source');if(!gi)return blk;
+  const sm=segMrks(mk.slice(gi.a,gi.z));
+  const tre=/<((?:[\w.\-]+:)?)target(?=[\s\/>])((?:"[^"]*"|'[^']*'|[^>"'])*?)\s*(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?target\s*>)/,tm=tre.exec(mk);
+  const val=x=>cur(x),all=g.map(val).join(' ');
+  let body=null,pfx='';
+  if(tm){
+    pfx=tm[1];const ti=tagIn(mk,'target');
+    if(ti&&blk.slice(ti.a,ti.z).trim()!==''){   /* a target that is there: change the edited segments */
+      const tmap=new Map(segMrks(mk.slice(ti.a,ti.z)).map(x=>[x.mid,x]));
+      let inner=blk.slice(ti.a,ti.z);const ch=g.filter(x=>x.val!==undefined&&tmap.has(x.seg)).sort((p,q)=>tmap.get(q.seg).a-tmap.get(p.seg).a);
+      ch.forEach(x=>{const t=tmap.get(x.seg);inner=inner.slice(0,t.a)+x.val+inner.slice(t.z)});
+      body=inner;
+      return blk.slice(0,tm.index)+'<'+pfx+'target'+tgtState(tm[2],all)+'>'+body+'</'+pfx+'target>'+blk.slice(tm.index+tm[0].length);
+    }
+  }
+  let inner=blk.slice(gi.a,gi.z);   /* build from the <seg-source> */
+  const bySeg=new Map(g.map(x=>[x.seg,x]));
+  sm.slice().sort((p,q)=>q.a-p.a).forEach(m=>{const x=bySeg.get(m.mid);inner=inner.slice(0,m.a)+(x?val(x):'')+inner.slice(m.z)});
+  if(tm)return blk.slice(0,tm.index)+'<'+pfx+'target'+tgtState(tm[2],all)+'>'+inner+'</'+pfx+'target>'+blk.slice(tm.index+tm[0].length);
+  const sx=/([ \t]*)<((?:[\w.\-]+:)?)seg-source(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*?>[\s\S]*?<\/(?:[\w.\-]+:)?seg-source\s*>/.exec(mk);
+  if(!sx)return blk;
+  const z=sx.index+sx[0].length;
+  return blk.slice(0,z)+'\n'+sx[1]+'<'+sx[2]+'target>'+inner+'</'+sx[2]+'target>'+blk.slice(z);
+}
 function buildXlf12(){
   const starts=[];const re=/<((?:[\w.\-]+:)?)(trans-unit)(?=[\s>\/])/g;let m;
   const mr=maskRaw(raw);while((m=re.exec(mr)))starts.push([m.index,m[1]+m[2]]);
-  const ed=units.filter(changed).sort((x,y)=>x.idx-y.idx),parts=[];let pos=0;
-  for(const u of ed){
-    const sx=starts[u.idx];if(!sx)continue;
+  /* the segments of one <trans-unit> are several units with the same idx: they are written together, once */
+  const by=new Map();for(const x of units)if(changed(x)){let a=by.get(x.idx);if(!a)by.set(x.idx,a=[]);a.push(x)}
+  const ed=[...by.entries()].sort((x,y)=>x[0]-y[0]),parts=[];let pos=0;
+  for(const [ix,us] of ed){
+    const u=us[0],sg=u.seg!==undefined,gv=us.some(x=>x.val!==undefined);   /* ap / tr are the same on every segment of a unit */
+    const sx=starts[ix];if(!sx)continue;
     const [st,tag]=sx;
     let en=endTag(mr,tag,st);if(en<0)continue;
     let blk=raw.slice(st,en);
-    if(u.val!==undefined){
+    if(gv&&sg){
+      const mk=mr.slice(st,en).replace(/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans\s*>/g,x=>' '.repeat(x.length));
+      blk=segPut(blk,mk,grpOf(u),(a,t)=>trState(a,t,u.ap!==undefined?u.ap:u.oAp));
+    }else if(u.val!==undefined){
     const tre=/<((?:[\w.\-]+:)?)target(?=[\s\/>])((?:"[^"]*"|'[^']*'|[^>"'])*?)\s*(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?target\s*>)/;
     const mk=mr.slice(st,en).replace(/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans\s*>/g,x=>' '.repeat(x.length)),tm=tre.exec(mk);
     if(tm){
@@ -2685,7 +2889,7 @@ function buildXlf12(){
       const gm=/([ \t]*)<((?:[\w.\-]+:)?)seg-source(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*?(?:\/>|>[\s\S]*?<\/(?:[\w.\-]+:)?seg-source\s*>)/.exec(mk),at=gm&&sm&&gm.index>=sm.index?gm:sm;
       if(at){const z=at.index+at[0].length;blk=blk.slice(0,z)+'\n'+at[1]+'<'+at[2]+'target>'+segWrap(mk,u.val,at[2])+'</'+at[2]+'target>'+blk.slice(z)}
     }}
-    if(u.val===undefined&&u.ap===false){   /* approval withdrawn without a text change: the target is no longer final */
+    if(!gv&&u.ap===false){   /* approval withdrawn without a text change: the target is no longer final */
       const mk2=mr.slice(st,en).replace(/<((?:[\w.\-]+:)?)alt-trans\b[\s\S]*?<\/\1alt-trans\s*>/g,x=>' '.repeat(x.length)),
         t2=/<(?:[\w.\-]+:)?target(?=[\s\/>])(?:"[^"]*"|'[^']*'|[^>"'])*>/.exec(mk2);
       if(t2&&/\sstate\s*=\s*["'](?:final|signed-off)["']/.test(t2[0]))blk=blk.slice(0,t2.index)+setAttr(blk.slice(t2.index,t2.index+t2[0].length),'state','translated')+blk.slice(t2.index+t2[0].length)}
@@ -2740,7 +2944,7 @@ $('save').onclick=async()=>{
 document.querySelectorAll('#c-acc .sw').forEach(b=>b.title=b.getAttribute('aria-label'));
 [['q','Search'],['sz','Units per page'],['sa','Select all shown'],['so','Sort order']].forEach(([i,t])=>$(i).setAttribute('aria-label',t));
 document.querySelectorAll('.dlg').forEach(d=>{d.setAttribute('role','dialog');d.setAttribute('aria-modal','true')});
-document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const [d,b] of [['lp','lp-x'],['mn','mn-x'],['ms','ms-c'],['mtm','mtm-c'],['cm','cm-c'],['gm','gm-c'],['ip','ip-c'],['rp','rp-c'],['bm','bclose'],['cfg','c-cancel']])if(!$(d).hidden){e.preventDefault();$(b).click();return}});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const [d,b] of [['lp','lp-x'],['mn','mn-x'],['ms','ms-c'],['cn','cn-c'],['mtm','mtm-c'],['cm','cm-c'],['gm','gm-c'],['ip','ip-c'],['rp','rp-c'],['bm','bclose'],['cfg','c-cancel']])if(!$(d).hidden){e.preventDefault();$(b).click();return}});
 addEventListener('beforeunload',e=>{if(doc&&edited()){e.preventDefault();e.returnValue=''}});
 sessCheck();
 let lastW=innerWidth,rz;addEventListener('resize',()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(rz);rz=setTimeout(()=>{if(VS.on)vsResize();else fitAll([...document.querySelectorAll('#list .u')])},150)});
