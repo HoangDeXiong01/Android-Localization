@@ -191,6 +191,8 @@ body.busy,body.busy *{cursor:progress}
 .pc{font-size:12px;font-weight:700;border-radius:6px;padding:1px 7px;background:#f57c00;color:#fff;flex:none}.pc.f{background:#43a047}
 .smt{font-size:13px;white-space:pre-wrap;word-break:break-word;max-height:6em;overflow:auto;padding:2px 0 2px 8px;margin-top:3px;border-left:3px solid var(--card)}
 .smt.m{border-left-color:var(--ac)}
+.alo{font-size:11px;color:var(--mut);word-break:break-word;min-width:0;flex:1}
+#alt-n{font-weight:400}
 .smt::before{content:attr(data-l);display:block;font-size:11px;color:var(--mut)}
 #sm-pgr{justify-content:center;margin:8px 0 0}
 #sm-pi{width:52px;padding:0 4px;text-align:center}
@@ -273,6 +275,9 @@ body.busy,body.busy *{cursor:progress}
 <div class="mtout" id="mtm-out" hidden></div>
 <div class="qa" id="mtm-w" hidden style="margin-top:6px"></div>
 <div class="dr" style="margin-top:10px"><button id="mtm-load" type="button"></button><button id="mtm-apply" type="button" class="p" disabled>Apply</button></div>
+<div id="alt-box" hidden><hr>
+<h3 style="font-size:15px">Alternative translations <span class="hint" id="alt-n"></span></h3>
+<div id="alt-l"></div></div>
 <hr>
 <h3 style="font-size:15px">Similar translations</h3>
 <label>Algorithm<select id="sm-alg"></select></label>
@@ -1203,11 +1208,20 @@ function msGroups(sel,to){
   }
   return out;
 }
-function msBulkAsk(gs,hide){
+/* units whose translate comes from a <group> and would get their own translate, overriding it */
+function msInhUnits(sel,to){
+  const seen=new Set(),out=[];
+  for(const u of sel){if(!canTr(u))continue;
+    for(const x of (u.gk!==undefined?grpOf(u):[u]))if(!seen.has(x)&&x.ti&&to!==x.oTr&&trOf(x)!==to){seen.add(x);out.push(x)}}
+  return out;
+}
+const msInhTxt=(io,hide)=>io.length+' unit'+(io.length>1?'s inherit':' inherits')+' translate from a <group>. '+(hide?'Hiding':'Unhiding')+' sets translate=\"'+(hide?'no':'yes')+'\" on '+(io.length>1?'each':'the')+' <trans-unit> itself, overriding the group\'s value; the other units in the group are not changed.';
+function msInhAsk(io,hide){return msAsk({h:'Override inherited translate on '+io.length+' unit'+(io.length>1?'s':'')+'?',t:msInhTxt(io,hide),l:msNames(io.map(x=>x.id)),view:false})}
+function msBulkAsk(gs,hide,io){
   const n=gs.length,seg=gs.reduce((t,g)=>t+g.length,0),extra=gs.reduce((t,g)=>t+g.filter(x=>!x.sel).length,0);
   return msAsk({
     h:(hide?'Hide ':'Unhide ')+n+' '+GW().u+(n>1?' groups':'')+'?',
-    t:'Your selection includes '+GW().s+'s of '+n+' '+GW().u+(n>1?' groups':'')+'. Visibility is set per '+GW().e+', so all '+seg+' '+GW().s+'s of '+(n>1?'these':'this')+' will be '+(hide?'hidden':'unhidden')+(extra?', including '+extra+' you did not select':'')+'. Tap View to go back and see them marked.',
+    t:'Your selection includes '+GW().s+'s of '+n+' '+GW().u+(n>1?' groups':'')+'. Visibility is set per '+GW().e+', so all '+seg+' '+GW().s+'s of '+(n>1?'these':'this')+' will be '+(hide?'hidden':'unhidden')+(extra?', including '+extra+' you did not select':'')+'. '+(io&&io.length?msInhTxt(io,hide)+' ':'')+'Tap View to go back and see them marked.',
     l:msNames(gs.map(g=>msBase(g[0])+' ('+g.length+' '+GW().s+'s)')),view:true});
 }
 /* View: back to the edit screen with every affected item marked */
@@ -1257,8 +1271,8 @@ async function bulk(a){
     sel.forEach(u=>setVal(u,u.rs));
   }else{
     if(a==='hd'||a==='sh'){
-      const gs=msGroups(sel,a==='hd'?'no':'yes');
-      if(gs.length){const r=await msBulkAsk(gs,a==='hd');if(r!=='apply'){if(r==='view')msMark(gs);return}}
+      const to=a==='hd'?'no':'yes',gs=msGroups(sel,to),io=msInhUnits(sel,to);   /* io: units that would override a translate inherited from their <group> */
+      if(gs.length||io.length){const r=gs.length?await msBulkAsk(gs,a==='hd',io):await msInhAsk(io,a==='hd');if(r!=='apply'){if(r==='view')msMark(gs);return}}
       MARK=null;MKJ=false;
     }else if(a==='ap'||a==='un'){
       const gs=msApGroups(sel,a==='ap');
@@ -1698,6 +1712,23 @@ function openMtm(u,apply){
     if(u.val!==undefined&&!confirm('Replace your edit with machine translation?'))return;
     close();apply(mt);
   };
+  /* alt-trans of the unit (XLIFF 1.2 <alt-trans>) */
+  {const box=$('alt-box'),al=$('alt-l'),an=$('alt-n');al.textContent='';
+    const as=(u.alts||[]).filter(a=>u.seg===undefined||!a.mid||a.mid===u.seg);
+    box.hidden=!as.length;an.textContent=as.length?'\u00b7 '+as.length:'';
+    as.forEach(a=>{
+      const r=document.createElement('div');r.className='smi';
+      const h=document.createElement('div');h.className='smh';
+      const qn=parseFloat(a.q),b=document.createElement('span');b.className='pc'+(qn>=100?' f':'');b.textContent=a.q?(isNaN(qn)?a.q:Math.round(qn)+'%'):'alt';
+      const o=document.createElement('span');o.className='alo';o.textContent=[a.o,a.tl,a.ty&&a.ty!=='proposal'?a.ty:'',a.l].filter(Boolean).join(' \u00b7 ');
+      const use=document.createElement('button');use.type='button';use.textContent='Use';
+      use.onclick=()=>{if(cbCan(u)&&!confirm('Replace the current translation? It is not saved in the clipboard.'))return;close();apply(a.t)};
+      h.append(b,o,use);r.appendChild(h);
+      const cut=t=>t.length>300?t.slice(0,300)+'\u2026':t;
+      if(a.s&&a.s!==u.rs){const x=document.createElement('div');x.className='smt';x.dataset.l='Source';x.textContent=cut(a.s);r.appendChild(x)}
+      const y=document.createElement('div');y.className='smt m';y.dataset.l='Translation';y.textContent=cut(a.t);r.appendChild(y);
+      if(a.n){const z=document.createElement('div');z.className='smt';z.dataset.l='Note';z.textContent=cut(a.n);r.appendChild(z)}
+      al.appendChild(r)})}
   /* similar translations */
   const fill=(el,opts,v)=>{el.textContent='';opts.forEach(([k,t])=>{const o=document.createElement('option');o.value=k;o.textContent=t;el.appendChild(o)});el.value=v};
   fill($('sm-alg'),SIM_ALG,SIM.alg);fill($('sm-min'),SIM_MIN.map(x=>[x,x+'%'+(x===100?' (exact)':'')]),SIM.min);
@@ -1830,11 +1861,12 @@ function card(u){
     }
     setApG(u,!a);sync()};
   hd.onclick=async()=>{
-    const to=trOf(u)==='yes'?'no':'yes';
-    if(u.gk!==undefined){
-      const hide=to==='no',oth=grpOf(u).filter(x=>x!==u),n=oth.length;
-      const r=await msAsk({h:(hide?'Hide':'Unhide')+' '+GW().u+'?',
-        t:(hide?'Hiding':'Unhiding')+' will be applied to '+(n?u.gn+' '+GW().s+'s in '+u.name:'the whole '+GW().u+' "'+u.name+'"')+'. Visibility is set for the whole element.'+(n?' Tap View to go back and see them marked.':''),
+    const to=trOf(u)==='yes'?'no':'yes',hide=to==='no',ov=!!u.ti&&to!==u.oTr;   /* ov: this creates a translate on the unit that overrides the one it inherits from its <group> */
+    if(u.gk!==undefined||ov){
+      const oth=u.gk!==undefined?grpOf(u).filter(x=>x!==u):[],n=oth.length,
+        ovt=ov?' This '+GW().e+' inherits translate=\"'+u.ti.v+'\" from its <group>'+(u.ti.g?' \"'+u.ti.g+'\"':'')+'. '+(hide?'Hiding':'Unhiding')+' sets translate=\"'+to+'\" on the '+GW().e+' itself, overriding the group\'s value; the other units in the group are not changed.':'';
+      const r=await msAsk({h:ov?'Override inherited translate=\"'+u.ti.v+'\"?':(hide?'Hide':'Unhide')+' '+GW().u+'?',
+        t:((u.gk!==undefined?(hide?'Hiding':'Unhiding')+' will be applied to '+(n?u.gn+' '+GW().s+'s in '+u.name:'the whole '+GW().u+' \"'+u.name+'\"')+'. Visibility is set for the whole element.':'')+ovt+(n?' Tap View to go back and see them marked.':'')).trim(),
         view:n>0});
       if(r==='view'){msMark([grpOf(u)]);return}   /* View: mark every item this hide / unhide would change, without using Bulk Action */
       if(r!=='apply')return;
@@ -1974,10 +2006,13 @@ function W_parse(txt,emit,ihc){
     if(rAlt0.test(bm))bm=bm.replace(rAlt,x=>' '.repeat(x.length));   /* blank, keep the length so indexes still match b */
     if(!rSrcTag.test(bm))continue;   /* units without a <source> are skipped, but still counted in idx */
     const b=txt.slice(a,end),sm=START.exec(b),stg=sm?sm[0]:'';
+    let ti=null;   /* translate inherited from a <group>: {v: its value, g: its id / resname}; none when the unit has its own translate */
+    if(ga(stg,'translate')===null)for(let j=stk.length-1;j>=0;j--){if(stk[j].t!=='group')continue;const v=ga(stk[j].a,'translate');if(v!==null){ti={v:v==='no'?'no':'yes',g:W_dec(ga(stk[j].a,'id')||ga(stk[j].a,'resname')||'')};break}}
     const u={idx,id:W_dec(ga(stg,'id')||''),rs:grabTagM(b,bm,'source'),rt:grabTagM(b,bm,'target'),is12:true,
       rn:ga(stg,'resname')||'',rty:(ga(stg,'restype')||inh('restype',1)||'').trim(),oAp:ga(stg,'approved')==='yes',
       oTr:(ga(stg,'translate')!==null?ga(stg,'translate'):inh('translate',1))==='no'?'no':'yes',
       ctx:[],cg:[],notes:[],nt:'',max:0,ct:'',fi:Math.max(fIdx,0)};
+    if(ti)u.ti=ti;
     {const su=ga(stg,'size-unit')||inh('size-unit',1)||'pixel',mw=ga(stg,'maxwidth')!==null?ga(stg,'maxwidth'):inh('maxwidth',1),
       mbv=ga(stg,'maxbytes')!==null?ga(stg,'maxbytes'):inh('maxbytes',1);
     if(su==='char'&&/^\d+$/.test(mw||'')){u.max=+mw;u.slr=1}   /* size-unit char = Unicode characters of the text: entities decoded, inline tags not counted */
@@ -1992,6 +2027,15 @@ function W_parse(txt,emit,ihc){
       }
     }
     u.ct=ctxLines(u).join('\n');
+    if(rAlt0.test(bc)){   /* <alt-trans> proposals (TM / MT): kept as {q: match-quality, o: origin, tl: tool-id, ty: alttranstype, l: xml:lang, mid, s: source, t: target, n: notes} */
+      const al=[];rAlt.lastIndex=0;let am;
+      while((am=rAlt.exec(bc))&&al.length<50){
+        const ab=b.slice(am.index,am.index+am[0].length),at=/^<[^>]*>/.exec(ab),tg=at?at[0]:'',t=grabTagM(ab,am[0],'target');
+        if(!t.trim())continue;
+        const nt=[],rN=/<(?:[\w.\-]+:)?note(?=[\s>])(?:"[^"]*"|'[^']*'|[^>"'])*>([\s\S]*?)<\/(?:[\w.\-]+:)?note\s*>/g;let nm;
+        while((nm=rN.exec(am[0])))nt.push(ab.slice(nm.index+nm[0].indexOf('>')+1,nm.index+nm[0].lastIndexOf('</')));
+        al.push({q:ga(tg,'match-quality')||'',o:W_dec(ga(tg,'origin')||''),tl:W_dec(ga(tg,'tool-id')||ga(tg,'tool')||''),ty:ga(tg,'alttranstype')||'',l:ga(tg,'xml:lang')||'',mid:ga(tg,'mid')||'',s:grabTagM(ab,am[0],'source'),t,n:nt.join('\n')})}
+      if(al.length)u.alts=al}
     u.nmeta=[];u.notes=W_notes(b,bm,u.nmeta);u.nt=u.notes.join('\n');
     const sgs=segSplit(b,bm);
     if(sgs){   /* a <seg-source> with 2+ segments: one unit per segment, grouped like the items of a <plurals> (gk / gn); id is <unit id>#<mid> */
