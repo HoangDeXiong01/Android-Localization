@@ -82,6 +82,9 @@ body:not(.sm) #fl [data-k]{display:none}
 .cxt .cg+.cg{margin-top:6px}
 .cxt .gn{font:700 11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:1px 8px;border-radius:6px;color:var(--gn);background:color-mix(in srgb,var(--gn) 18%,transparent);word-break:break-word}   /* group purpose: always green, whatever the accent colour */
 .cxt .cnm{font:700 11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:1px 8px;border-radius:6px;color:var(--cn);background:color-mix(in srgb,var(--cn) 16%,transparent);word-break:break-word}   /* context-group name: its own colour, next to the purpose */
+#tst{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 76px);z-index:12;margin:0;max-width:calc(100vw - 24px);display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;align-items:center;padding:8px 12px;border-radius:12px;background:color-mix(in srgb,var(--ac) 14%,var(--card));cursor:pointer}   /* the context panel's surface with a light tint of the accent colour; flat, no border */
+#tst .tk{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+#tst .tk>span{max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:0}
 .cxt .cgh{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .cxt .rt{font:700 11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:1px 8px;border-radius:6px;color:var(--rt);background:color-mix(in srgb,var(--rt) 16%,transparent);word-break:break-word}   /* restype: its own colour, on the same row as the group's purpose */
 .cxt .ci{display:flex;gap:6px;align-items:flex-start;margin-top:2px}
@@ -255,6 +258,7 @@ body.busy,body.busy *{cursor:progress}
 <div id="cn" hidden><div class="dlg"><h3 id="cn-h"></h3><div id="cn-b"></div><div id="cn-n"></div><div class="dr"><button id="cn-c" type="button" class="p">Close</button></div></div></div>
 <div id="ms" hidden><div class="dlg"><h3 id="ms-h"></h3><div id="ms-t"></div><div id="ms-l"></div><div class="dr"><button id="ms-c" type="button">Cancel</button><button id="ms-v" type="button">View</button><button id="ms-a" type="button" class="p">Apply</button></div></div></div>
 <div id="mn" hidden><div class="dlg"><div id="ml"><button class="mi" id="open" type="button"></button><button class="mi" id="imp" type="button" hidden></button><button class="mi" id="save" type="button"></button><button class="mi" id="sv2" type="button" hidden></button><button class="mi" id="close" type="button"></button></div><div class="dr"><button id="mn-x" type="button">Close</button></div></div></div>
+<div id="tst" class="cxt" role="status" aria-live="polite" hidden></div>
 <div id="lp" hidden><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="lp-h">
 <h3 id="lp-h">Target language</h3>
 <div id="lp-a"><label id="lp-ah">Add custom language</label>
@@ -1535,6 +1539,29 @@ function paintCtx(el,lines,empty){
 /* XLIFF context grouped: the name of every <context-group> (its purpose) is a coloured heading, its <context> elements are listed under it.
    Contexts outside any group, or a unit without a group at all, are listed flat as before. */
 const cgParts=g=>{const a=String(g||'').split('\u0001');return{p:a[1]||'',n:a[2]||''}};   /* a group key -> its purpose and its name */
+/* the coloured parts the context panel of u shows, each with an example value (kind -> text); empty when there is nothing to explain */
+function ctxKinds(u){const k=new Map();
+  u.ctx.forEach((x,i)=>{if(!ctxKeep(u,x))return;const g=cgParts(u.cg&&u.cg[i]),m=/^([\w:-]+): /.exec(x);
+    if(m&&!k.has('type'))k.set('type',m[1]);if(g.p&&!k.has('purpose'))k.set('purpose',g.p);if(g.n&&!k.has('name'))k.set('name',g.n)});
+  if(u.rty)k.set('restype',u.rty);
+  return k.has('purpose')||k.has('name')||k.has('restype')?k:new Map()}
+/* toast: the same chips as in the panel, then "= meaning". Opening more contexts while it is up adds their parts and extends the time (+1.5 s each, at most 9 s left) */
+const TK=[['purpose','gn','purpose'],['name','cnm','name'],['restype','rt','restype'],['type','nk','context type']];
+let tstT=0,tstEnd=0,tstSet=new Map();
+function ctxToast(kinds){
+  if(!kinds.size)return;
+  const el=$('tst'),now=Date.now(),live=!el.hidden;
+  if(!live)tstSet=new Map();
+  kinds.forEach((v,k)=>{if(!tstSet.has(k))tstSet.set(k,v)});
+  el.textContent='';
+  TK.filter(k=>tstSet.has(k[0])).forEach(([k,cl,t])=>{
+    const sp=document.createElement('span'),c=document.createElement('span');sp.className='tk';c.className=cl;c.textContent=tstSet.get(k);
+    sp.append(c,document.createTextNode('= '+t));el.appendChild(sp)});
+  const ms=Math.min(9000,live?Math.max(0,tstEnd-now)+1500:3500);
+  tstEnd=now+ms;clearTimeout(tstT);tstT=setTimeout(()=>{el.hidden=true},ms);
+  el.onclick=()=>{clearTimeout(tstT);el.hidden=true};
+  el.hidden=false;
+}
 function paintCtxTree(el,u,empty){
   const lines=[];u.ctx.forEach((x,i)=>{if(ctxKeep(u,x))lines.push([x,(u.cg&&u.cg[i])||''])});
   const rty=u.rty||'';   /* restype of the unit (or of its <group>): same row as the first group's purpose, other colour */
@@ -1890,7 +1917,7 @@ function card(u){
     fmSet(u,to);sync();msRefresh(u);
   };
   mtb.onclick=()=>openMtm(u,v=>{setText(v);setVal(u,v);sync()});
-  cx.onclick=()=>{u.showCtx=!u.showCtx;refresh();vsNudge()};
+  cx.onclick=()=>{u.showCtx=!u.showCtx;refresh();vsNudge();if(u.showCtx)ctxToast(ctxKinds(u))};
   ntb.onclick=()=>{u.showNote=!u.showNote;refresh();vsNudge()};
   /* the escape bar opens when the box gets the cursor and stays until the cursor shows up in another box (ESC_CUR: the one that is open) */
   const escHide=()=>{if(!d._foc)return;d._foc=0;refresh();vsNudge()};
