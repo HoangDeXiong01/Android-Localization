@@ -14,7 +14,7 @@ It is for people who find raw XML painful to translate by hand, or who dislike t
 
 **Formats**
 - **Android `strings.xml`** is the main target. It also handles `<string-array>` and `<plurals>`.
-- **XLIFF 1.2** can be opened and saved, and exported as `strings.xml`. XLIFF 2.x is not supported. Supports XLIFF 1.2 `seg-source`. Exports from Crowdin and similar tools, whose `<file original>` is `strings.xml`, `arrays.xml` or `plurals.xml`, are recognised as Android resources.
+- **XLIFF 1.2** can be opened and saved, and exported as `strings.xml`. XLIFF 2.x is not supported. Exports from Crowdin and similar tools, whose `<file original>` is `strings.xml`, `arrays.xml` or `plurals.xml`, are recognised as Android resources.
 
 **Editing**
 - One card per unit, showing the key or ID, the source text with highlighted placeholders, and the target box.
