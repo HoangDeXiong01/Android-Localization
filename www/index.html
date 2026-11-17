@@ -5,9 +5,9 @@
 <title>Android Localization</title>
 <script>try{var c=JSON.parse(localStorage.getItem("cfg")||"{}"),t=c.theme;if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);if(/^[a-z]+$/.test(c.accent||""))document.documentElement.setAttribute("data-accent",c.accent)}catch(e){}</script>
 <style>
-:root{--acl:#3f7d6b;--acd:#8cc7b2;--bg:#fff;--fg:#1c1c1e;--card:#f2f3f3;--ac:var(--acl);--mut:#6b6f73;--hn:#a85d00;--rt:#7a4fa8;--gn:#2e7d32;color-scheme:light dark}
-@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#131415;--fg:#e4e4e6;--card:#1f2022;--ac:var(--acd);--mut:#9a9da1;--hn:#e6b566;--rt:#c4a6ea;--gn:#81c784}}
-:root[data-theme=dark]{--bg:#131415;--fg:#e4e4e6;--card:#1f2022;--ac:var(--acd);--mut:#9a9da1;--hn:#e6b566;--rt:#c4a6ea;--gn:#81c784;color-scheme:dark}
+:root{--acl:#3f7d6b;--acd:#8cc7b2;--bg:#fff;--fg:#1c1c1e;--card:#f2f3f3;--ac:var(--acl);--mut:#6b6f73;--hn:#a85d00;--rt:#7a4fa8;--gn:#2e7d32;--cn:#0b6fa4;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#131415;--fg:#e4e4e6;--card:#1f2022;--ac:var(--acd);--mut:#9a9da1;--hn:#e6b566;--rt:#c4a6ea;--gn:#81c784;--cn:#6cc1ee}}
+:root[data-theme=dark]{--bg:#131415;--fg:#e4e4e6;--card:#1f2022;--ac:var(--acd);--mut:#9a9da1;--hn:#e6b566;--rt:#c4a6ea;--gn:#81c784;--cn:#6cc1ee;color-scheme:dark}
 :root[data-accent=blue]{--acl:#3b6ea5;--acd:#8fb8e6}
 :root[data-accent=teal]{--acl:#2f7f86;--acd:#86c5ca}
 :root[data-accent=rose]{--acl:#a15d6b;--acd:#e0a5b1}
@@ -81,6 +81,7 @@ body:not(.sm) #fl [data-k]{display:none}
 .cxt .cl+.cl{margin-top:4px}
 .cxt .cg+.cg{margin-top:6px}
 .cxt .gn{font:700 11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:1px 8px;border-radius:6px;color:var(--gn);background:color-mix(in srgb,var(--gn) 18%,transparent);word-break:break-word}   /* group purpose: always green, whatever the accent colour */
+.cxt .cnm{font:700 11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:1px 8px;border-radius:6px;color:var(--cn);background:color-mix(in srgb,var(--cn) 16%,transparent);word-break:break-word}   /* context-group name: its own colour, next to the purpose */
 .cxt .cgh{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .cxt .rt{font:700 11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:1px 8px;border-radius:6px;color:var(--rt);background:color-mix(in srgb,var(--rt) 16%,transparent);word-break:break-word}   /* restype: its own colour, on the same row as the group's purpose */
 .cxt .ci{display:flex;gap:6px;align-items:flex-start;margin-top:2px}
@@ -1533,6 +1534,7 @@ function paintCtx(el,lines,empty){
 }
 /* XLIFF context grouped: the name of every <context-group> (its purpose) is a coloured heading, its <context> elements are listed under it.
    Contexts outside any group, or a unit without a group at all, are listed flat as before. */
+const cgParts=g=>{const a=String(g||'').split('\u0001');return{p:a[1]||'',n:a[2]||''}};   /* a group key -> its purpose and its name */
 function paintCtxTree(el,u,empty){
   const lines=[];u.ctx.forEach((x,i)=>{if(ctxKeep(u,x))lines.push([x,(u.cg&&u.cg[i])||''])});
   const rty=u.rty||'';   /* restype of the unit (or of its <group>): same row as the first group's purpose, other colour */
@@ -1545,7 +1547,9 @@ function paintCtxTree(el,u,empty){
     const box=document.createElement('div');box.className='cg';
     const showR=ni===0&&rty;
     if(n.g||showR){const h=document.createElement('div');h.className='cgh';
-      if(n.g){const nm=document.createElement('span');nm.className='gn';nm.textContent=n.g.slice(n.g.indexOf('\u0001')+1);h.appendChild(nm)}
+      if(n.g){const gp=cgParts(n.g);
+        if(gp.p||!gp.n){const pu=document.createElement('span');pu.className='gn';pu.textContent=gp.p||'context';pu.title='context-group purpose';h.appendChild(pu)}
+        if(gp.n){const nm=document.createElement('span');nm.className='cnm';nm.textContent=gp.n;nm.title='context-group name';h.appendChild(nm)}}
       if(showR){const rt=document.createElement('span');rt.className='rt';rt.textContent=rty;rt.title='restype';h.appendChild(rt)}
       box.appendChild(h)}
     n.items.forEach(x=>{
@@ -2020,10 +2024,10 @@ function W_parse(txt,emit,ihc){
     if(rCx0.test(bm)){   /* bm: <alt-trans> blanked, so its own <context-group> is not taken as the unit's context */
       rCx.lastIndex=0;let cm;
       const grp=[],rCg=/<(?:[\w.\-]+:)?context-group(?=[\s>])((?:"[^"]*"|'[^']*'|[^>"'])*)>([\s\S]*?)<\/(?:[\w.\-]+:)?context-group\s*>/g;
-      let gm;while((gm=rCg.exec(bm))){const pu=ga(gm[1],'purpose'),nm=ga(gm[1],'name');grp.push([gm.index,gm.index+gm[0].length,(pu||nm||'context')+(pu&&nm?' ('+nm+')':'')])}
+      let gm;while((gm=rCg.exec(bm))){const pu=ga(gm[1],'purpose'),nm=ga(gm[1],'name');grp.push([gm.index,gm.index+gm[0].length,(pu||'')+'\u0001'+(nm||'')])}
       while((cm=rCx.exec(bm))){
         const ce=cm.index+cm[0].lastIndexOf('</'),ty=ga(cm[1],'context-type')||'context',tx=b.slice(ce-cm[2].length,ce);u.ctx.push(ty+': '+tx);
-        const g=grp.find(x=>cm.index>=x[0]&&cm.index<x[1]);u.cg.push(g?g[0]+'\u0001'+g[2]:'');   /* position + name: two groups with the same name stay two nodes */
+        const g=grp.find(x=>cm.index>=x[0]&&cm.index<x[1]);u.cg.push(g?g[0]+'\u0001'+g[2]:'');   /* position \u0001 purpose \u0001 name: two groups with the same purpose and name stay two nodes */
       }
     }
     u.ct=ctxLines(u).join('\n');
@@ -2466,7 +2470,7 @@ function mtSys(multi){
     '- Text inside <xliff:g> ... </xliff:g> is protected: keep the whole element, its content included, exactly as in the source.',
     '- Keep CDATA wrappers (<![CDATA[ ... ]]>) and double-escaped entities such as &amp;quot; exactly as in the source.',
     '- Keep the same line breaks, leading/trailing spaces and punctuation style.',
-    '- The key name, context, context group purpose, resource type, comments and notes are only hints about meaning and are not to be translated.',
+    '- The key name, context, context group purpose and name, resource type, comments and notes are only hints about meaning and are not to be translated.',
     '- For a plural form, write the correct plural form for the target language.',
     mode==='strings'?'- Apostrophes and double quotes in the output must be escaped as \\\' and \\\" (Android strings.xml).':'',
     GL.length?'- If a glossary is given with the string, translate the listed terms exactly as specified (adapt only grammar if the target language requires).':'',
@@ -2484,10 +2488,10 @@ function mtInfo(src,u){
   }
   if(CFG.aig&&u.rty)info.push('Resource type (restype): '+u.rty);
   if(CFG.aic&&ctxLines(u).length){
-    const pr=[];u.ctx.forEach((x,i)=>{if(ctxKeep(u,x)){const g=(u.cg&&u.cg[i])||'',lb=g?g.slice(g.indexOf('\u0001')+1):'';pr.push([x,CFG.aig&&lb!=='context'?lb:''])}});
+    const pr=[];u.ctx.forEach((x,i)=>{if(ctxKeep(u,x)){const g=(u.cg&&u.cg[i])||'',gp=cgParts(g),lb=[gp.p&&'purpose: '+gp.p,gp.n&&'name: '+gp.n].filter(Boolean).join(', ');pr.push([x,CFG.aig?lb:''])}});
     if(pr.some(p=>p[1])){   /* group purpose on: the context lines are listed per <context-group> */
       const sg=[];pr.forEach(([x,g])=>{let n=sg[sg.length-1];if(!n||n.g!==g){n={g,t:[]};sg.push(n)}n.t.push(x)});
-      sg.forEach(n=>info.push((n.g?'Context group (purpose: '+n.g+'): ':'Context: ')+n.t.join('; ')))
+      sg.forEach(n=>info.push((n.g?'Context group ('+n.g+'): ':'Context: ')+n.t.join('; ')))
     }else info.push('Context: '+ctxLines(u).join('; '))}
   if(CFG.ain&&u.notes&&u.notes.length){let nt=u.notes.map(x=>String(x).trim()).filter(Boolean).join('; ');if(nt.length>800)nt=nt.slice(0,800)+'\u2026';if(nt)info.push('Notes: '+nt)}
   if(CFG.ail&&u.max)info.push(u.seg!==undefined?'Maximum length of the whole text (all its segments together): '+u.max+' characters (hard limit)':'Maximum length of the translation: '+u.max+' characters (hard limit)');
