@@ -168,15 +168,6 @@ body.sm .mi.x{display:none}
 .ck{display:flex!important;align-items:center;gap:10px;margin:6px 0!important;color:var(--fg)!important;font-size:14px!important}
 .qa{font-size:12px;color:#f57c00;margin:2px 2px 6px;white-space:pre-wrap;word-break:break-word}
 .cnt.over{color:#e53935;font-weight:700}
-.cq{min-width:0;height:22px;padding:0 7px;margin-left:6px;font-size:13px;line-height:1;border-radius:6px;vertical-align:middle}
-.cnt-t{width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px;margin-top:8px}   /* fixed segment column; Source and Target share the rest, so Target starts halfway between Source and the right edge */
-.cnt-t th:first-child,.cnt-t td:first-child{width:76px}
-.cnt-t th{font-size:11px;font-weight:600;color:var(--mut);padding:4px 6px}
-.cnt-t th,.cnt-t td{text-align:left}   /* numbers start at the left edge of their column and grow to the right */
-.cnt-t td{padding:5px 6px;font-variant-numeric:tabular-nums;border-top:1px solid rgba(128,128,128,.2)}
-.cnt-t tr.me td{font-weight:600}.cnt-t tfoot td{font-weight:700}
-.cnt-t td.over{color:#e53935}
-#cn-n{font-size:12px;color:var(--mut);margin-top:8px}
 .clr{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:14px}
 .clr span{flex:1;min-width:0;word-break:break-word}
 .clr button{height:34px;min-width:34px;padding:0}
@@ -262,7 +253,6 @@ body.busy,body.busy *{cursor:progress}
 <div id="qac"></div>
 <div class="dr"><button id="c-cancel" type="button">Close</button><button id="c-save" type="button" class="p">Save</button></div>
 </div></div>
-<div id="cn" hidden><div class="dlg"><h3 id="cn-h"></h3><div id="cn-b"></div><div id="cn-n"></div><div class="dr"><button id="cn-c" type="button" class="p">Close</button></div></div></div>
 <div id="ms" hidden><div class="dlg"><h3 id="ms-h"></h3><div id="ms-t"></div><div id="ms-l"></div><div class="dr"><button id="ms-c" type="button">Cancel</button><button id="ms-v" type="button">View</button><button id="ms-a" type="button" class="p">Apply</button></div></div></div>
 <div id="mn" hidden><div class="dlg"><div id="ml"><button class="mi" id="open" type="button"></button><button class="mi" id="imp" type="button" hidden></button><button class="mi" id="save" type="button"></button><button class="mi" id="sv2" type="button" hidden></button><button class="mi" id="close" type="button"></button></div><div class="dr"><button id="mn-x" type="button">Close</button></div></div></div>
 <div id="tst" class="cxt" role="status" aria-live="polite" hidden></div>
@@ -598,8 +588,7 @@ function xmlPlain(c){
 }
 function qaOf(u){
   const c=cur(u),tr=u.tr!==undefined?u.tr:u.oTr,apv=!!(u.ap!==undefined?u.ap:u.oAp);   /* apv: approved (XLIFF 1.2 approved="yes"); strings.xml units are never approved */
-  const sgm=u.seg!==undefined&&(u.max||u.mb)?segJoin(grpOf(u),cur):null;   /* a segment: the limits cover the segments joined, so another segment's text matters too */
-  if(u._qa&&u._qv===QV&&u._qm===mode&&u._qt===tr&&u._qap===apv&&u._qc===c&&u._qf===u.fm&&u._qs===sgm)return u._qa;
+  if(u._qa&&u._qv===QV&&u._qm===mode&&u._qt===tr&&u._qap===apv&&u._qc===c&&u._qf===u.fm)return u._qa;
   const out=[];
   if(c.trim()&&(tr!=='no'||CFG.qa.hid)&&(!apv||CFG.qa.apr)){
     const Q=CFG.qa,s=u.rs;
@@ -621,13 +610,13 @@ function qaOf(u){
       if(n1!==n2)out.push('Numbers differ')}
     if(Q.xml&&/[<&\x00-\x08\x0B\x0C\x0E-\x1F]/.test(c)&&!xmlPlain(c)&&new DOMParser().parseFromString(xmlWrap(c),'application/xml').querySelector('parsererror'))out.push('Invalid XML');
     if(Q.gl&&GL.length){const lcc=c.toLowerCase();glossHits(s).forEach(h=>{if(!lcc.includes(h.t.toLowerCase()))out.push('Glossary: '+h.s+' \u2192 '+h.t)})}
-    if(Q.len&&u.max){const cl=sgm!==null?lenOf(u,sgm):u.slr?txtlen(c):clen(c);if(cl>u.max)out.push(sgm!==null?'Over max length! Tap \u22ee for more details.':'Over max length ('+cl+'/'+u.max+')')}
-    if(Q.len&&u.mb){const n=bytesOf(sgm!==null?sgm:c);if(n>u.mb)out.push(sgm!==null?'Over storage limit! Tap \u22ee for more details.':'Over storage limit ('+n+'/'+u.mb+' bytes, UTF-8)')}
+    if(Q.len&&u.max){const cl=lenOf(u,c);if(cl>u.max)out.push('Over max length ('+cl+'/'+u.max+')')}
+    if(Q.len&&u.mb){const n=bytesOf(c);if(n>u.mb)out.push('Over storage limit ('+n+'/'+u.mb+' bytes, UTF-8)')}
     if(Q.apo&&mode==='strings'&&!/CDATA/.test(c)){const e=apoViol(c.replace(/<[^>]+>/g,''));if(e.q)out.push('Unescaped quote');if(e.b)out.push('Unescaped \\ (a literal backslash is written \\\\)');
       if(u.fm){if(e.pp)out.push('%% does not need escaping: formatted="false" (write a single %)')}
       else if(e.p)out.push('Unescaped % (a literal percent is written %%)')}
   }
-  u._qv=QV;u._qm=mode;u._qt=tr;u._qap=apv;u._qc=c;u._qf=u.fm;u._qs=sgm;u._qa=out;return out;
+  u._qv=QV;u._qm=mode;u._qt=tr;u._qap=apv;u._qc=c;u._qf=u.fm;u._qa=out;return out;
 }
 const lastReq={};let onNet=null;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -1165,18 +1154,6 @@ async function bulkMT(sel){
   render();
 }
 /* ---- plurals / arrays: hide / unhide confirmation ---- */
-/* counter menu of a segment: the characters of every segment, and of the unit when the segments are joined (the limit applies to that) */
-function cntMenu(u){
-  const T=segTot(u),E=t=>String(t).replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';'),mx=u.max,mb=u.mb;
-  let h='<table class="cnt-t"><thead><tr><th>Segment</th><th>Source</th><th>Target</th></tr></thead><tbody>';
-  T.g.forEach(x=>{h+='<tr'+(x===u?' class="me"':'')+'><td>['+E(x.seg)+']</td><td>'+clen(x.rs)+'</td><td>'+lenOf(x,cur(x))+'</td></tr>'});
-  h+='</tbody><tfoot><tr><td>Total</td><td>'+T.sn+'</td><td'+(mx&&T.tn>mx?' class="over"':'')+'>'+T.tn+(mx?'/'+mx:'')+'</td></tr>';
-  if(mb)h+='<tr><td>Bytes</td><td></td><td'+(T.tb>mb?' class="over"':'')+'>'+T.tb+'/'+mb+'</td></tr>';
-  h+='</tfoot></table>';
-  $('cn-h').textContent='Characters in '+u.name;$('cn-b').innerHTML=h;
-  $('cn-n').textContent='Total: the segments joined as one text'+(mx||mb?', which is what the limit applies to':'')+(mb?'. Bytes: UTF-8, target.':'.');
-  $('cn-c').onclick=()=>{$('cn').hidden=true};$('cn').hidden=false;
-}
 function msAsk(o){
   return new Promise(res=>{
     $('ms-h').textContent=o.h;$('ms-t').textContent=o.t;$('ms-l').textContent=o.l||'';$('ms-l').hidden=!o.l;
@@ -1186,10 +1163,9 @@ function msAsk(o){
     $('ms').hidden=false;
   });
 }
-/* length limits of a segmented unit: maxwidth / maxbytes cover the whole target, so they are measured on the segments joined */
+/* length limits (maxwidth / maxbytes) apply to each trans-unit / segment on its own, as in Crowdin, Phrase and other TMSs: a segment is measured alone, never summed with its siblings */
 const lenOf=(u,t)=>(u.slr?txtlen:clen)(t);
 const bytesOf=t=>new TextEncoder().encode(txtOf(t)).length;
-function segTot(u){const g=grpOf(u),s=segJoin(g,x=>x.rs),t=segJoin(g,cur);return {g,s,t,sn:clen(s),tn:lenOf(u,t),tb:bytesOf(t)}}
 const apOf=x=>x.ap!==undefined?x.ap:x.oAp;
 /* segmented units among sel whose approval would change when set to `to` */
 function msApGroups(sel,to){
@@ -1469,7 +1445,7 @@ const sortKey=(k,u)=>{
     case 'fmf':return u.fm?0:1;
     case 'untr':return c.trim()===''?0:1;
     case 'same':return c!==''&&c===u.rs?0:1;
-    case 'over':return u.max&&(u.seg!==undefined?lenOf(u,segJoin(grpOf(u),cur)):u.slr?txtlen(c):clen(c))>u.max?0:1;
+    case 'over':return u.max&&lenOf(u,c)>u.max?0:1;
     case 'lsrc':return -clen(u.rs);
     case 'ssrc':return clen(u.rs);
     case 'ltgt':return -clen(c);
@@ -1829,7 +1805,7 @@ function openMtm(u,apply){
 let CARD_T=null;
 function cardTpl(){
   if(CARD_T)return CARD_T;
-  const t=document.createElement('div');t.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="fx"></button><button class="cx"></button><button class="nb"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button><button class="sg"></button></div><div class="cxt" hidden></div><div class="cxt nbx" hidden></div><div class="src"></div><div class="cnt sc"><span class="cvl"></span></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="esc"></div><div class="cnt tc"><span class="cvl"></span><button class="cq" type="button" hidden>\u22ee</button></div><div class="qa" hidden></div>';
+  const t=document.createElement('div');t.innerHTML='<div class="tp"><input type="checkbox" class="sel" title="Select"><div class="idw"><div class="id"></div><div class="id rn"></div></div></div><div class="bt"><button class="ap"></button><button class="hd"></button><button class="fx"></button><button class="cx"></button><button class="nb"></button><button class="mt"></button><button class="cp"></button><button class="un"></button><button class="cb"></button><button class="sg"></button></div><div class="cxt" hidden></div><div class="cxt nbx" hidden></div><div class="src"></div><div class="cnt sc"><span class="cvl"></span></div><div class="tw"><div class="hl"></div><textarea></textarea></div><div class="esc"></div><div class="cnt tc"><span class="cvl"></span></div><div class="qa" hidden></div>';
   [['.mt','mt'],['.ap','check'],['.cx','help'],['.nb','note'],['.cp','copy'],['.un','undo'],['.cb','clip'],['.sg','sg'],['.fx','pct']].forEach(([sl,k])=>{t.querySelector(sl).innerHTML=ic(k)});
   return CARD_T=t;
 }
@@ -1848,15 +1824,13 @@ function card(u){
   const paintSrc=()=>{q('.src').innerHTML=u.showSeg&&u.seg!==undefined?fullSrc():hlight(u.rs,u)};
   paintSrc();d._fm=u.fm;
   q('.sc .cvl').textContent=clen(u.rs)+' chars';
-  d.querySelectorAll('.cq').forEach(b=>{b.hidden=u.seg===undefined;b.title='Characters per segment and in total';b.setAttribute('aria-label','Character counts of the segments');b.onclick=()=>cntMenu(u)});
   if(mode==='strings')cxt.textContent=ctxLines(u).length?(u.ih?'\u21b3 ':'')+ctxLines(u).join('\n'):'No comment';
   else paintCtxTree(cxt,u,'No context');   /* XLIFF: the context-type is shown as a coloured tag, like syntax highlighting */
   paintNotes(nbx,u.notes||[],u.nmeta);
   const fit=()=>{ta.style.height='auto';ta.style.height=Math.max(70,ta.scrollHeight+2)+'px'};
-  /* target counter: a segment shows its own count (the limit is on the whole unit, see the counter menu); red when the unit is over its limit */
-  const cntUpd=()=>{const n=(u.slr?txtlen:clen)(ta.value),tc=q('.tc'),sg=u.seg!==undefined;let over=!!u.max&&n>u.max;
-    if(sg){const T=segTot(u);over=!!(u.max&&T.tn>u.max)||!!(u.mb&&T.tb>u.mb)}
-    q('.tc .cvl').textContent=n+(!sg&&u.max?'/'+u.max:'')+' chars';tc.classList.toggle('over',over)};
+  /* target counter: the count of this text against its own limit (per segment, never the sum of a unit's segments); red when over maxwidth or maxbytes */
+  const cntUpd=()=>{const n=lenOf(u,ta.value),tc=q('.tc'),over=!!(u.max&&n>u.max)||!!(u.mb&&bytesOf(ta.value)>u.mb);
+    q('.tc .cvl').textContent=n+(u.max?'/'+u.max:'')+' chars';tc.classList.toggle('over',over)};
   const paint=()=>{hl.innerHTML=hlight(ta.value,u)+' ';cntUpd()};
   const setText=v=>{ta.value=v;paint();fit()};
   /* ESCBAR: buttons under the target box insert a character in its escaped form at the cursor (replacing the selection).
@@ -2092,7 +2066,7 @@ function W_parse(txt,emit,ihc){
     if(sgs){   /* a <seg-source> with 2+ segments: one unit per segment, grouped like the items of a <plurals> (gk / gn); id is <unit id>#<mid> */
       const g0=total;
       sgs.forEach(sg=>{const x=Object.assign({},u);x.tid=u.id;x.rn0=u.rn;x.rn=(u.rn?u.rn+' \u00b7 ':'')+'['+sg.mid+']';x.name=u.rn||u.id;x.seg=sg.mid;x.rs=sg.rs;x.rt=sg.rt;if(sg.pre)x.pre=sg.pre;if(sg.tl)x.tl=sg.tl;
-        /* max / slr / mb stay: maxwidth / maxbytes limit the whole target, so they are checked against the segments joined (segJoin) */
+        /* max / slr / mb stay: maxwidth / maxbytes are per segment, each segment is checked against the full limit on its own */
         x.gk=g0;x.gn=sgs.length;buf.push(x);total++;
         if(buf.length>=3000){emit(buf);buf=[]}});
       continue;
@@ -2133,7 +2107,7 @@ function W_trans(txt){
 }
 /* search + sort over the worker's copy of the units. p.dyn lists the units edited on the main thread. */
 function W_query(U,LC,p){
-  const n=U.length,q=p.q,F=p.F,D=new Map();let GW_=null,IXm=null;
+  const n=U.length,q=p.q,F=p.F,D=new Map();
   p.dyn.forEach(d=>D.set(d.p,d));
   const curOf=i=>{const d=D.get(i);return d&&d.v!==undefined?d.v:U[i].rt};
   let idx=[];
@@ -2168,11 +2142,7 @@ function W_query(U,LC,p){
         case 'fmf':return ((d&&d.f)?!u.fm:u.fm)?0:1;   /* the worker's copy holds the value read from the file; d.f marks a change made since */
         case 'untr':return c.trim()===''?0:1;
         case 'same':return c!==''&&c===u.rs?0:1;
-        case 'over':{if(!u.max)return 1;let t=c;
-          if(u.seg!==undefined){   /* a segment: the segments of its unit joined */
-            if(!GW_){GW_=new Map();IXm=new Map();U.forEach((x,j)=>{IXm.set(x,j);if(x.seg!==undefined){let a=GW_.get(x.gk);if(!a)GW_.set(x.gk,a=[]);a.push(x)}})}
-            t=segJoin(GW_.get(u.gk),x=>curOf(IXm.get(x)))}
-          return (u.slr?txtlen(t):clen(t))>u.max?0:1}
+        case 'over':return u.max&&(u.slr?txtlen(c):clen(c))>u.max?0:1;
         case 'lsrc':return -clen(u.rs);
         case 'ssrc':return clen(u.rs);
         case 'ltgt':return -clen(c);
@@ -2541,8 +2511,8 @@ function mtInfo(src,u){
       sg.forEach(n=>info.push((n.g?'Context group ('+n.g+'): ':'Context: ')+n.t.join('; ')))
     }else info.push('Context: '+ctxLines(u).join('; '))}
   if(CFG.ain&&u.notes&&u.notes.length){let nt=u.notes.map(x=>String(x).trim()).filter(Boolean).join('; ');if(nt.length>800)nt=nt.slice(0,800)+'\u2026';if(nt)info.push('Notes: '+nt)}
-  if(CFG.ail&&u.max)info.push(u.seg!==undefined?'Maximum length of the whole text (all its segments together): '+u.max+' characters (hard limit)':'Maximum length of the translation: '+u.max+' characters (hard limit)');
-  if(CFG.ail&&u.mb)info.push(u.seg!==undefined?'Storage limit of the whole text (all its segments together): '+u.mb+' bytes in UTF-8 (hard limit)':'Storage limit of the translation: '+u.mb+' bytes in UTF-8 (hard limit)');
+  if(CFG.ail&&u.max)info.push('Maximum length of the translation: '+u.max+' characters (hard limit)');
+  if(CFG.ail&&u.mb)info.push('Storage limit of the translation: '+u.mb+' bytes in UTF-8 (hard limit)');
   const gh=glossHits(src).slice(0,40);
   if(gh.length)info.push('Glossary (use exactly these translations for these terms):\n'+gh.map(h=>'- '+h.s+' => '+h.t).join('\n'));
   return info;
@@ -3075,7 +3045,7 @@ $('save').onclick=async()=>{
 document.querySelectorAll('#c-acc .sw').forEach(b=>b.title=b.getAttribute('aria-label'));
 [['q','Search'],['sz','Units per page'],['sa','Select all shown'],['so','Sort order']].forEach(([i,t])=>$(i).setAttribute('aria-label',t));
 document.querySelectorAll('.dlg').forEach(d=>{d.setAttribute('role','dialog');d.setAttribute('aria-modal','true')});
-document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const [d,b] of [['lp','lp-x'],['mn','mn-x'],['ms','ms-c'],['cn','cn-c'],['mtm','mtm-c'],['cm','cm-c'],['gm','gm-c'],['ip','ip-c'],['rp','rp-c'],['bm','bclose'],['cfg','c-cancel']])if(!$(d).hidden){e.preventDefault();$(b).click();return}});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;for(const [d,b] of [['lp','lp-x'],['mn','mn-x'],['ms','ms-c'],['mtm','mtm-c'],['cm','cm-c'],['gm','gm-c'],['ip','ip-c'],['rp','rp-c'],['bm','bclose'],['cfg','c-cancel']])if(!$(d).hidden){e.preventDefault();$(b).click();return}});
 addEventListener('beforeunload',e=>{if(doc&&edited()){e.preventDefault();e.returnValue=''}});
 sessCheck();
 let lastW=innerWidth,rz;addEventListener('resize',()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(rz);rz=setTimeout(()=>{if(VS.on)vsResize();else fitAll([...document.querySelectorAll('#list .u')])},150)});
