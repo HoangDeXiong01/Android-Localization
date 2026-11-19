@@ -1591,7 +1591,7 @@ const ctxLines=u=>u.ctx.filter(x=>ctxKeep(u,x));   /* every context type is list
 const hesc0=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'),hesc=hesc0;
 function pcls(m){
   const c=m[0];
-  if(c==='%'||c==='{')return 'ph';
+  if(c==='%'||c==='{'||c==='@'||c==='?')return 'ph';
   if(XG_RX.test(m))return 'xg';
   if(m==='<![CDATA['||m===']]>'||m.startsWith('<!--'))return 'cd';
   if(c==='<')return 'tg';
@@ -2443,7 +2443,7 @@ function langs(){
 /* target language of the open file: its own (XLIFF), else the selector (strings.xml, or an XLIFF that names none) */
 const tlNow=()=>mode==='strings'?lc($('tl').value):doc?(langs().tl||lc($('tl').value)):'';
 /* %: Java/Android Formatter syntax. With the space flag ("% d", "% 2f", "% 5.2f", "% s", "% x"...) the conversion letter must not be followed by a letter/digit, so "50 % de" or "100 % sure" stay plain text */
-const TOK=/%(?:\d+\$|<)?[-#+0,(]*(?: [-#+0,( ]*(?:\d+(?:\.\d+)?|\.\d+)?(?:[tT][a-zA-Z]|[bBsScCdoxXeEfgGaA])(?![A-Za-z0-9])|\d*(?:\.\d+)?(?:[tT][a-zA-Z]|[a-zA-Z%]))|\\u[0-9a-fA-F]{4}|\\[nt'"@?\\]|&amp;(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|<!\[CDATA\[|\]\]>|<!--[\s\S]*?-->|<[^<>]+>|\{[^{}]*\}|[\u00A0\u00AD\u200B-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]/g;
+const TOK=/%(?:\d+\$|<)?[-#+0,(]*(?: [-#+0,( ]*(?:\d+(?:\.\d+)?|\.\d+)?(?:[tT][a-zA-Z]|[bBsScCdoxXeEfgGaA])(?![A-Za-z0-9])|\d*(?:\.\d+)?(?:[tT][a-zA-Z]|[a-zA-Z%]))|\\u[0-9a-fA-F]{4}|\\[nt'"@?\\]|(?<=^\s*)(?:[@?]\*?\+?(?:[A-Za-z_][\w.]*:)?[A-Za-z_][\w.]*\/[\w.]+|@(?:null|empty|undefined)(?![\w.])|\?(?:[A-Za-z_][\w.]*:)?[A-Za-z_][\w.]*(?=\s*$))|&amp;(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);|<!\[CDATA\[|\]\]>|<!--[\s\S]*?-->|<[^<>]+>|\{[^{}]*\}|[\u00A0\u00AD\u200B-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]/g;
 const PCTY=new RegExp(TOK.source,'y');   /* sticky copy: does a % at a given position start a valid format spec (or %%)? */
 /* formatted="false": the text is not run through String.format, so %... is plain text. Same tokens without the % branch */
 const TOKNF=new RegExp(TOK.source.slice(TOK.source.indexOf('|\\\\u[0-9a-fA-F]{4}')+1),'g');
@@ -2483,7 +2483,7 @@ function mtSys(multi){
   return ['You are a professional software localizer for an Android app. Translate the given UI '+(multi?'strings':'string')+'.',
     'Rules:',
     multi?'- Output ONLY a JSON array with one object {"id":<the id of the input>,"text":"<translation>"} per input string, every id exactly once, and nothing else (no notes, no code fences). The input is JSON: a backslash of the source appears doubled there, and must be doubled in your output too.':'- Output ONLY the translation: no quotes, no notes, no code fences.',
-    '- The text is raw XML content. Keep placeholders (%s, %1$d, {name}), escape sequences (\\n, \\\', \\\"), XML entities (&amp; &lt; &gt;) and tags (<b>, <xliff:g ...>) exactly as in the source. Never translate tag names, attributes or placeholders.',
+    '- The text is raw XML content. Keep placeholders (%s, %1$d, {name}, @string/name or ?attr/name at the start of the text), escape sequences (\\n, \\\', \\\"), XML entities (&amp; &lt; &gt;) and tags (<b>, <xliff:g ...>) exactly as in the source. Never translate tag names, attributes or placeholders.',
     '- Text inside <xliff:g> ... </xliff:g> is protected: keep the whole element, its content included, exactly as in the source.',
     '- Keep CDATA wrappers (<![CDATA[ ... ]]>) and double-escaped entities such as &amp;quot; exactly as in the source.',
     '- Keep the same line breaks, leading/trailing spaces and punctuation style.',
