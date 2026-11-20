@@ -220,6 +220,8 @@ body.busy,body.busy *{cursor:progress}
 <div class="swr" id="c-acc" role="radiogroup" aria-label="Accent color"><button type="button" class="sw" role="radio" data-a="sage" style="--sl:#3f7d6b;--sd:#8cc7b2" aria-label="Green"></button><button type="button" class="sw" role="radio" data-a="blue" style="--sl:#3b6ea5;--sd:#8fb8e6" aria-label="Blue"></button><button type="button" class="sw" role="radio" data-a="teal" style="--sl:#2f7f86;--sd:#86c5ca" aria-label="Teal"></button><button type="button" class="sw" role="radio" data-a="rose" style="--sl:#a15d6b;--sd:#e0a5b1" aria-label="Rose"></button><button type="button" class="sw" role="radio" data-a="slate" style="--sl:#5c6b7a;--sd:#a9b8c6" aria-label="Slate"></button><button type="button" class="sw" role="radio" data-a="moss" style="--sl:#5f7330;--sd:#b5c97e" aria-label="Moss"></button><button type="button" class="sw" role="radio" data-a="clay" style="--sl:#b0603f;--sd:#e8a98d" aria-label="Terracotta"></button><button type="button" class="sw" role="radio" data-a="sky" style="--sl:#2c7da0;--sd:#8ccbe8" aria-label="Sky"></button></div>
 <label class="ck"><input type="checkbox" id="c-ws"> Show whitespace</label>
 <div class="hint">Source and translation: each space is shown as • and each line break as ¬, in green. They are drawn over the text and are exactly as wide as one space, so nothing moves and nothing is added to the text.</div>
+<label class="ck"><input type="checkbox" id="c-ai"> Auto indent</label>
+<div class="hint">In the translation box, a new line starts with the same leading spaces / tabs as the line above it.</div>
 <label>Auto-translate engine<select id="c-eng"><option value="free">Free (Google / MyMemory)</option><option value="gemini">Gemini (AI, uses context)</option><option value="groq">Groq (AI, uses context)</option></select></label>
 <div id="gf">
 <label><span id="c-klab">Gemini API key</span><div class="kr"><input id="c-key" type="password" autocomplete="off" spellcheck="false" placeholder="AIza..."><button id="c-eye" type="button" title="Show / hide key" aria-label="Show or hide key"></button></div></label>
@@ -432,7 +434,7 @@ let QV=0;
 const GQDEF='openai/gpt-oss-120b';
 /* models Groq has shut down: a stored choice or cached list that still has them is replaced / cleaned */
 const GQDEAD={'llama-3.3-70b-versatile':GQDEF,'llama-3.1-8b-instant':'openai/gpt-oss-20b'};
-const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,xh:1,ih:1,mrg:1,mrn:10,ws:0,aik:1,aic:1,aig:1,ain:0,ail:1,qa:{},theme:'system',accent:'sage'};
+const CFG={eng:'free',gkey:'',gmodel:DEFMODEL,gmodels:[],qkey:'',qmodel:GQDEF,qmodels:[],gnotes:'',rpmG:10,rpmQ:30,rpmF:30,xh:1,ih:1,mrg:1,mrn:10,ws:0,ai:0,aik:1,aic:1,aig:1,ain:0,ail:1,qa:{},theme:'system',accent:'sage'};
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('cfg')||'{}'))}catch(e){}
 delete CFG.pv;   /* a setting saved by an older version */
 CFG.qa=Object.assign({},QADEF,CFG.qa||{});
@@ -1025,7 +1027,7 @@ function aiShow(e){
 function openCfg(){
   draft={};mdl={};GLd=null;uiEng='';
   $('c-theme').value=CFG.theme||'system';accDraft=ACCS.includes(CFG.accent)?CFG.accent:'sage';accUi();$('c-eng').value=CFG.eng;$('c-notes').value=CFG.gnotes;$('c-rpmf').value=CFG.rpmF;
-  document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);$('c-xh').checked=!!CFG.xh;$('c-ih').checked=!!CFG.ih;$('c-mrg').checked=!!CFG.mrg;$('c-mrn').value=CFG.mrn;$('c-aik').checked=!!CFG.aik;$('c-aic').checked=!!CFG.aic;$('c-aig').checked=!!CFG.aig;$('c-ws').checked=!!CFG.ws;$('c-ain').checked=!!CFG.ain;$('c-ail').checked=!!CFG.ail;qaUi();glInfo();
+  document.querySelectorAll('#qac input').forEach(c=>c.checked=!!CFG.qa[c.dataset.q]);$('c-xh').checked=!!CFG.xh;$('c-ih').checked=!!CFG.ih;$('c-mrg').checked=!!CFG.mrg;$('c-mrn').value=CFG.mrn;$('c-aik').checked=!!CFG.aik;$('c-aic').checked=!!CFG.aic;$('c-aig').checked=!!CFG.aig;$('c-ws').checked=!!CFG.ws;$('c-ai').checked=!!CFG.ai;$('c-ain').checked=!!CFG.ain;$('c-ail').checked=!!CFG.ail;qaUi();glInfo();
   $('cfg').hidden=false;aiShow(CFG.eng);
 }
 function applyCfg(persist=true){
@@ -1033,7 +1035,7 @@ function applyCfg(persist=true){
   const rp=(v,d)=>{v=String(v==null?'':v).trim();return v===''?d:Math.max(0,Math.floor(+v)||0)};
   for(const e in AIF){const f=AIF[e],d=draft[e];if(!d)continue;CFG[f.key]=d.key;CFG[f.model]=d.model||f.def;CFG[f.rpm]=rp(d.rpm,f.rpmDef)}
   CFG.rpmF=rp($('c-rpmf').value,30);
-  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);CFG.xh=$('c-xh').checked?1:0;CFG.ih=$('c-ih').checked?1:0;CFG.mrg=$('c-mrg').checked?1:0;CFG.mrn=Math.min(30,Math.max(2,Math.floor(+$('c-mrn').value)||10));CFG.aik=$('c-aik').checked?1:0;CFG.aic=$('c-aic').checked?1:0;CFG.aig=$('c-aig').checked?1:0;CFG.ws=$('c-ws').checked?1:0;CFG.ain=$('c-ain').checked?1:0;CFG.ail=$('c-ail').checked?1:0;
+  document.querySelectorAll('#qac input').forEach(c=>CFG.qa[c.dataset.q]=c.checked?1:0);CFG.xh=$('c-xh').checked?1:0;CFG.ih=$('c-ih').checked?1:0;CFG.mrg=$('c-mrg').checked?1:0;CFG.mrn=Math.min(30,Math.max(2,Math.floor(+$('c-mrn').value)||10));CFG.aik=$('c-aik').checked?1:0;CFG.aic=$('c-aic').checked?1:0;CFG.aig=$('c-aig').checked?1:0;CFG.ws=$('c-ws').checked?1:0;CFG.ai=$('c-ai').checked?1:0;CFG.ain=$('c-ain').checked?1:0;CFG.ail=$('c-ail').checked?1:0;
   for(const k in mdl)CFG[k]=mdl[k];
   if(persist){QV++;saveCfg()}
 }
@@ -1871,6 +1873,14 @@ function card(u){
     clb.classList.toggle('on',nb>0);clb.title=ct;clb.setAttribute('aria-label',ct);
   };
   const sync=()=>{refresh();upd();vsNudge();if(u.seg!==undefined)msRefresh(u)};   /* segments: approval / visibility are shared by the unit, so its other cards follow */
+  /* Auto indent: Enter copies the leading spaces / tabs of the current line (beforeinput also covers mobile keyboards) */
+  ta.addEventListener('beforeinput',e=>{
+    if(!CFG.ai||e.isComposing||(e.inputType!=='insertLineBreak'&&e.inputType!=='insertParagraph'))return;
+    const a=ta.selectionStart,v=ta.value,ls=v.lastIndexOf('\n',a-1)+1,ind=/^[ \t]*/.exec(v.slice(ls,a))[0];
+    if(!ind)return;   /* nothing to copy: the browser inserts the plain line break */
+    e.preventDefault();
+    if(!(document.execCommand&&document.execCommand('insertText',false,'\n'+ind))){ta.setRangeText('\n'+ind,a,ta.selectionEnd,'end');ta.dispatchEvent(new Event('input'))}
+  });
   ta.oninput=()=>{setVal(u,ta.value);paint();fit();refresh();updLater();vsNudge();if(u.seg!==undefined)msRefresh(u)};
   cp.onclick=()=>{setText(u.rs);setVal(u,u.rs);sync()};
   clb.onclick=()=>openClip(u,v=>{setText(v);setVal(u,v);sync()},sync);
