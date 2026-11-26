@@ -76,7 +76,7 @@ Licensed under the [GNU Affero General Public License v3.0](LICENSE.md) (AGPL-3.
 
 ## FAQ
 
-### 1. Why did you discontinue the React version?
+### 1. Why did you discontinue the React version? And what is your UI philosophy?
 
 Testing a React app without access to a PC turned out to be a major headache. Because there is no desktop build, the user interface is tailored specifically for Android and likely wouldn't adapt well to desktop screens—though to be fair, if you're working on a PC, you already have far more powerful and professional tools available. In addition, since strings.xml files typically consist of many short text entries, I chose a Crowdin-style list view rather than displaying a single string at a time, which would otherwise leave too much empty screen space or force bulky UI controls just to fill it.
 
