@@ -49,7 +49,7 @@ A mobile-first localization app that fits right in your pocket. Open a file, tra
 
 ### Search, filters and sorting
 - **Search** keys, IDs, source, context, notes and translation text, each scope switchable, with optional regex and filters for string arrays and plurals.
-- **14 sort orders:** edited, QA issues, clipboard, unapproved, hidden, untranslated, same as source, longest or shortest source or target, over max length and `formatted="false"`.
+- **15 sort orders:** edited, machine-translated, QA issues, clipboard, unapproved, hidden, untranslated, same as source, longest or shortest source or target, over max length and `formatted="false"`.
 - **Marks:** units affected by a bulk action are highlighted until you clear the marks.
 
 ### Bulk actions
